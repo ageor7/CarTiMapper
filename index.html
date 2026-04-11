@@ -3,6 +3,203 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CarTiMapper 2.0.2 | The Auditor</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <style>
+        /* RESET & NO-CAPS */
+        * { text-transform: none !important; box-sizing: border-box; margin: 0; padding: 0; }
+        body, html { height: 100%; width: 100%; overflow: hidden; font-family: sans-serif; background: #fff; }
+
+        .app-grid { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+        
+        /* PANE 1: TOP (35%) */
+        .pane-top { height: 35vh; display: flex; width: 100%; border-bottom: 2px solid #ddd; }
+        #map-box { width: 50%; height: 100%; background: #1e293b; }
+        #media-box { width: 50%; height: 100%; background: #000; border-left: 2px solid #ddd; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+
+        /* PANE 2: MIDDLE (55%) */
+        .pane-middle { height: 55vh; width: 100%; overflow-y: auto; padding: 40px; background: #fff; }
+        .content-container { max-width: 900px; margin: 0 auto; }
+
+        /* PANE 3: BOTTOM (10%) */
+        .pane-bottom { height: 10vh; width: 100%; background: #0f172a; border-top: 2px solid #334155; display: flex; align-items: center; overflow-x: auto; padding: 0 20px; gap: 10px; }
+
+        /* NAV NODES */
+        .nav-node { 
+            min-width: 160px; height: 70%; background: #1e293b; color: #94a3b8; 
+            border: 1px solid #334155; border-radius: 6px; padding: 10px;
+            cursor: pointer; flex-shrink: 0; display: flex; flex-direction: column; justify-content: center;
+        }
+        .nav-node.active { background: #059669; color: #fff; border-color: #34d399; transform: scale(1.03); }
+
+        #vibe-monitor { 
+            position: fixed; top: 10px; left: 10px; z-index: 9999;
+            background: rgba(15, 23, 42, 0.95); color: #34d399; 
+            padding: 12px; font-family: monospace; font-size: 10px; border-radius: 8px;
+            width: 350px; max-height: 300px; overflow-y: auto; pointer-events: none; border: 1px solid #334155;
+        }
+
+        img { max-height: 100%; max-width: 100%; object-fit: contain; }
+    </style>
+</head>
+<body>
+
+<div class="app-grid">
+    <div class="pane-top">
+        <div id="map-box"></div>
+        <div id="media-box"></div>
+    </div>
+    <div class="pane-middle">
+        <div class="content-container">
+            <div id="ui-date" class="text-emerald-600 font-mono font-bold text-sm mb-2"></div>
+            <h1 id="ui-title" class="text-4xl font-black text-slate-900 mb-6">Auditing Data...</h1>
+            <div id="ui-desc" class="text-slate-700 text-lg leading-relaxed space-y-4"></div>
+        </div>
+    </div>
+    <div class="pane-bottom" id="nav-track"></div>
+</div>
+
+<div id="vibe-monitor"></div>
+
+<script>
+function log(msg, type = "info") {
+    const m = document.getElementById('vibe-monitor');
+    const color = type === "error" ? "#f87171" : (type === "success" ? "#34d399" : "#94a3b8");
+    m.innerHTML = `<div style="color:${color}">> ${msg}</div>` + m.innerHTML;
+}
+
+const SHEET_ID = new URLSearchParams(window.location.search).get('source') || '1K9kZynV-lGUd-yT6GiGsIabfjF-_k-sn5qAeEONzNIE';
+
+let map, db = [];
+
+/**
+ * BRUTE FORCE DATE PARSER
+ */
+function parseDate(val) {
+    if (!val) return { y: "----", display: "" };
+    let d = new Date(val);
+    
+    // Handle Google Serials
+    if (!isNaN(parseFloat(val)) && parseFloat(val) > 30000) {
+        d = new Date((parseFloat(val) - 25569) * 86400 * 1000);
+    }
+
+    if (isNaN(d.getTime())) {
+        const yearMatch = String(val).match(/\d{4}/);
+        return { y: yearMatch ? yearMatch[0] : "----", display: String(val) };
+    }
+
+    const pad = (v) => String(v).padStart(2, '0');
+    return {
+        y: d.getFullYear(),
+        display: `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+    };
+}
+
+async function start() {
+    log("Auditor 2.0.2: Handshaking...");
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+    
+    try {
+        const response = await fetch(url);
+        const text = await response.text();
+        log("Raw Sample: " + text.substring(0, 60).replace(/\n/g, ' '));
+
+        Papa.parse(text, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (res) => {
+                const headers = Object.keys(res.data[0] || {});
+                log("Headers: " + headers.join(", "));
+
+                db = res.data.map((row, i) => {
+                    let item = { _id: i };
+                    for (let k in row) {
+                        const key = k.toLowerCase().trim();
+                        const val = row[k];
+                        // Explicit TimeMapper Header Mapping
+                        if (key === "headline" || key === "title") item.title = val;
+                        if (key === "text" || key === "description") item.desc = val;
+                        if (key === "media" || key === "mediaurl") item.media = val;
+                        if (key === "lat" || key === "latitude") item.lat = val;
+                        if (key === "lon" || key === "longitude") item.lon = val;
+                        if (key === "startdate" || key === "date" || key === "year") item.dateStr = val;
+                        if (key === "enddate") item.endDateStr = val;
+                    }
+                    item._date = parseDate(item.dateStr);
+                    return item;
+                }).filter(d => d.title);
+
+                log(`Audit Result: ${db.length} records found.`, db.length > 0 ? "success" : "error");
+                if (db.length > 0) initApp();
+            }
+        });
+    } catch (e) {
+        log("Network Error: " + e.message, "error");
+    }
+}
+
+function initApp() {
+    // Initialize Map
+    map = L.map('map-box', { zoomControl: false, attributionControl: false }).setView([0,0], 2);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
+    
+    db.forEach((item, i) => {
+        const lat = parseFloat(item.lat), lon = parseFloat(item.lon);
+        if (!isNaN(lat)) {
+            L.circleMarker([lat, lon], { radius: 6, color: '#fff', fillColor: '#3b82f6', fillOpacity: 0.8, weight: 1.5 }).addTo(map);
+        }
+    });
+
+    // Initialize Navigator
+    const track = document.getElementById('nav-track');
+    db.forEach((item, i) => {
+        const node = document.createElement('div');
+        node.className = 'nav-node';
+        node.id = `node-${i}`;
+        node.innerHTML = `<span class="text-[9px] font-mono opacity-50 mb-1">${item._date.y}</span><span class="text-[11px] font-bold truncate">${item.title}</span>`;
+        node.onclick = () => activate(i);
+        track.appendChild(node);
+    });
+
+    setTimeout(() => { map.invalidateSize(); activate(0); }, 1000);
+}
+
+function activate(idx) {
+    const item = db[idx];
+    if (!item) return;
+
+    // UI Sync
+    document.querySelectorAll('.nav-node').forEach(n => n.classList.remove('active'));
+    const activeNode = document.getElementById(`node-${idx}`);
+    activeNode.classList.add('active');
+    activeNode.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+
+    document.getElementById('ui-title').innerHTML = item.title;
+    document.getElementById('ui-desc').innerHTML = item.desc || "";
+    document.getElementById('ui-date').innerText = item._date.display;
+    document.getElementById('media-box').innerHTML = item.media ? `<img src="${item.media}">` : `<span class="text-slate-500">No Media</span>`;
+
+    const lat = parseFloat(item.lat), lon = parseFloat(item.lon);
+    if (!isNaN(lat)) {
+        map.flyTo([lat, lon], 12, { animate: true, duration: 1.5 });
+    }
+    log(`Viewing: ${item.title}`);
+}
+
+document.addEventListener('DOMContentLoaded', start);
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CarTiMapper 2.0.1 | The Resolver</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
