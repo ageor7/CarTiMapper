@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CarTiMapper | Build 1.2.1</title>
+    <title>CarTiMapper | Build 1.2.2</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -13,178 +13,180 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
     <style>
-        :root { --emerald: #10b981; }
-        body, html { height: 100%; margin: 0; overflow: hidden; font-family: sans-serif; background: #000; }
+        /* KILL ALL CAPITALIZATION */
+        * { text-transform: none !important; }
         
-        /* THE STACK: 35% Map | 55% Content | 10% Timeline */
-        #app-wrapper { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+        body, html { height: 100%; margin: 0; overflow: hidden; font-family: sans-serif; background: #fff; }
         
-        #map-canvas { height: 35vh; width: 100%; background: #1e293b; z-index: 1; }
+        #app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
         
-        #content-pane { 
+        /* 1. MAP (35%) */
+        #map-zone { height: 35vh; width: 100%; background: #ddd; z-index: 10; border-bottom: 2px solid #ccc; }
+        
+        /* 2. CONTENT (55%) */
+        #content-zone { 
             height: 55vh; 
             width: 100%; 
-            background: #fff; 
             overflow-y: auto; 
-            display: flex; 
-            flex-direction: column;
-            border-top: 1px solid #ddd;
-            border-bottom: 1px solid #ddd;
+            background: #fff;
+            padding-bottom: 50px;
         }
 
-        #media-viewport { width: 100%; background: #000; min-height: 250px; display: flex; align-items: center; justify-content: center; }
-        #text-viewport { padding: 30px; max-width: 900px; margin: 0 auto; width: 100%; }
+        #hero-media { width: 100%; background: #000; min-height: 200px; display: flex; align-items: center; justify-content: center; }
+        #hero-text { padding: 25px; max-width: 800px; margin: 0 auto; }
         
-        #timeline-viewport { height: 10vh; width: 100%; background: #f8fafc; }
+        /* 3. TIMELINE (10%) */
+        #timeline-zone { height: 10vh; width: 100%; background: #eee; border-top: 2px solid #ccc; }
 
-        /* BRUTE FORCE ANTI-CAPITALIZATION */
-        * { text-transform: none !important; }
-        .tl-headline, .tl-content, .tl-text, h1, h2 { text-transform: none !important; }
-
-        #vibe-console { 
-            position: fixed; top: 10px; right: 10px; z-index: 9999;
-            background: rgba(15, 23, 42, 0.9); color: var(--emerald); 
-            border-radius: 6px; font-family: monospace;
-            width: 320px; height: 180px; font-size: 10px;
-            border: 1px solid #334155; padding: 10px; overflow-y: auto;
-            pointer-events: none; opacity: 0.8;
+        /* Monitor Overlay */
+        #debug-box { 
+            position: fixed; top: 5px; right: 5px; z-index: 9999; 
+            background: rgba(0,0,0,0.8); color: #0f0; font-family: monospace;
+            font-size: 10px; padding: 10px; border-radius: 5px; width: 300px;
+            max-height: 150px; overflow: hidden; pointer-events: none;
         }
     </style>
 </head>
 <body>
 
-<div id="app-wrapper">
-    <div id="map-canvas"></div>
-    <div id="content-pane">
-        <div id="media-viewport"></div>
-        <div id="text-viewport">
-            <div id="view-date" class="text-emerald-600 font-mono text-xs font-bold mb-2"></div>
-            <h1 id="view-title" class="text-3xl font-bold text-slate-900 mb-4">CarTiMapper</h1>
-            <div id="view-desc" class="text-slate-700 text-lg leading-relaxed"></div>
+<div id="app-container">
+    <div id="map-zone"></div>
+    <div id="content-zone">
+        <div id="hero-media"></div>
+        <div id="hero-text">
+            <div id="meta-date" class="text-emerald-600 font-mono text-xs font-bold mb-2"></div>
+            <h1 id="meta-title" class="text-3xl font-bold text-slate-900 mb-4">Loading...</h1>
+            <div id="meta-desc" class="text-slate-700 text-lg leading-relaxed"></div>
         </div>
     </div>
-    <div id="timeline-viewport"></div>
+    <div id="timeline-zone"></div>
 </div>
 
-<div id="vibe-console" id="log-box"></div>
+<div id="debug-box" id="logs"></div>
 
 <script>
 function log(msg) {
-    const b = document.getElementById('vibe-console');
-    b.innerHTML = `[${new Date().toLocaleTimeString('en-GB')}] ${msg}<br>` + b.innerHTML;
+    const b = document.getElementById('debug-box');
+    b.innerHTML = `> ${msg}<br>` + b.innerHTML;
 }
 
 const SHEET_ID = new URLSearchParams(window.location.search).get('source') || '1K9kZynV-lGUd-yT6GiGsIabfjF-_k-sn5qAeEONzNIE';
 
-let appMap, appTimeline, dataStore = [];
+let map, timeline, masterData = [];
 
 /**
- * HIGH-PRECISION DATE CONVERTER
- * Handles Google Serial Numbers and String formats into 24h
+ * THE CHRONOS ENGINE
+ * Accurately parses Google Serial Numbers and standard date strings
  */
-function processDateTime(val) {
-    if (!val) return { y: 2026, m: 1, d: 1, h: 0, min: 0, display: "" };
+function parseUniversalDate(val) {
+    if (!val) return { y: 2026, m: 1, d: 1, h: 0, min: 0, str: "" };
     
-    let date;
-    const num = parseFloat(val);
+    let d;
+    const n = parseFloat(val);
     
-    // Google Serial Date detection (Value usually > 30000)
-    if (!isNaN(num) && num > 30000) {
-        date = new Date((num - 25569) * 86400 * 1000);
+    if (!isNaN(n) && n > 30000) {
+        // Handle Google Serial Date
+        d = new Date((n - 25569) * 86400 * 1000);
     } else {
-        date = new Date(val);
+        d = new Date(val);
     }
 
-    if (isNaN(date.getTime())) return { y: 2026, m: 1, d: 1, h: 0, min: 0, display: String(val) };
+    if (isNaN(d.getTime())) return { y: 2026, m: 1, d: 1, h: 0, min: 0, str: String(val) };
 
-    const p = (n) => String(n).padStart(2, '0');
+    const pad = (v) => String(v).padStart(2, '0');
     return {
-        y: date.getFullYear(),
-        m: date.getMonth() + 1,
-        d: date.getDate(),
-        h: date.getHours(),
-        min: date.getMinutes(),
-        display: `${p(date.getDate())}/${p(date.getMonth()+1)}/${date.getFullYear()} ${p(date.getHours())}:${p(date.getMinutes())}`
+        y: d.getFullYear(),
+        m: d.getMonth() + 1,
+        d: d.getDate(),
+        h: d.getHours(),
+        min: d.getMinutes(),
+        str: `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`
     };
 }
 
-async function initializeApp() {
-    log("Stabilizer 1.2.1 Engaged.");
+async function start() {
+    log("Purge 1.2.2 Initialized");
     const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
     
     Papa.parse(url, {
         download: true, header: true, skipEmptyLines: 'greedy',
         complete: (res) => {
-            // Clean keys and parse dates immediately
-            dataStore = res.data.map((row, i) => {
-                let clean = { _uid: i };
+            masterData = res.data.map((row, i) => {
+                let clean = { _id: i };
                 for (let k in row) clean[k.toLowerCase().replace(/[ "\s]/g, '')] = row[k];
-                clean._ts = processDateTime(clean.startdate || clean.year || clean.date);
+                clean._date = parseUniversalDate(clean.startdate || clean.year || clean.date);
                 return clean;
-            }).filter(item => item.title && item.title.trim().length > 0);
+            }).filter(item => item.title && item.title.trim() !== "");
 
-            log(`Sync Successful: ${dataStore.length} rows.`);
-            renderUI();
+            log(`Sync: ${masterData.length} records found.`);
+            initApp();
         }
     });
 }
 
-function renderUI() {
-    // 1. Map - Fixed and Dark for contrast
-    appMap = L.map('map-canvas', { zoomControl: false }).setView([0,0], 2);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(appMap);
+function initApp() {
+    // 1. Map - Standard OSM
+    map = L.map('map-zone', { zoomControl: false }).setView([0,0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OSM'
+    }).addTo(map);
     
-    dataStore.forEach(item => {
+    masterData.forEach(item => {
         const la = parseFloat(item.lat), lo = parseFloat(item.lon);
-        if (!isNaN(la)) L.circleMarker([la, lo], { radius: 5, color: '#3b82f6', fillOpacity: 0.7 }).addTo(appMap);
+        if (!isNaN(la)) {
+            L.circleMarker([la, lo], { radius: 6, color: '#3b82f6', fillOpacity: 0.8 }).addTo(map);
+        }
     });
 
-    // 2. Timeline - 10% height requires a very minimal config
-    const events = dataStore.map(item => ({
-        start_date: { year: item._ts.y, month: item._ts.m, day: item._ts.d, hour: item._ts.h, minute: item._ts.min },
-        text: { headline: item.title, text: "" }, // Keep timeline clean, text goes to content pane
-        unique_id: item._uid
+    // 2. Timeline
+    const events = masterData.map(item => ({
+        start_date: { 
+            year: item._date.y, 
+            month: item._date.m, 
+            day: item._date.d, 
+            hour: item._date.h, 
+            minute: item._date.min 
+        },
+        text: { headline: item.title, text: "" },
+        unique_id: item._id
     }));
 
-    // timeline.js: start_at_slide 0 ensures we don't skip the first record
-    appTimeline = new TL.Timeline('timeline-viewport', { events }, { 
+    timeline = new TL.Timeline('timeline-zone', { events }, { 
         height: "100%", 
         start_at_slide: 0,
-        initial_zoom: 1,
-        timenav_height_percentage: 100 // Use full 10% for the nav
+        initial_zoom: 1
     });
     
-    appTimeline.on('change', (e) => {
-        const active = dataStore.find(d => d._uid === e.unique_id);
-        if (active) updateContent(active);
+    timeline.on('change', (e) => {
+        const active = masterData.find(d => d._id === e.unique_id);
+        if (active) refreshView(active);
     });
 
-    // Initial Sync
+    // Forced Wake-up
     setTimeout(() => { 
-        appMap.invalidateSize(); 
-        if(dataStore[0]) updateContent(dataStore[0]); 
-    }, 1000);
+        map.invalidateSize(); 
+        if(masterData[0]) refreshView(masterData[0]); 
+    }, 1200);
 }
 
-function updateContent(item) {
-    log(`Syncing: ${item.title}`);
+function refreshView(item) {
+    log(`Viewing: ${item.title}`);
     
-    // Update Text
-    document.getElementById('view-title').innerHTML = item.title;
-    document.getElementById('view-desc').innerHTML = item.description || "";
-    document.getElementById('view-date').innerText = item._ts.display;
+    document.getElementById('meta-title').innerHTML = item.title;
+    document.getElementById('meta-desc').innerHTML = item.description || "";
+    document.getElementById('meta-date').innerText = item._date.str;
     
-    // Update Media
     const media = item.media || item.mediaurl;
-    const viewport = document.getElementById('media-viewport');
-    viewport.innerHTML = media ? `<img src="${media}" class="max-h-[300px] w-auto object-contain shadow-2xl">` : "";
+    const hero = document.getElementById('hero-media');
+    hero.innerHTML = media ? `<img src="${media}" style="max-height: 40vh; width: auto; object-fit: contain;">` : "";
 
-    // Update Map
     const la = parseFloat(item.lat), lo = parseFloat(item.lon);
-    if (!isNaN(la)) appMap.flyTo([la, lo], 12, { animate: true, duration: 1.5 });
+    if (!isNaN(la)) {
+        map.flyTo([la, lo], 13, { animate: true, duration: 2 });
+    }
 }
 
-document.addEventListener('DOMContentLoaded', initializeApp);
+document.addEventListener('DOMContentLoaded', start);
 </script>
 </body>
 </html>
