@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CarTiMapper | Build 1.2.0</title>
+    <title>CarTiMapper | Build 1.2.1</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -14,65 +14,64 @@
 
     <style>
         :root { --emerald: #10b981; }
-        body, html { height: 100%; margin: 0; overflow: hidden; font-family: sans-serif; background: #fff; }
+        body, html { height: 100%; margin: 0; overflow: hidden; font-family: sans-serif; background: #000; }
         
-        /* THE STACK: Map (40%) | Content (30%) | Timeline (30%) */
-        #app-wrapper { display: flex; flex-direction: column; height: 100vh; }
+        /* THE STACK: 35% Map | 55% Content | 10% Timeline */
+        #app-wrapper { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
         
-        #map-canvas { flex: 0 0 40%; width: 100%; background: #cbd5e1; z-index: 1; }
+        #map-canvas { height: 35vh; width: 100%; background: #1e293b; z-index: 1; }
         
-        /* The Middle/Right Pane (Content) */
-        #content-panel { 
-            flex: 0 0 30%; 
-            display: flex; 
+        #content-pane { 
+            height: 55vh; 
+            width: 100%; 
             background: #fff; 
-            border-top: 1px solid #e2e8f0; 
-            border-bottom: 1px solid #e2e8f0;
-            overflow: hidden;
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column;
+            border-top: 1px solid #ddd;
+            border-bottom: 1px solid #ddd;
         }
 
-        #media-box { flex: 0 0 35%; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        #text-box { flex: 1; padding: 20px; overflow-y: auto; }
+        #media-viewport { width: 100%; background: #000; min-height: 250px; display: flex; align-items: center; justify-content: center; }
+        #text-viewport { padding: 30px; max-width: 900px; margin: 0 auto; width: 100%; }
         
-        #timeline-viewport { flex: 0 0 30%; width: 100%; }
+        #timeline-viewport { height: 10vh; width: 100%; background: #f8fafc; }
 
-        /* Disable all Auto-Caps */
+        /* BRUTE FORCE ANTI-CAPITALIZATION */
         * { text-transform: none !important; }
-        
+        .tl-headline, .tl-content, .tl-text, h1, h2 { text-transform: none !important; }
+
         #vibe-console { 
-            position: fixed; top: 10px; left: 10px; z-index: 9999;
-            background: rgba(15, 23, 42, 0.98); color: var(--emerald); 
-            border-radius: 8px; font-family: monospace;
-            display: block; width: 380px; height: 220px;
-            border: 1px solid #334155; resize: both; overflow: hidden;
+            position: fixed; top: 10px; right: 10px; z-index: 9999;
+            background: rgba(15, 23, 42, 0.9); color: var(--emerald); 
+            border-radius: 6px; font-family: monospace;
+            width: 320px; height: 180px; font-size: 10px;
+            border: 1px solid #334155; padding: 10px; overflow-y: auto;
+            pointer-events: none; opacity: 0.8;
         }
-        #console-body { padding: 10px; font-size: 10px; height: 100%; overflow-y: auto; }
     </style>
 </head>
 <body>
 
 <div id="app-wrapper">
     <div id="map-canvas"></div>
-    <div id="content-panel">
-        <div id="media-box"></div>
-        <div id="text-box">
-            <div id="display-date" class="text-emerald-600 font-mono text-[10px] mb-1"></div>
-            <h1 id="display-title" class="text-xl font-bold text-slate-900 mb-2">Initializing...</h1>
-            <div id="display-desc" class="text-slate-600 text-sm leading-relaxed"></div>
+    <div id="content-pane">
+        <div id="media-viewport"></div>
+        <div id="text-viewport">
+            <div id="view-date" class="text-emerald-600 font-mono text-xs font-bold mb-2"></div>
+            <h1 id="view-title" class="text-3xl font-bold text-slate-900 mb-4">CarTiMapper</h1>
+            <div id="view-desc" class="text-slate-700 text-lg leading-relaxed"></div>
         </div>
     </div>
     <div id="timeline-viewport"></div>
 </div>
 
-<div id="vibe-console"><div id="console-body"></div></div>
+<div id="vibe-console" id="log-box"></div>
 
 <script>
-function log(msg, err = false) {
-    const b = document.getElementById('console-body');
-    const l = document.createElement('div');
-    l.style.color = err ? '#f87171' : '#10b981';
-    l.innerHTML = `[${new Date().toLocaleTimeString('en-GB')}] ${msg}`;
-    b.prepend(l);
+function log(msg) {
+    const b = document.getElementById('vibe-console');
+    b.innerHTML = `[${new Date().toLocaleTimeString('en-GB')}] ${msg}<br>` + b.innerHTML;
 }
 
 const SHEET_ID = new URLSearchParams(window.location.search).get('source') || '1K9kZynV-lGUd-yT6GiGsIabfjF-_k-sn5qAeEONzNIE';
@@ -80,289 +79,110 @@ const SHEET_ID = new URLSearchParams(window.location.search).get('source') || '1
 let appMap, appTimeline, dataStore = [];
 
 /**
- * CONVERT GOOGLE SERIAL DATES TO 24H STRINGS
+ * HIGH-PRECISION DATE CONVERTER
+ * Handles Google Serial Numbers and String formats into 24h
  */
-function formatDate(val) {
-    if (!val) return { year: 2026, full: "" };
+function processDateTime(val) {
+    if (!val) return { y: 2026, m: 1, d: 1, h: 0, min: 0, display: "" };
     
-    let d;
-    // Check if it's a Google Serial Number
-    if (!isNaN(val) && parseFloat(val) > 30000) {
-        d = new Date((parseFloat(val) - 25569) * 86400 * 1000);
+    let date;
+    const num = parseFloat(val);
+    
+    // Google Serial Date detection (Value usually > 30000)
+    if (!isNaN(num) && num > 30000) {
+        date = new Date((num - 25569) * 86400 * 1000);
     } else {
-        d = new Date(val);
+        date = new Date(val);
     }
 
-    if (isNaN(d.getTime())) return { year: 2026, full: String(val) };
+    if (isNaN(date.getTime())) return { y: 2026, m: 1, d: 1, h: 0, min: 0, display: String(val) };
 
-    const pad = (n) => String(n).padStart(2, '0');
+    const p = (n) => String(n).padStart(2, '0');
     return {
-        year: d.getFullYear(),
-        month: d.getMonth() + 1,
-        day: d.getDate(),
-        hour: d.getHours(),
-        display: `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+        y: date.getFullYear(),
+        m: date.getMonth() + 1,
+        d: date.getDate(),
+        h: date.getHours(),
+        min: date.getMinutes(),
+        display: `${p(date.getDate())}/${p(date.getMonth()+1)}/${date.getFullYear()} ${p(date.getHours())}:${p(date.getMinutes())}`
     };
 }
 
 async function initializeApp() {
-    log("Synchronizer 1.2.0 Booting...");
+    log("Stabilizer 1.2.1 Engaged.");
     const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
     
     Papa.parse(url, {
         download: true, header: true, skipEmptyLines: 'greedy',
         complete: (res) => {
+            // Clean keys and parse dates immediately
             dataStore = res.data.map((row, i) => {
-                let clean = { _id: i };
+                let clean = { _uid: i };
                 for (let k in row) clean[k.toLowerCase().replace(/[ "\s]/g, '')] = row[k];
-                clean._dateObj = formatDate(clean.startdate || clean.year || clean.date);
+                clean._ts = processDateTime(clean.startdate || clean.year || clean.date);
                 return clean;
-            }).filter(item => item.title && item.title.length > 1);
+            }).filter(item => item.title && item.title.trim().length > 0);
 
-            log(`Verified ${dataStore.length} rows.`);
+            log(`Sync Successful: ${dataStore.length} rows.`);
             renderUI();
         }
     });
 }
 
 function renderUI() {
+    // 1. Map - Fixed and Dark for contrast
     appMap = L.map('map-canvas', { zoomControl: false }).setView([0,0], 2);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(appMap);
     
     dataStore.forEach(item => {
-        const lat = parseFloat(item.lat), lon = parseFloat(item.lon);
-        if (!isNaN(lat)) L.circleMarker([lat, lon], { radius: 5, color: '#3b82f6' }).addTo(appMap);
+        const la = parseFloat(item.lat), lo = parseFloat(item.lon);
+        if (!isNaN(la)) L.circleMarker([la, lo], { radius: 5, color: '#3b82f6', fillOpacity: 0.7 }).addTo(appMap);
     });
 
+    // 2. Timeline - 10% height requires a very minimal config
     const events = dataStore.map(item => ({
-        start_date: { 
-            year: item._dateObj.year, 
-            month: item._dateObj.month, 
-            day: item._dateObj.day,
-            hour: item._dateObj.hour 
-        },
-        text: { headline: item.title, text: item.description },
-        media: { url: item.media || "" },
-        unique_id: item._id
+        start_date: { year: item._ts.y, month: item._ts.m, day: item._ts.d, hour: item._ts.h, minute: item._ts.min },
+        text: { headline: item.title, text: "" }, // Keep timeline clean, text goes to content pane
+        unique_id: item._uid
     }));
 
-    appTimeline = new TL.Timeline('timeline-viewport', { events }, { height: "100%", start_at_slide: 0 });
+    // timeline.js: start_at_slide 0 ensures we don't skip the first record
+    appTimeline = new TL.Timeline('timeline-viewport', { events }, { 
+        height: "100%", 
+        start_at_slide: 0,
+        initial_zoom: 1,
+        timenav_height_percentage: 100 // Use full 10% for the nav
+    });
     
     appTimeline.on('change', (e) => {
-        const active = dataStore.find(d => d._id === e.unique_id);
-        if (active) syncPanels(active);
+        const active = dataStore.find(d => d._uid === e.unique_id);
+        if (active) updateContent(active);
     });
 
+    // Initial Sync
     setTimeout(() => { 
         appMap.invalidateSize(); 
-        if(dataStore[0]) syncPanels(dataStore[0]); 
+        if(dataStore[0]) updateContent(dataStore[0]); 
     }, 1000);
 }
 
-function syncPanels(item) {
-    document.getElementById('display-title').innerHTML = item.title;
-    document.getElementById('display-desc').innerHTML = item.description || "";
-    document.getElementById('display-date').innerText = item._dateObj.display;
+function updateContent(item) {
+    log(`Syncing: ${item.title}`);
     
-    const m = item.media || item.mediaurl;
-    document.getElementById('media-box').innerHTML = m ? `<img src="${m}" class="h-full w-full object-contain">` : "";
-
-    const lat = parseFloat(item.lat), lon = parseFloat(item.lon);
-    if (!isNaN(lat)) appMap.flyTo([lat, lon], 12);
-}
-
-document.addEventListener('DOMContentLoaded', initializeApp);
-</script>
-</body>
-</html><!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CarTiMapper | Build 1.1.9</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="https://cdn.knightlab.com/libs/timeline3/latest/css/timeline.css">
-    <script src="https://cdn.knightlab.com/libs/timeline3/latest/js/timeline.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-
-    <style>
-        :root { --emerald: #34d399; --slate-50: #f8fafc; }
-        body, html { height: 100%; margin: 0; overflow: hidden; font-family: ui-sans-serif, system-ui; background: white; }
-        
-        /* 65/35 Fluid Split */
-        #app-wrapper { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
-        #stage-top { display: flex; flex: 0 0 65%; width: 100%; border-bottom: 2px solid #e2e8f0; overflow: hidden; }
-        
-        #map-canvas { flex: 1; height: 100%; background: #cbd5e1; }
-        
-        /* Side Panel with internal scroll */
-        #content-panel { 
-            flex: 0 0 450px; 
-            display: flex; 
-            flex-direction: column; 
-            background: var(--slate-50); 
-            border-left: 1px solid #e2e8f0;
-            overflow-y: auto;
-        }
-
-        #media-viewport { width: 100%; background: #000; display: flex; align-items: center; justify-content: center; min-height: 200px; }
-        #text-content { padding: 25px; flex-grow: 1; }
-        
-        #timeline-viewport { flex: 0 0 35%; width: 100%; background: #fff; }
-
-        h1, h2, h3 { text-transform: none !important; } /* Kill all auto-caps */
-        
-        #vibe-console { 
-            position: fixed; top: 20px; left: 20px; z-index: 9999;
-            background: rgba(15, 23, 42, 0.98); color: var(--emerald); 
-            border-radius: 12px; font-family: monospace;
-            display: block; width: 400px; height: 250px;
-            border: 1px solid #334155; resize: both; overflow: hidden;
-        }
-        #console-header { background: #1e293b; padding: 8px 12px; cursor: move; display: flex; justify-content: space-between; border-bottom: 1px solid #334155; font-size: 10px; }
-        #console-body { padding: 10px; font-size: 10px; height: calc(100% - 30px); overflow-y: auto; }
-    </style>
-</head>
-<body>
-
-<div id="app-wrapper">
-    <div id="stage-top">
-        <div id="map-canvas"></div>
-        <div id="content-panel">
-            <div id="media-viewport"></div>
-            <div id="text-content">
-                <div id="view-date" class="text-emerald-600 font-mono text-xs font-bold mb-1"></div>
-                <h1 id="view-title" class="text-2xl font-bold text-slate-900 mb-4">CarTiMapper</h1>
-                <div id="view-desc" class="text-slate-600 text-sm leading-relaxed"></div>
-            </div>
-        </div>
-    </div>
-    <div id="timeline-viewport"></div>
-</div>
-
-<div id="vibe-console">
-    <div id="console-header"><span>● CarTiMapper_v1.1.9_ARCHITECT</span><button onclick="this.parentElement.parentElement.style.display='none'">✕</button></div>
-    <div id="console-body"></div>
-</div>
-
-<script>
-function log(msg, err = false) {
-    const b = document.getElementById('console-body');
-    const l = document.createElement('div');
-    l.style.color = err ? '#f87171' : '#34d399';
-    l.innerHTML = `[${new Date().toLocaleTimeString('en-GB')}] ${msg}`;
-    b.prepend(l);
-}
-
-const DEFAULT_ID = '1K9kZynV-lGUd-yT6GiGsIabfjF-_k-sn5qAeEONzNIE';
-const PARAMS = new URLSearchParams(window.location.search);
-const SHEET_ID = PARAMS.get('source') || DEFAULT_ID;
-
-let appMap, appTimeline, dataStore = [];
-
-/**
- * SMART DATE PARSER (24h)
- */
-function parseDateString(val) {
-    if (!val) return { year: 2026, display: "" };
-    const s = String(val).trim();
-    
-    // Attempt standard JS date parsing
-    const d = new Date(s);
-    if (!isNaN(d.getTime())) {
-        return {
-            year: d.getFullYear(),
-            month: d.getMonth() + 1,
-            day: d.getDate(),
-            hour: d.getHours(),
-            display: d.toLocaleString('en-GB', { hour12: false })
-        };
-    }
-    
-    // Fallback regex for Year
-    const yMatch = s.match(/\d{4}/);
-    return { year: yMatch ? parseInt(yMatch[0]) : 2026, display: s };
-}
-
-async function initializeApp() {
-    log("Architect Engine Initializing...");
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
-    
-    Papa.parse(url, {
-        download: true, header: true, skipEmptyLines: true,
-        complete: (res) => {
-            dataStore = res.data.map((row, i) => {
-                let c = { id: i };
-                for (let k in row) c[k.toLowerCase().replace(/[ "\s]/g, '')] = row[k];
-                c._dateObj = parseDateString(c.startdate || c.year || c.date);
-                return c;
-            }).filter(item => item.title);
-            log(`Success: ${dataStore.length} items parsed.`);
-            renderApp();
-        }
-    });
-}
-
-function renderApp() {
-    appMap = L.map('map-canvas', { zoomControl: false }).setView([0,0], 2);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(appMap);
-    
-    const bounds = [];
-    dataStore.forEach(item => {
-        const lat = parseFloat(item.lat || item.latitude);
-        const lon = parseFloat(item.lon || item.longitude);
-        if (!isNaN(lat) && !isNaN(lon)) {
-            L.circleMarker([lat, lon], { radius: 6, color: '#fff', fillColor: '#3b82f6', fillOpacity: 0.8, weight: 1 }).addTo(appMap);
-            bounds.push([lat, lon]);
-        }
-    });
-    if (bounds.length > 0) appMap.fitBounds(bounds);
-
-    const events = dataStore.map(item => ({
-        start_date: { 
-            year: item._dateObj.year, 
-            month: item._dateObj.month, 
-            day: item._dateObj.day,
-            hour: item._dateObj.hour 
-        },
-        text: { headline: item.title, text: item.description },
-        media: { url: item.media || item.mediaurl || "" },
-        unique_id: item.id
-    }));
-
-    appTimeline = new TL.Timeline('timeline-viewport', { events }, { height: "100%", initial_zoom: 2 });
-    appTimeline.on('change', (e) => {
-        const active = dataStore.find(d => d.id === e.unique_id);
-        if (active) updateUI(active);
-    });
-
-    window.addEventListener('resize', () => { appMap.invalidateSize(); });
-    setTimeout(() => { appMap.invalidateSize(); if(dataStore[0]) updateUI(dataStore[0]); }, 800);
-}
-
-function updateUI(item) {
+    // Update Text
     document.getElementById('view-title').innerHTML = item.title;
     document.getElementById('view-desc').innerHTML = item.description || "";
-    document.getElementById('view-date').innerText = item._dateObj.display;
+    document.getElementById('view-date').innerText = item._ts.display;
     
-    const m = item.media || item.mediaurl;
-    document.getElementById('media-viewport').innerHTML = m ? `<img src="${m}" style="max-height:300px; width:auto; object-contain">` : "";
+    // Update Media
+    const media = item.media || item.mediaurl;
+    const viewport = document.getElementById('media-viewport');
+    viewport.innerHTML = media ? `<img src="${media}" class="max-h-[300px] w-auto object-contain shadow-2xl">` : "";
 
-    const lat = parseFloat(item.lat || item.latitude);
-    const lon = parseFloat(item.lon || item.longitude);
-    if (!isNaN(lat) && !isNaN(lon)) appMap.flyTo([lat, lon], 11);
+    // Update Map
+    const la = parseFloat(item.lat), lo = parseFloat(item.lon);
+    if (!isNaN(la)) appMap.flyTo([la, lo], 12, { animate: true, duration: 1.5 });
 }
-
-// Minimal Drag Logic
-const con = document.getElementById("vibe-console");
-const head = document.getElementById("console-header");
-let dragging = false, ox, oy;
-head.onmousedown = (e) => { dragging = true; ox = e.clientX - con.offsetLeft; oy = e.clientY - con.offsetTop; };
-document.onmousemove = (e) => { if (dragging) { con.style.left = (e.clientX - ox) + "px"; con.style.top = (e.clientY - oy) + "px"; } };
-document.onmouseup = () => dragging = false;
 
 document.addEventListener('DOMContentLoaded', initializeApp);
 </script>
