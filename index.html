@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modern TimeMapper Core - v3.3.0</title>
+    <title>Modern TimeMapper Core - v3.4.0</title>
     <style>
         :root { --bg: #121212; --pane: #1e1e1e; --border: #333; --text: #eee; }
         body { margin: 0; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
@@ -54,7 +54,7 @@
         import Papa from 'papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v3.3.0';
+        const APP_VERSION = 'v3.4.0';
 
         const useStore = () => {
             const [logs, setLogs] = useState([]);
@@ -71,22 +71,17 @@
 
         const VibeMonitor = ({ logs, status }) => {
             const logEndRef = useRef(null);
-
-            useEffect(() => { 
-                logEndRef.current?.scrollIntoView({ behavior: 'smooth' }); 
-            }, [logs]);
+            useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [logs]);
 
             const onDrag = (e) => {
                 const monitor = document.getElementById('vibe-monitor');
                 let shiftX = e.clientX - monitor.getBoundingClientRect().left;
                 let shiftY = e.clientY - monitor.getBoundingClientRect().top;
-
                 const moveAt = (pageX, pageY) => {
                     monitor.style.left = pageX - shiftX + 'px';
                     monitor.style.top = pageY - shiftY + 'px';
                     monitor.style.right = 'auto';
                 };
-
                 const onMouseMove = (e) => moveAt(e.pageX, e.pageY);
                 document.addEventListener('mousemove', onMouseMove);
                 document.onmouseup = () => {
@@ -117,67 +112,60 @@
             const { logs, addLog, data, setData, status, setStatus } = useStore();
 
             useEffect(() => {
-                addLog(`Engine ${APP_VERSION} initialized. Using V1-style Fetch.`, 'info');
-                
+                addLog(`Engine ${APP_VERSION} initialized.`, 'info');
                 const params = new URLSearchParams(window.location.search);
                 let sourceParam = params.get('source');
                 const gid = params.get('gid') || '0'; 
 
-                if (!sourceParam) {
-                    addLog('Awaiting ?source=ID in URL.', 'warn');
-                    setStatus('Awaiting Source');
-                    return;
-                }
+                if (!sourceParam) return setStatus('Awaiting Source');
 
                 let sheetId = sourceParam;
                 if (sourceParam.includes('google.com')) {
                     const match = sourceParam.match(/\/d\/([a-zA-Z0-9-_]+)/);
-                    if (match && match[1]) {
-                        sheetId = match[1];
-                        addLog('Extracted ID from full URL successfully.', 'success');
-                    }
+                    if (match && match[1]) sheetId = match[1];
                 }
 
                 addLog(`Targeting Sheet ID: ${sheetId.substring(0, 8)}...`, 'info');
                 fetchGoogleSheetData(sheetId, gid);
             }, []);
 
-            /*
-             * ------------------------------------------
-             * THE V1 LEGACY FETCH STRATEGY
-             * ------------------------------------------
-             * Reverted to using the `/pub` endpoint and PapaParse's native 
-             * XMLHttpRequest downloader, which bypasses modern fetch() CORS traps.
-             */
             const fetchGoogleSheetData = (sheetId, gid) => {
                 setStatus('Fetching Data');
-                
-                // Using the legacy "Publish to Web" endpoint
                 const pubUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/pub?output=csv&gid=${gid}`;
-                addLog(`Connecting to legacy /pub endpoint...`, 'info');
 
                 Papa.parse(pubUrl, {
-                    download: true, // Native XHR download
+                    download: true,
                     header: true,
-                    skipEmptyLines: true,
+                    skipEmptyLines: true, // This is why you see 87 instead of 88 (drops trailing blank rows)
                     complete: (results) => {
-                        // Check if Google returned an HTML error page (like a 404 disguised as 200)
-                        if (results.data.length > 0 && results.data[0] && results.data[0]['<!DOCTYPE html>'] !== undefined) {
+                        if (results.data.length > 0 && results.data[0]['<!DOCTYPE html>'] !== undefined) {
                             addLog('ERROR: Received HTML instead of CSV.', 'error');
-                            addLog('Ensure you clicked "File -> Share -> Publish to Web" in Google Sheets.', 'warn');
                             setStatus('Not Published');
                             return;
                         }
-                        
-                        addLog(`CSV download success! Parsed ${results.data.length} rows.`, 'success');
+                        addLog(`CSV downloaded! Parsed ${results.data.length} rows.`, 'success');
                         validateAndCleanData(results.data);
                     },
                     error: (err) => {
-                        // If it fails here, it will give us the raw XHR error
-                        addLog(`PapaParse Error: ${err.message}`, 'error');
+                        addLog(`Fetch Error: ${err.message}`, 'error');
                         setStatus('Fetch Failed');
                     }
                 });
+            };
+
+            /*
+             * ------------------------------------------
+             * FUZZY FIELD MATCHER
+             * ------------------------------------------
+             * Scans keys ignoring case and whitespace to find target columns.
+             */
+            const fuzzyFind = (row, possibleNames) => {
+                const keys = Object.keys(row);
+                for (let k of keys) {
+                    const cleanKey = k.trim().toLowerCase();
+                    if (possibleNames.includes(cleanKey)) return row[k] ? row[k].trim() : '';
+                }
+                return '';
             };
 
             const validateAndCleanData = (rawData) => {
@@ -186,14 +174,30 @@
                 let missingDates = 0;
 
                 const cleaned = rawData.map((row, index) => {
-                    let startDateStr = row['Start'] || row['Start Date'] || '';
+                    // Extract fields aggressively
+                    const startRaw = fuzzyFind(row, ['start', 'start date', 'startdate', 'date']);
+                    const titleRaw = fuzzyFind(row, ['title', 'headline', 'name']);
+                    const descRaw = fuzzyFind(row, ['description', 'text', 'content']);
+                    const mediaRaw = fuzzyFind(row, ['media', 'image', 'photo', 'url']);
+                    const locRaw = fuzzyFind(row, ['location', 'place', 'coordinates']);
+
                     let parsedDate = null;
                     
-                    if (startDateStr) {
-                        if (!isNaN(startDateStr) && startDateStr > 10000) {
-                            parsedDate = new Date((parseFloat(startDateStr) - 25569) * 86400 * 1000);
-                        } else {
-                            parsedDate = new Date(startDateStr);
+                    if (startRaw) {
+                        // 1. Check for Google Serial Date (e.g., 45393)
+                        if (!isNaN(startRaw) && startRaw > 10000) {
+                            parsedDate = new Date((parseFloat(startRaw) - 25569) * 86400 * 1000);
+                        } 
+                        // 2. Check for bare historical years (e.g., "1945")
+                        else if (!isNaN(startRaw) && startRaw.length === 4) {
+                            parsedDate = new Date(startRaw, 0, 1); // Jan 1st of that year
+                        }
+                        // 3. Fallback to standard string parsing
+                        else {
+                            const tempDate = new Date(startRaw);
+                            if (!isNaN(tempDate.getTime())) {
+                                parsedDate = tempDate;
+                            }
                         }
                     }
 
@@ -202,19 +206,20 @@
 
                     return {
                         id: index,
-                        title: row['Title'] || 'Untitled Event',
+                        title: titleRaw || `Event ${index + 1}`,
                         startDate: parsedDate,
-                        rawStart: startDateStr,
-                        description: row['Description'] || '',
-                        media: row['Media'] ? row['Media'].split(',').map(s => s.trim()) : [],
-                        location: row['Location'] || row['Place'] || null
+                        rawStart: startRaw,
+                        description: descRaw,
+                        media: mediaRaw ? mediaRaw.split(',').map(s => s.trim()) : [],
+                        location: locRaw || null
                     };
                 });
 
                 setData(cleaned);
                 
                 if (missingDates > 0) {
-                    addLog(`Data strategy: ${validCount} valid, ${missingDates} rows missing Start Dates.`, 'warn');
+                    addLog(`Data strategy: ${validCount} valid dates, ${missingDates} rows missing Start Dates.`, 'warn');
+                    addLog(`Hint: Check row ${cleaned.findIndex(r => !r.startDate) + 2} in your Sheet for an invalid date format.`, 'info');
                 } else {
                     addLog(`Data strategy complete. 100% Date Integrity.`, 'success');
                 }
@@ -225,14 +230,14 @@
                 ${html`<${VibeMonitor} logs=${logs} status=${status} />`}
                 <div id="app-grid">
                     <div class="pane map-pane">
-                        <div style="color:#555">Map Canvas (Ready for Leaflet Injection)</div>
+                        <div style="color:#555">Map Canvas (Ready for Leaflet)</div>
                     </div>
                     <div class="pane media-pane">
-                        <div style="color:#555">Media Carousel (Awaiting Media Links)</div>
+                        <div style="color:#555">Media Carousel</div>
                     </div>
                     <div class="pane content-pane">
-                        <h2>Content Layer v3.3</h2>
-                        <p>Currently tracking ${data.length} verified records in Preact state.</p>
+                        <h2>Content Layer v3.4</h2>
+                        <p>Currently tracking ${data.length} verified records in state.</p>
                         ${data.length > 0 ? html`
                             <pre style="font-size:11px; color:#aaa; background:#111; padding: 10px; border-radius: 4px; overflow-x: auto;">
                                 ${JSON.stringify(data[0], null, 2)}
@@ -240,7 +245,7 @@
                         ` : ''}
                     </div>
                     <div class="pane timeline-pane">
-                        <div style="color:#555">SVG Scrubber Bridge (Awaiting Canvas)</div>
+                        <div style="color:#555">SVG Scrubber Bridge</div>
                     </div>
                 </div>
             `;
