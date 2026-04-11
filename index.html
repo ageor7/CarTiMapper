@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CarTiMapper 2.0 | The Core</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <style>
+        * { text-transform: none !important; box-sizing: border-box; margin: 0; padding: 0; }
+        body, html { height: 100%; width: 100%; overflow: hidden; font-family: sans-serif; background: #000; }
+
+        /* THE GRID */
+        .app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+        
+        /* Pane 1: Top (35%) */
+        .pane-top { height: 35vh; display: flex; width: 100%; border-bottom: 1px solid #334155; }
+        #map-container { width: 50%; height: 100%; background: #1e293b; }
+        #media-container { width: 50%; height: 100%; background: #000; border-left: 1px solid #334155; display: flex; align-items: center; justify-content: center; }
+
+        /* Pane 2: Middle (55%) */
+        .pane-middle { height: 55vh; width: 100%; overflow-y: auto; background: #ffffff; padding: 40px; }
+        .content-body { max-width: 800px; margin: 0 auto; }
+
+        /* Pane 3: Bottom (10%) */
+        .pane-bottom { height: 10vh; width: 100%; background: #0f172a; border-top: 1px solid #334155; display: flex; align-items: center; overflow-x: auto; padding: 0 20px; }
+
+        /* CUSTOM TIMELINE NODES */
+        .time-node { 
+            min-width: 120px; height: 60%; margin-right: 10px; background: #1e293b; 
+            border: 1px solid #334155; color: #94a3b8; border-radius: 4px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+        }
+        .time-node:hover { background: #334155; color: #fff; }
+        .time-node.active { background: #059669; color: #fff; border-color: #34d399; transform: scale(1.05); }
+
+        /* SYSTEM MONITOR */
+        #vibe-monitor { 
+            position: fixed; top: 10px; left: 10px; z-index: 9999;
+            background: rgba(15, 23, 42, 0.9); color: #34d399; 
+            padding: 8px; font-family: monospace; font-size: 10px; border-radius: 8px;
+            width: 300px; max-height: 200px; overflow: hidden; pointer-events: none;
+            border: 1px solid #334155; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        }
+
+        img { max-height: 100%; max-width: 100%; object-fit: contain; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="pane-top">
+        <div id="map-container"></div>
+        <div id="media-container"></div>
+    </div>
+    <div class="pane-middle">
+        <div class="content-body">
+            <div id="ui-date" class="text-emerald-600 font-mono font-bold text-xs mb-2"></div>
+            <h1 id="ui-title" class="text-3xl font-bold text-slate-900 mb-4">Initializing...</h1>
+            <div id="ui-desc" class="text-slate-700 text-lg leading-relaxed"></div>
+        </div>
+    </div>
+    <div class="pane-bottom" id="scrubber-track">
+        </div>
+</div>
+
+<div id="vibe-monitor"></div>
+
+<script>
+/**
+ * LOGGING ENGINE
+ */
+function log(msg, err = false) {
+    const m = document.getElementById('vibe-monitor');
+    m.innerHTML = `<div style="color:${err?'#f87171':'#34d399'}">> ${msg}</div>` + m.innerHTML;
+}
+
+const SHEET_ID = new URLSearchParams(window.location.search).get('source') || '1K9kZynV-lGUd-yT6GiGsIabfjF-_k-sn5qAeEONzNIE';
+
+let map, db = [], activeIdx = 0;
+
+/**
+ * THE UNIVERSAL CHRONOS PARSER
+ * Handles strings, numbers, and Google serials into ISO + 24h
+ */
+function parseDateTime(val) {
+    if (!val) return { y: 2026, display: "No Date" };
+    
+    let d;
+    const n = parseFloat(val);
+    
+    if (!isNaN(n) && n > 30000) {
+        d = new Date((n - 25569) * 86400 * 1000);
+    } else {
+        d = new Date(val);
+    }
+
+    if (isNaN(d.getTime())) {
+        // Fallback: try to grab just the year
+        const match = String(val).match(/\d{4}/);
+        return { y: match ? match[0] : 2026, display: String(val) };
+    }
+
+    const pad = (v) => String(v).padStart(2, '0');
+    return {
+        y: d.getFullYear(),
+        display: `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+    };
+}
+
+async function start() {
+    log("CarTiMapper 2.0: Booting Scratch Core...");
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+    
+    Papa.parse(url, {
+        download: true, header: true, skipEmptyLines: true,
+        complete: (res) => {
+            db = res.data.map((row, i) => {
+                let item = { _id: i };
+                for (let k in row) {
+                    const key = k.toLowerCase().replace(/[ "\s]/g, '');
+                    item[key] = row[key];
+                }
+                item._date = parseDateTime(item.startdate || item.year || item.date);
+                return item;
+            }).filter(d => d.title);
+
+            log(`Sync: ${db.length} valid records.`);
+            initApp();
+        }
+    });
+}
+
+function initApp() {
+    // 1. Setup Map
+    map = L.map('map-container', { zoomControl: false, attributionControl: false }).setView([0,0], 2);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
+    
+    db.forEach((item, i) => {
+        const lat = parseFloat(item.lat || item.latitude);
+        const lon = parseFloat(item.lon || item.longitude);
+        if (!isNaN(lat)) {
+            L.circleMarker([lat, lon], { 
+                radius: 6, weight: 2, color: '#fff', fillColor: '#3b82f6', fillOpacity: 0.8 
+            }).addTo(map);
+        }
+    });
+
+    // 2. Setup Custom Scrubber
+    const track = document.getElementById('scrubber-track');
+    db.forEach((item, i) => {
+        const node = document.createElement('div');
+        node.className = 'time-node';
+        node.id = `node-${i}`;
+        node.innerHTML = `<span class="text-[10px] opacity-50">${item._date.y}</span><span class="text-[11px] font-bold px-2 truncate w-full text-center">${item.title}</span>`;
+        node.onclick = () => activate(i);
+        track.appendChild(node);
+    });
+
+    // 3. Kickoff
+    setTimeout(() => { 
+        map.invalidateSize(); 
+        activate(0); 
+    }, 1000);
+}
+
+function activate(idx) {
+    const item = db[idx];
+    if (!item) return;
+
+    // Update Scrubber UI
+    document.querySelectorAll('.time-node').forEach(n => n.classList.remove('active'));
+    document.getElementById(`node-${idx}`).classList.add('active');
+    document.getElementById(`node-${idx}`).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+
+    // Update Content
+    document.getElementById('ui-title').innerHTML = item.title;
+    document.getElementById('ui-desc').innerHTML = item.description || "";
+    document.getElementById('ui-date').innerText = item._date.display;
+    
+    // Update Media
+    const media = item.media || item.mediaurl;
+    document.getElementById('media-container').innerHTML = media ? `<img src="${media}">` : `<div class="text-slate-500 text-xs">No Media</div>`;
+
+    // Update Map
+    const lat = parseFloat(item.lat || item.latitude);
+    const lon = parseFloat(item.lon || item.longitude);
+    if (!isNaN(lat)) {
+        map.flyTo([lat, lon], 12, { animate: true, duration: 1.5 });
+    }
+    
+    log(`View: [${idx}] ${item.title}`);
+}
+
+document.addEventListener('DOMContentLoaded', start);
+</script>
+</body>
+</html>
