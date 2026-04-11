@@ -3,6 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CarTiMapper | Build 1.2.0</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdn.knightlab.com/libs/timeline3/latest/css/timeline.css">
+    <script src="https://cdn.knightlab.com/libs/timeline3/latest/js/timeline.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <style>
+        :root { --emerald: #10b981; }
+        body, html { height: 100%; margin: 0; overflow: hidden; font-family: sans-serif; background: #fff; }
+        
+        /* THE STACK: Map (40%) | Content (30%) | Timeline (30%) */
+        #app-wrapper { display: flex; flex-direction: column; height: 100vh; }
+        
+        #map-canvas { flex: 0 0 40%; width: 100%; background: #cbd5e1; z-index: 1; }
+        
+        /* The Middle/Right Pane (Content) */
+        #content-panel { 
+            flex: 0 0 30%; 
+            display: flex; 
+            background: #fff; 
+            border-top: 1px solid #e2e8f0; 
+            border-bottom: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+
+        #media-box { flex: 0 0 35%; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        #text-box { flex: 1; padding: 20px; overflow-y: auto; }
+        
+        #timeline-viewport { flex: 0 0 30%; width: 100%; }
+
+        /* Disable all Auto-Caps */
+        * { text-transform: none !important; }
+        
+        #vibe-console { 
+            position: fixed; top: 10px; left: 10px; z-index: 9999;
+            background: rgba(15, 23, 42, 0.98); color: var(--emerald); 
+            border-radius: 8px; font-family: monospace;
+            display: block; width: 380px; height: 220px;
+            border: 1px solid #334155; resize: both; overflow: hidden;
+        }
+        #console-body { padding: 10px; font-size: 10px; height: 100%; overflow-y: auto; }
+    </style>
+</head>
+<body>
+
+<div id="app-wrapper">
+    <div id="map-canvas"></div>
+    <div id="content-panel">
+        <div id="media-box"></div>
+        <div id="text-box">
+            <div id="display-date" class="text-emerald-600 font-mono text-[10px] mb-1"></div>
+            <h1 id="display-title" class="text-xl font-bold text-slate-900 mb-2">Initializing...</h1>
+            <div id="display-desc" class="text-slate-600 text-sm leading-relaxed"></div>
+        </div>
+    </div>
+    <div id="timeline-viewport"></div>
+</div>
+
+<div id="vibe-console"><div id="console-body"></div></div>
+
+<script>
+function log(msg, err = false) {
+    const b = document.getElementById('console-body');
+    const l = document.createElement('div');
+    l.style.color = err ? '#f87171' : '#10b981';
+    l.innerHTML = `[${new Date().toLocaleTimeString('en-GB')}] ${msg}`;
+    b.prepend(l);
+}
+
+const SHEET_ID = new URLSearchParams(window.location.search).get('source') || '1K9kZynV-lGUd-yT6GiGsIabfjF-_k-sn5qAeEONzNIE';
+
+let appMap, appTimeline, dataStore = [];
+
+/**
+ * CONVERT GOOGLE SERIAL DATES TO 24H STRINGS
+ */
+function formatDate(val) {
+    if (!val) return { year: 2026, full: "" };
+    
+    let d;
+    // Check if it's a Google Serial Number
+    if (!isNaN(val) && parseFloat(val) > 30000) {
+        d = new Date((parseFloat(val) - 25569) * 86400 * 1000);
+    } else {
+        d = new Date(val);
+    }
+
+    if (isNaN(d.getTime())) return { year: 2026, full: String(val) };
+
+    const pad = (n) => String(n).padStart(2, '0');
+    return {
+        year: d.getFullYear(),
+        month: d.getMonth() + 1,
+        day: d.getDate(),
+        hour: d.getHours(),
+        display: `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+    };
+}
+
+async function initializeApp() {
+    log("Synchronizer 1.2.0 Booting...");
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+    
+    Papa.parse(url, {
+        download: true, header: true, skipEmptyLines: 'greedy',
+        complete: (res) => {
+            dataStore = res.data.map((row, i) => {
+                let clean = { _id: i };
+                for (let k in row) clean[k.toLowerCase().replace(/[ "\s]/g, '')] = row[k];
+                clean._dateObj = formatDate(clean.startdate || clean.year || clean.date);
+                return clean;
+            }).filter(item => item.title && item.title.length > 1);
+
+            log(`Verified ${dataStore.length} rows.`);
+            renderUI();
+        }
+    });
+}
+
+function renderUI() {
+    appMap = L.map('map-canvas', { zoomControl: false }).setView([0,0], 2);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(appMap);
+    
+    dataStore.forEach(item => {
+        const lat = parseFloat(item.lat), lon = parseFloat(item.lon);
+        if (!isNaN(lat)) L.circleMarker([lat, lon], { radius: 5, color: '#3b82f6' }).addTo(appMap);
+    });
+
+    const events = dataStore.map(item => ({
+        start_date: { 
+            year: item._dateObj.year, 
+            month: item._dateObj.month, 
+            day: item._dateObj.day,
+            hour: item._dateObj.hour 
+        },
+        text: { headline: item.title, text: item.description },
+        media: { url: item.media || "" },
+        unique_id: item._id
+    }));
+
+    appTimeline = new TL.Timeline('timeline-viewport', { events }, { height: "100%", start_at_slide: 0 });
+    
+    appTimeline.on('change', (e) => {
+        const active = dataStore.find(d => d._id === e.unique_id);
+        if (active) syncPanels(active);
+    });
+
+    setTimeout(() => { 
+        appMap.invalidateSize(); 
+        if(dataStore[0]) syncPanels(dataStore[0]); 
+    }, 1000);
+}
+
+function syncPanels(item) {
+    document.getElementById('display-title').innerHTML = item.title;
+    document.getElementById('display-desc').innerHTML = item.description || "";
+    document.getElementById('display-date').innerText = item._dateObj.display;
+    
+    const m = item.media || item.mediaurl;
+    document.getElementById('media-box').innerHTML = m ? `<img src="${m}" class="h-full w-full object-contain">` : "";
+
+    const lat = parseFloat(item.lat), lon = parseFloat(item.lon);
+    if (!isNaN(lat)) appMap.flyTo([lat, lon], 12);
+}
+
+document.addEventListener('DOMContentLoaded', initializeApp);
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CarTiMapper | Build 1.1.9</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
