@@ -3,6 +3,210 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CarTiMapper 2.0.3 | The Graphic Core</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <style>
+        * { text-transform: none !important; margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { height: 100%; width: 100%; overflow: hidden; font-family: system-ui, sans-serif; background: #fff; }
+
+        .app-shell { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+        
+        /* PANE 1: TOP (35%) */
+        .pane-top { height: 35vh; display: flex; width: 100%; border-bottom: 2px solid #ddd; }
+        #map-box { width: 50%; height: 100%; background: #1e293b; }
+        #media-box { width: 50%; height: 100%; background: #000; border-left: 2px solid #ddd; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+
+        /* PANE 2: MIDDLE (55%) */
+        .pane-middle { height: 55vh; width: 100%; overflow-y: auto; padding: 40px; background: #fff; }
+        .content-wrap { max-width: 850px; margin: 0 auto; }
+
+        /* PANE 3: BOTTOM (10%) - THE GRAPHICAL NAVIGATOR */
+        .pane-bottom { height: 10vh; width: 100%; background: #0f172a; border-top: 1px solid #334155; position: relative; overflow-x: auto; display: flex; align-items: center; scroll-behavior: smooth; }
+        .time-track { display: flex; height: 100%; align-items: center; padding: 0 50vw; gap: 2px; }
+        .event-tick { 
+            min-width: 150px; height: 100%; border-left: 1px solid #334155; 
+            padding: 10px; cursor: pointer; transition: 0.3s;
+            display: flex; flex-direction: column; justify-content: center;
+            color: #64748b;
+        }
+        .event-tick:hover { background: #1e293b; }
+        .event-tick.active { background: #059669; color: #fff; border-left-color: #34d399; }
+
+        /* MOVABLE MONITOR */
+        #vibe-monitor { 
+            position: fixed; top: 10px; right: 10px; z-index: 9999;
+            background: rgba(15, 23, 42, 0.95); color: #34d399; 
+            border-radius: 8px; font-family: monospace; font-size: 10px;
+            width: 320px; height: 220px; border: 1px solid #334155;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        #monitor-header { background: #1e293b; padding: 6px 12px; cursor: move; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; }
+        #monitor-logs { flex: 1; padding: 10px; overflow-y: auto; }
+
+        img { max-height: 100%; max-width: 100%; object-fit: contain; }
+    </style>
+</head>
+<body>
+
+<div class="app-shell">
+    <div class="pane-top">
+        <div id="map-box"></div>
+        <div id="media-box"></div>
+    </div>
+    <div class="pane-middle">
+        <div class="content-wrap">
+            <div id="ui-date" class="text-emerald-600 font-mono font-bold text-sm mb-2"></div>
+            <h1 id="ui-title" class="text-3xl font-bold text-slate-900 mb-6 tracking-tight">Booting System...</h1>
+            <div id="ui-desc" class="text-slate-700 text-lg leading-relaxed"></div>
+        </div>
+    </div>
+    <div class="pane-bottom" id="nav-pane">
+        <div class="time-track" id="event-track"></div>
+    </div>
+</div>
+
+<div id="vibe-monitor">
+    <div id="monitor-header"><span>● INTEGRITY_MONITOR</span><button onclick="this.parentElement.parentElement.style.display='none'">✕</button></div>
+    <div id="monitor-logs"></div>
+</div>
+
+<script>
+function log(msg, err = false) {
+    const l = document.getElementById('monitor-logs');
+    const d = document.createElement('div');
+    d.style.color = err ? '#f87171' : '#34d399';
+    d.innerHTML = `[${new Date().toLocaleTimeString('en-GB')}] ${msg}`;
+    l.prepend(d);
+}
+
+const SHEET_ID = new URLSearchParams(window.location.search).get('source') || '1K9kZynV-lGUd-yT6GiGsIabfjF-_k-sn5qAeEONzNIE';
+
+let map, db = [];
+
+/**
+ * IMPROVED DATE PARSER
+ */
+function getDisplayDate(val) {
+    if (!val) return { y: "----", full: "" };
+    let d = new Date(val);
+    if (!isNaN(parseFloat(val)) && parseFloat(val) > 30000) {
+        d = new Date((parseFloat(val) - 25569) * 86400 * 1000);
+    }
+    if (isNaN(d.getTime())) {
+        const y = String(val).match(/\d{4}/);
+        return { y: y ? y[0] : "----", full: String(val) };
+    }
+    const p = (v) => String(v).padStart(2, '0');
+    return {
+        y: d.getFullYear(),
+        full: `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`
+    };
+}
+
+async function start() {
+    log("Rebuilding Navigator 2.0.3...");
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+    
+    Papa.parse(url, {
+        download: true, header: true, skipEmptyLines: 'greedy',
+        complete: (res) => {
+            db = res.data.map((row, i) => {
+                let item = { _uid: i };
+                for (let k in row) {
+                    const key = k.toLowerCase().trim().replace(/[ "\s]/g, '');
+                    item[key] = row[key];
+                }
+                // Mapping TimeMapper specific headers
+                item.title = item.headline || item.title || "Untitled";
+                item.text = item.text || item.description || "";
+                item._date = getDisplayDate(item.startdate || item.date || item.year);
+                return item;
+            }).filter(d => d.title !== "Untitled");
+
+            log(`Sync: ${db.length} records processed.`);
+            if (db.length > 0) init();
+        }
+    });
+}
+
+function init() {
+    // MAP
+    map = L.map('map-box', { zoomControl: false, attributionControl: false }).setView([0,0], 2);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
+    
+    db.forEach((item, i) => {
+        const lat = parseFloat(item.lat), lon = parseFloat(item.lon);
+        if (!isNaN(lat)) {
+            L.circleMarker([lat, lon], { radius: 6, color: '#fff', fillColor: '#3b82f6', fillOpacity: 0.8, weight: 1 }).addTo(map);
+        }
+    });
+
+    // GRAPHICAL TRACK
+    const track = document.getElementById('event-track');
+    db.forEach((item, i) => {
+        const tick = document.createElement('div');
+        tick.className = 'event-tick';
+        tick.id = `tick-${i}`;
+        tick.innerHTML = `<span class="text-[9px] font-mono opacity-50 uppercase">${item._date.y}</span><span class="text-[11px] font-bold truncate w-full">${item.title}</span>`;
+        tick.onclick = () => activate(i);
+        track.appendChild(tick);
+    });
+
+    setTimeout(() => { map.invalidateSize(); activate(0); }, 1000);
+}
+
+function activate(idx) {
+    const item = db[idx];
+    if (!item) return;
+
+    // Navigator Sync
+    document.querySelectorAll('.event-tick').forEach(t => t.classList.remove('active'));
+    const currentTick = document.getElementById(`tick-${idx}`);
+    currentTick.classList.add('active');
+    currentTick.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+
+    // UI Sync
+    document.getElementById('ui-title').innerHTML = item.title;
+    document.getElementById('ui-desc').innerHTML = item.text;
+    document.getElementById('ui-date').innerText = item._date.full;
+    
+    // Media Handle with Error Logging
+    const media = item.media || item.mediaurl;
+    const mediaBox = document.getElementById('media-box');
+    if (media) {
+        mediaBox.innerHTML = `<img src="${media}" onerror="log('Media Error: ' + this.src, true)">`;
+    } else {
+        mediaBox.innerHTML = `<span class="text-slate-600 text-xs">NO MEDIA AVAILABLE</span>`;
+    }
+
+    // Map Sync
+    const lat = parseFloat(item.lat), lon = parseFloat(item.lon);
+    if (!isNaN(lat)) {
+        map.flyTo([lat, lon], 12, { animate: true, duration: 1.5 });
+    }
+}
+
+// MOVABLE MONITOR LOGIC
+const mon = document.getElementById("vibe-monitor");
+const mHeader = document.getElementById("monitor-header");
+let dragging = false, ox, oy;
+mHeader.onmousedown = (e) => { dragging = true; ox = e.clientX - mon.offsetLeft; oy = e.clientY - mon.offsetTop; };
+document.onmousemove = (e) => { if (dragging) { mon.style.left = (e.clientX - ox) + "px"; mon.style.top = (e.clientY - oy) + "px"; mon.style.right = 'auto'; } };
+document.onmouseup = () => dragging = false;
+
+document.addEventListener('DOMContentLoaded', start);
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CarTiMapper 2.0.2 | The Auditor</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
