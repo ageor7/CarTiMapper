@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern TimeMapper Core</title>
+    <style>
+        :root { --bg: #121212; --pane: #1e1e1e; --border: #333; --text: #eee; }
+        body { margin: 0; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
+        
+        /* The Hero Stage Grid */
+        #app-grid { display: grid; grid-template-columns: 35% 65%; grid-template-rows: 45vh 45vh 10vh; height: 100vh; }
+        .pane { border: 1px solid var(--border); padding: 1rem; box-sizing: border-box; overflow: hidden; }
+        
+        .map-pane { grid-column: 1; grid-row: 1; background: #1a1a24; }
+        .media-pane { grid-column: 2; grid-row: 1; background: #151515; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; align-items: center; justify-content: center; }
+        .content-pane { grid-column: 1 / span 2; grid-row: 2; background: var(--pane); overflow-y: auto; }
+        .timeline-pane { grid-column: 1 / span 2; grid-row: 3; background: #0a0a0a; display: flex; align-items: center; justify-content: center; }
+
+        /* The Vibe-Monitor */
+        #vibe-monitor {
+            position: fixed; top: 15px; right: 15px; width: 350px; height: 300px;
+            background: rgba(10, 10, 15, 0.9); border: 1px solid #444; border-radius: 8px;
+            display: flex; flex-direction: column; z-index: 9999;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.8); backdrop-filter: blur(8px);
+            resize: both; overflow: hidden; font-family: 'Courier New', monospace;
+        }
+        #vibe-header { background: #222; padding: 8px; cursor: move; font-weight: bold; border-bottom: 1px solid #444; display: flex; justify-content: space-between; user-select: none; }
+        #vibe-logs { flex: 1; overflow-y: auto; padding: 10px; font-size: 12px; line-height: 1.4; }
+        
+        /* Log Colors */
+        .log-info { color: #8be9fd; }
+        .log-success { color: #50fa7b; }
+        .log-warn { color: #ffb86c; }
+        .log-error { color: #ff5555; font-weight: bold; }
+        .log-time { color: #6272a4; margin-right: 5px; }
+    </style>
+    <script type="importmap">
+    {
+        "imports": {
+            "preact": "https://esm.sh/preact@10.19.3",
+            "preact/hooks": "https://esm.sh/preact@10.19.3/hooks",
+            "htm": "https://esm.sh/htm@3.1.1",
+            "papaparse": "https://esm.sh/papaparse@5.4.1"
+        }
+    }
+    </script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="module">
+        import { h, render } from 'preact';
+        import { useState, useEffect, useRef } from 'preact/hooks';
+        import htm from 'htm';
+        import Papa from 'papaparse';
+
+        const html = htm.bind(h);
+
+        // --- GLOBAL STORE & LOGGER ---
+        const useStore = () => {
+            const [logs, setLogs] = useState([]);
+            const [data, setData] = useState([]);
+            const [status, setStatus] = useState('Idle');
+
+            const addLog = (msg, type = 'info') => {
+                const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+                setLogs(prev => [...prev, { time, msg, type }]);
+            };
+
+            return { logs, addLog, data, setData, status, setStatus };
+        };
+
+        // --- COMPONENTS ---
+
+        // 1. The Vibe Monitor (Health Dashboard)
+        const VibeMonitor = ({ logs, status }) => {
+            const [pos, setPos] = useState({ x: 0, y: 0 });
+            const logEndRef = useRef(null);
+
+            // Auto-scroll to bottom of logs
+            useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [logs]);
+
+            // Simple Drag Logic
+            const onDrag = (e) => {
+                const monitor = document.getElementById('vibe-monitor');
+                let shiftX = e.clientX - monitor.getBoundingClientRect().left;
+                let shiftY = e.clientY - monitor.getBoundingClientRect().top;
+
+                const moveAt = (pageX, pageY) => {
+                    monitor.style.left = pageX - shiftX + 'px';
+                    monitor.style.top = pageY - shiftY + 'px';
+                    monitor.style.right = 'auto'; // Disable initial right anchoring
+                };
+
+                const onMouseMove = (e) => moveAt(e.pageX, e.pageY);
+                document.addEventListener('mousemove', onMouseMove);
+                document.onmouseup = () => {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.onmouseup = null;
+                };
+            };
+
+            return html`
+                <div id="vibe-monitor">
+                    <div id="vibe-header" onMouseDown=${onDrag}>
+                        <span>🟢 Vibe-Monitor</span>
+                        <span style="color: #bd93f9">[${status}]</span>
+                    </div>
+                    <div id="vibe-logs">
+                        ${logs.map((l, i) => html`
+                            <div key=${i} class="log-${l.type}">
+                                <span class="log-time">[${l.time}]</span> ${l.msg}
+                            </div>
+                        `)}
+                        <div ref=${logEndRef}></div>
+                    </div>
+                </div>
+            `;
+        };
+
+        // 2. Main App Application
+        const App = () => {
+            const { logs, addLog, data, setData, status, setStatus } = useStore();
+
+            useEffect(() => {
+                addLog('Engine initialized. Checking parameters...', 'info');
+                
+                // Parse CLI / URL Parameters
+                const params = new URLSearchParams(window.location.search);
+                const sheetId = params.get('source');
+                const gid = params.get('gid') || '0';
+
+                if (!sheetId) {
+                    addLog('No ?source=ID found in URL. Awaiting instructions.', 'warn');
+                    setStatus('Awaiting Source');
+                    return;
+                }
+
+                addLog(`Found source ID: ${sheetId.substring(0, 8)}...`, 'success');
+                loadGoogleSheet(sheetId, gid);
+            }, []);
+
+            const loadGoogleSheet = (sheetId, gid) => {
+                setStatus('Fetching Data');
+                const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+                addLog('Requesting CSV via fetch...', 'info');
+
+                Papa.parse(csvUrl, {
+                    download: true,
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: (results) => {
+                        addLog(`PapaParse complete. Found ${results.data.length} rows.`, 'success');
+                        validateAndCleanData(results.data);
+                    },
+                    error: (err) => {
+                        addLog(`Fetch Error: ${err.message}`, 'error');
+                        setStatus('Fetch Failed');
+                    }
+                });
+            };
+
+            const validateAndCleanData = (rawData) => {
+                setStatus('Processing');
+                let validCount = 0;
+                let missingDates = 0;
+
+                const cleaned = rawData.map((row, index) => {
+                    // Google Serial Date Converter Strategy
+                    let startDateStr = row['Start'] || row['Start Date'] || '';
+                    let parsedDate = null;
+                    
+                    if (startDateStr) {
+                        if (!isNaN(startDateStr) && startDateStr > 10000) {
+                            // Convert Google Serial Date (e.g., 45393) to JS Date
+                            parsedDate = new Date((parseFloat(startDateStr) - 25569) * 86400 * 1000);
+                        } else {
+                            parsedDate = new Date(startDateStr);
+                        }
+                    }
+
+                    if (!parsedDate || isNaN(parsedDate)) missingDates++;
+                    else validCount++;
+
+                    return {
+                        id: index,
+                        title: row['Title'] || 'Untitled',
+                        startDate: parsedDate,
+                        rawStart: startDateStr,
+                        description: row['Description'] || '',
+                        media: row['Media'] ? row['Media'].split(',').map(s => s.trim()) : [],
+                        location: row['Location'] || row['Place'] || null
+                    };
+                });
+
+                setData(cleaned);
+                addLog(`Data strategy complete: ${validCount} valid dates, ${missingDates} missing.`, missingDates > 0 ? 'warn' : 'success');
+                setStatus('Active');
+            };
+
+            return html`
+                ${html`<${VibeMonitor} logs=${logs} status=${status} />`}
+                <div id="app-grid">
+                    <div class="pane map-pane">Map Canvas (Ready for Leaflet Injection)</div>
+                    <div class="pane media-pane">Media Carousel (Awaiting Media Links)</div>
+                    <div class="pane content-pane">
+                        <h2>Content Layer</h2>
+                        <p>Currently tracking ${data.length} records in state.</p>
+                        <pre style="font-size:11px; color:#aaa;">${JSON.stringify(data[0] || 'No data yet', null, 2)}</pre>
+                    </div>
+                    <div class="pane timeline-pane">SVG Scrubber Bridge (Awaiting Canvas)</div>
+                </div>
+            `;
+        };
+
+        // Ignite the Engine
+        render(html`<${App} />`, document.getElementById('root'));
+    </script>
+</body>
+</html>
