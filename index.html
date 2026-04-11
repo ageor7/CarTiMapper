@@ -3,6 +3,259 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CarTiMapper 2.1.0 | The Cartographer</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    
+    <script src="https://unpkg.com/vis-timeline@latest/standalone/umd/vis-timeline-graph2d.min.js"></script>
+    <link href="https://unpkg.com/vis-timeline@latest/styles/vis-timeline-graph2d.min.css" rel="stylesheet" type="text/css" />
+
+    <style>
+        * { text-transform: none !important; box-sizing: border-box; margin: 0; padding: 0; }
+        body, html { height: 100%; width: 100%; overflow: hidden; font-family: sans-serif; background: #fff; }
+
+        .app-shell { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+        
+        /* PANE 1: TOP (35%) */
+        .pane-top { height: 35vh; display: flex; width: 100%; border-bottom: 2px solid #cbd5e1; }
+        
+        /* The Map Fix: Relative wrapper with Absolute child forces Leaflet to render */
+        #map-wrapper { width: 50%; height: 100%; position: relative; background: #e2e8f0; }
+        #map-box { position: absolute; top: 0; bottom: 0; left: 0; right: 0; }
+        
+        #media-box { width: 50%; height: 100%; background: #000; display: flex; align-items: center; justify-content: center; }
+
+        /* PANE 2: MIDDLE (55%) */
+        .pane-middle { height: 55vh; width: 100%; overflow-y: auto; padding: 40px; background: #f8fafc; }
+        .content-wrap { max-width: 900px; margin: 0 auto; }
+
+        /* PANE 3: BOTTOM (10%) */
+        .pane-bottom { height: 10vh; width: 100%; background: #ffffff; border-top: 2px solid #cbd5e1; }
+        
+        /* Override Vis-Timeline defaults to fit our theme */
+        .vis-timeline { border: none; height: 100%; }
+        .vis-item { background-color: #1e293b; color: white; border-color: #0f172a; border-radius: 4px; font-size: 11px; cursor: pointer; }
+        .vis-item.vis-selected { background-color: #10b981; border-color: #059669; }
+
+        /* MOVABLE & RESIZABLE MONITOR */
+        #vibe-monitor { 
+            position: fixed; top: 30%; left: 50px; z-index: 9999;
+            background: rgba(15, 23, 42, 0.95); color: #34d399; 
+            border-radius: 8px; font-family: monospace; font-size: 11px;
+            width: 350px; height: 250px; border: 1px solid #334155;
+            display: none; flex-direction: column; overflow: hidden;
+            resize: both; min-width: 250px; min-height: 150px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        #monitor-header { background: #1e293b; padding: 8px 12px; cursor: move; display: flex; justify-content: space-between; align-items: center; user-select: none; }
+        #monitor-logs { flex: 1; padding: 12px; overflow-y: auto; }
+        
+        /* Floating Toggle Button */
+        #monitor-toggle {
+            position: fixed; top: 45%; left: 0; z-index: 9998;
+            background: #1e293b; color: #fff; padding: 10px 15px 10px 10px;
+            border-radius: 0 8px 8px 0; cursor: pointer; border: 1px solid #334155;
+            border-left: none; box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+        }
+
+        img { max-height: 100%; max-width: 100%; object-fit: contain; }
+    </style>
+</head>
+<body>
+
+<div class="app-shell">
+    <div class="pane-top">
+        <div id="map-wrapper"><div id="map-box"></div></div>
+        <div id="media-box"></div>
+    </div>
+    <div class="pane-middle">
+        <div class="content-wrap">
+            <div id="ui-date" class="text-emerald-600 font-mono font-bold text-sm mb-2"></div>
+            <h1 id="ui-title" class="text-3xl font-bold text-slate-900 mb-6 tracking-tight">Initializing Timeline...</h1>
+            <div id="ui-desc" class="text-slate-700 text-lg leading-relaxed space-y-4"></div>
+        </div>
+    </div>
+    <div class="pane-bottom" id="timeline-track"></div>
+</div>
+
+<div id="monitor-toggle" onclick="toggleMonitor()"><b>&lt;/&gt;</b></div>
+<div id="vibe-monitor">
+    <div id="monitor-header"><span>● SYSTEM_LOG</span><button onclick="toggleMonitor()" class="hover:text-white">✕</button></div>
+    <div id="monitor-logs"></div>
+</div>
+
+<script>
+// --- LOGGING ---
+function log(msg, err = false) {
+    const l = document.getElementById('monitor-logs');
+    const d = document.createElement('div');
+    d.style.color = err ? '#f87171' : '#34d399';
+    d.style.marginBottom = '4px';
+    d.innerHTML = `[${new Date().toLocaleTimeString('en-GB')}] ${msg}`;
+    l.prepend(d);
+}
+
+function toggleMonitor() {
+    const m = document.getElementById('vibe-monitor');
+    m.style.display = (m.style.display === 'none' || m.style.display === '') ? 'flex' : 'none';
+}
+
+const SHEET_ID = new URLSearchParams(window.location.search).get('source') || '1K9kZynV-lGUd-yT6GiGsIabfjF-_k-sn5qAeEONzNIE';
+let map, timeline, db = [];
+
+// --- DATE ENGINE ---
+function extractNativeDate(val) {
+    if (!val) return null;
+    let d = new Date(val);
+    
+    // Check Google Serial
+    if (!isNaN(parseFloat(val)) && parseFloat(val) > 30000) {
+        d = new Date((parseFloat(val) - 25569) * 86400 * 1000);
+    }
+    
+    // Check String Fallback
+    if (isNaN(d.getTime())) {
+        const year = String(val).match(/\d{4}/);
+        if (year) d = new Date(year[0], 0, 1); // Default to Jan 1st of that year
+        else return null;
+    }
+    return d;
+}
+
+function formatDateDisplay(d) {
+    if (!d) return "----";
+    const pad = (v) => String(v).padStart(2, '0');
+    return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// --- INITIALIZATION ---
+async function start() {
+    log("Cartographer 2.1.0 Booting...");
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+    
+    Papa.parse(url, {
+        download: true, header: true, skipEmptyLines: 'greedy',
+        complete: (res) => {
+            db = res.data.map((row, i) => {
+                let item = { _id: i };
+                for (let k in row) {
+                    const key = k.toLowerCase().trim().replace(/[ "\s]/g, '');
+                    item[key] = row[key];
+                }
+                
+                item.title = item.headline || item.title || "Untitled";
+                item.text = item.text || item.description || "";
+                item.nativeDate = extractNativeDate(item.startdate || item.date || item.year);
+                item.displayDate = formatDateDisplay(item.nativeDate);
+                
+                return item;
+            }).filter(d => d.title !== "Untitled" && d.nativeDate !== null);
+
+            log(`Sync: ${db.length} valid, date-mapped records.`);
+            if (db.length > 0) initCore();
+        }
+    });
+}
+
+function initCore() {
+    // 1. LEAFLET MAP
+    map = L.map('map-box', { zoomControl: false, attributionControl: false }).setView([0,0], 2);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
+    
+    // Force Leaflet to wake up if container resizes
+    new ResizeObserver(() => { map.invalidateSize(); }).observe(document.getElementById('map-box'));
+
+    const bounds = [];
+    db.forEach(item => {
+        const lat = parseFloat(item.lat || item.latitude);
+        const lon = parseFloat(item.lon || item.longitude);
+        if (!isNaN(lat)) {
+            L.circleMarker([lat, lon], { radius: 6, color: '#fff', fillColor: '#3b82f6', fillOpacity: 0.9, weight: 2 }).addTo(map);
+            bounds.push([lat, lon]);
+        }
+    });
+    if (bounds.length > 0) map.fitBounds(bounds, { padding: [20, 20] });
+
+    // 2. VIS-TIMELINE (Proportional, Linear, Zoomable)
+    const container = document.getElementById('timeline-track');
+    
+    // Format data for Vis
+    const visData = new vis.DataSet(db.map(item => ({
+        id: item._id,
+        content: item.title,
+        start: item.nativeDate,
+        title: item.displayDate // Tooltip
+    })));
+
+    const options = {
+        height: '100%',
+        margin: { item: 10 },
+        zoomMin: 1000 * 60, // Allow zooming down to 1 minute
+        type: 'point', // Use dots on the timeline for precision
+        showCurrentTime: false
+    };
+
+    timeline = new vis.Timeline(container, visData, options);
+
+    // Handshake: Vis-Timeline click -> UI Update
+    timeline.on('select', function (properties) {
+        if (properties.items.length > 0) {
+            const selectedId = properties.items[0];
+            const item = db.find(d => d._id === selectedId);
+            if (item) updateUI(item);
+        }
+    });
+
+    // 3. START APP
+    setTimeout(() => { 
+        map.invalidateSize(); 
+        updateUI(db[0]); 
+        timeline.setSelection(db[0]._id);
+        timeline.focus(db[0]._id); // Center timeline on first event
+    }, 800);
+}
+
+function updateUI(item) {
+    log(`Selected: ${item.title}`);
+    
+    document.getElementById('ui-title').innerHTML = item.title;
+    document.getElementById('ui-desc').innerHTML = item.text;
+    document.getElementById('ui-date').innerText = item.displayDate;
+    
+    const mediaBox = document.getElementById('media-box');
+    const media = item.media || item.mediaurl;
+    if (media) {
+        mediaBox.innerHTML = `<img src="${media}" onerror="log('Media load failed', true)">`;
+    } else {
+        mediaBox.innerHTML = `<span class="text-slate-600 text-sm tracking-widest font-bold">NO MEDIA</span>`;
+    }
+
+    const lat = parseFloat(item.lat || item.latitude);
+    const lon = parseFloat(item.lon || item.longitude);
+    if (!isNaN(lat)) {
+        map.flyTo([lat, lon], 12, { animate: true, duration: 1.5 });
+    }
+}
+
+// --- MONITOR DRAG LOGIC ---
+const mon = document.getElementById("vibe-monitor");
+const mHead = document.getElementById("monitor-header");
+let dragging = false, ox, oy;
+mHead.onmousedown = (e) => { dragging = true; ox = e.clientX - mon.offsetLeft; oy = e.clientY - mon.offsetTop; };
+document.onmousemove = (e) => { if (dragging) { mon.style.left = (e.clientX - ox) + "px"; mon.style.top = (e.clientY - oy) + "px"; mon.style.right = 'auto'; } };
+document.onmouseup = () => dragging = false;
+
+document.addEventListener('DOMContentLoaded', start);
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CarTiMapper 2.0.3 | The Graphic Core</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
