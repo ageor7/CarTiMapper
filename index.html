@@ -3,6 +3,338 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern TimeMapper Core - v3.0.0</title>
+    <style>
+        /* * ==========================================
+         * CSS ARCHITECTURE (CSS Variables & Grid)
+         * ==========================================
+         * We use CSS variables to easily support theming (e.g., ?theme=dark) later.
+         * The layout relies on CSS Grid, which is infinitely lighter and more 
+         * predictable than the absolute positioning nightmare of older libraries.
+         */
+        :root { --bg: #121212; --pane: #1e1e1e; --border: #333; --text: #eee; }
+        body { 
+            margin: 0; 
+            font-family: system-ui, -apple-system, sans-serif; 
+            overflow: hidden; /* Prevents whole-page scrolling; panes scroll internally */
+            background: var(--bg); 
+            color: var(--text); 
+        }
+        
+        /* The Hero Stage Grid: 35% Left (Map), 65% Right (Media), 10% Bottom (Timeline) */
+        #app-grid { 
+            display: grid; 
+            grid-template-columns: 35% 65%; 
+            grid-template-rows: 45vh 45vh 10vh; 
+            height: 100vh; 
+        }
+        
+        .pane { 
+            border: 1px solid var(--border); 
+            padding: 1rem; 
+            box-sizing: border-box; 
+            overflow: hidden; 
+        }
+        
+        .map-pane { grid-column: 1; grid-row: 1; background: #1a1a24; }
+        
+        /* CSS Scroll Snap for the Media Carousel - Zero JS overhead for swiping */
+        .media-pane { 
+            grid-column: 2; grid-row: 1; 
+            background: #151515; 
+            display: flex; 
+            overflow-x: auto; 
+            scroll-snap-type: x mandatory; 
+            align-items: center; 
+            justify-content: center; 
+        }
+        
+        .content-pane { grid-column: 1 / span 2; grid-row: 2; background: var(--pane); overflow-y: auto; }
+        .timeline-pane { grid-column: 1 / span 2; grid-row: 3; background: #0a0a0a; display: flex; align-items: center; justify-content: center; }
+
+        /* * ==========================================
+         * VIBE-MONITOR STYLES
+         * ==========================================
+         * A floating, resizable debug window. z-index is maxed out so it 
+         * always sits above Leaflet maps and SVG canvases.
+         */
+        #vibe-monitor {
+            position: fixed; top: 15px; right: 15px; width: 400px; height: 300px;
+            background: rgba(10, 10, 15, 0.95); border: 1px solid #444; border-radius: 8px;
+            display: flex; flex-direction: column; z-index: 9999;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.8); backdrop-filter: blur(8px);
+            resize: both; overflow: hidden; font-family: 'Courier New', monospace;
+        }
+        #vibe-header { 
+            background: #222; padding: 8px; cursor: move; font-weight: bold; 
+            border-bottom: 1px solid #444; display: flex; justify-content: space-between; 
+            user-select: none; 
+        }
+        #vibe-logs { flex: 1; overflow-y: auto; padding: 10px; font-size: 12px; line-height: 1.4; }
+        
+        .log-info { color: #8be9fd; }
+        .log-success { color: #50fa7b; }
+        .log-warn { color: #ffb86c; }
+        .log-error { color: #ff5555; font-weight: bold; }
+        .log-time { color: #6272a4; margin-right: 5px; }
+    </style>
+    
+    <script type="importmap">
+    {
+        "imports": {
+            "preact": "https://esm.sh/preact@10.19.3",
+            "preact/hooks": "https://esm.sh/preact@10.19.3/hooks",
+            "htm": "https://esm.sh/htm@3.1.1",
+            "papaparse": "https://esm.sh/papaparse@5.4.1"
+        }
+    }
+    </script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="module">
+        import { h, render } from 'preact';
+        import { useState, useEffect, useRef } from 'preact/hooks';
+        import htm from 'htm';
+        import Papa from 'papaparse';
+
+        // Initialize HTM to write JSX-like syntax without a Babel compiler
+        const html = htm.bind(h);
+
+        const APP_VERSION = 'v3.0.0';
+
+        /*
+         * ==========================================
+         * GLOBAL STATE STORE (Custom Hook)
+         * ==========================================
+         * Centralizes data so if the active slide changes, the Map, Media, 
+         * and Timeline components all update reactively in a single render cycle.
+         */
+        const useStore = () => {
+            const [logs, setLogs] = useState([]);
+            const [data, setData] = useState([]);
+            const [status, setStatus] = useState('Idle');
+
+            // Formats timestamps and injects new logs into the array safely
+            const addLog = (msg, type = 'info') => {
+                const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+                setLogs(prev => [...prev, { time, msg, type }]);
+            };
+
+            return { logs, addLog, data, setData, status, setStatus };
+        };
+
+        /*
+         * ==========================================
+         * COMPONENT: VIBE-MONITOR
+         * ==========================================
+         * Handles draggable UI and auto-scrolling log console.
+         */
+        const VibeMonitor = ({ logs, status }) => {
+            const logEndRef = useRef(null);
+
+            // Auto-scroll to the bottom whenever a new log arrives
+            useEffect(() => { 
+                logEndRef.current?.scrollIntoView({ behavior: 'smooth' }); 
+            }, [logs]);
+
+            // Native vanilla JS drag implementation to keep things lightweight
+            const onDrag = (e) => {
+                const monitor = document.getElementById('vibe-monitor');
+                let shiftX = e.clientX - monitor.getBoundingClientRect().left;
+                let shiftY = e.clientY - monitor.getBoundingClientRect().top;
+
+                const moveAt = (pageX, pageY) => {
+                    monitor.style.left = pageX - shiftX + 'px';
+                    monitor.style.top = pageY - shiftY + 'px';
+                    monitor.style.right = 'auto'; // Break the CSS right-alignment anchor
+                };
+
+                const onMouseMove = (e) => moveAt(e.pageX, e.pageY);
+                document.addEventListener('mousemove', onMouseMove);
+                
+                // Cleanup listeners on drop
+                document.onmouseup = () => {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.onmouseup = null;
+                };
+            };
+
+            return html`
+                <div id="vibe-monitor">
+                    <div id="vibe-header" onMouseDown=${onDrag}>
+                        <span>🟢 Vibe-Monitor ${APP_VERSION}</span>
+                        <span style="color: #bd93f9">[${status}]</span>
+                    </div>
+                    <div id="vibe-logs">
+                        ${logs.map((l, i) => html`
+                            <div key=${i} class="log-${l.type}">
+                                <span class="log-time">[${l.time}]</span> ${l.msg}
+                            </div>
+                        `)}
+                        <div ref=${logEndRef}></div>
+                    </div>
+                </div>
+            `;
+        };
+
+        /*
+         * ==========================================
+         * COMPONENT: MAIN APP ENGINE
+         * ==========================================
+         * Orchestrates URL parsing, data fetching, and grid rendering.
+         */
+        const App = () => {
+            const { logs, addLog, data, setData, status, setStatus } = useStore();
+
+            // Run once on mount (componentDidMount equivalent)
+            useEffect(() => {
+                addLog(`Engine ${APP_VERSION} initialized. Checking parameters...`, 'info');
+                
+                // Parse CLI / URL Parameters (e.g. ?source=ABC&gid=0)
+                const params = new URLSearchParams(window.location.search);
+                const sheetId = params.get('source');
+                const gid = params.get('gid') || '0'; // Default to first sheet tab
+
+                if (!sheetId) {
+                    addLog('No ?source=[ID] found in URL.', 'warn');
+                    addLog('Append ?source=YOUR_SHEET_ID to the URL to begin.', 'info');
+                    setStatus('Awaiting Source');
+                    return;
+                }
+
+                addLog(`Source ID detected: ${sheetId.substring(0, 8)}...`, 'success');
+                loadGoogleSheet(sheetId, gid);
+            }, []);
+
+            /*
+             * ------------------------------------------
+             * DATA LAYER: FETCH & PARSE
+             * ------------------------------------------
+             * We bypass Google APIs entirely to avoid auth keys. We request the 
+             * public CSV export URL directly. 
+             */
+            const loadGoogleSheet = (sheetId, gid) => {
+                setStatus('Fetching Data');
+                const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+                addLog(`Requesting CSV via PapaParse...`, 'info');
+
+                Papa.parse(csvUrl, {
+                    download: true,
+                    header: true, // Automatically map row 1 to object keys
+                    skipEmptyLines: true,
+                    complete: (results) => {
+                        // Check if Google intercepted with an HTML login page instead of CSV
+                        if (results.data.length > 0 && results.data[0]['<!DOCTYPE html>'] !== undefined) {
+                            addLog('FETCH ERROR: Received HTML instead of CSV.', 'error');
+                            addLog('Is your Google Sheet set to "Anyone with the link" (Public)?', 'warn');
+                            setStatus('Auth Failed');
+                            return;
+                        }
+                        addLog(`PapaParse complete. Found ${results.data.length} raw rows.`, 'success');
+                        validateAndCleanData(results.data);
+                    },
+                    error: (err) => {
+                        addLog(`Network/CORS Error: ${err.message}`, 'error');
+                        addLog(`Check your internet or ensure the sheet is published to the web.`, 'warn');
+                        setStatus('Fetch Failed');
+                    }
+                });
+            };
+
+            /*
+             * ------------------------------------------
+             * DATA LAYER: VALIDATION & TRANSFORMATION
+             * ------------------------------------------
+             * Raw sheet data is messy. We normalize keys, handle missing fields,
+             * and most importantly, translate Google's weird numeric dates.
+             */
+            const validateAndCleanData = (rawData) => {
+                setStatus('Processing');
+                let validCount = 0;
+                let missingDates = 0;
+
+                const cleaned = rawData.map((row, index) => {
+                    // Handle dynamic header naming conventions safely
+                    let startDateStr = row['Start'] || row['Start Date'] || '';
+                    let parsedDate = null;
+                    
+                    if (startDateStr) {
+                        // Google Serial Date Converter Strategy
+                        // Google sheets stores 'Jan 1, 1900' as a float. 
+                        // The magic number 25569 offsets the epoch difference between Excel/Sheets and Unix time.
+                        if (!isNaN(startDateStr) && startDateStr > 10000) {
+                            parsedDate = new Date((parseFloat(startDateStr) - 25569) * 86400 * 1000);
+                        } else {
+                            // Fallback to standard JS Date parsing for ISO formats (YYYY-MM-DD)
+                            parsedDate = new Date(startDateStr);
+                        }
+                    }
+
+                    // Tally health metrics
+                    if (!parsedDate || isNaN(parsedDate)) missingDates++;
+                    else validCount++;
+
+                    // The definitive 'Source of Truth' object schema for the rest of the app
+                    return {
+                        id: index,
+                        title: row['Title'] || 'Untitled Event',
+                        startDate: parsedDate,
+                        rawStart: startDateStr,
+                        description: row['Description'] || '',
+                        // Handle comma-separated media URLs for the carousel
+                        media: row['Media'] ? row['Media'].split(',').map(s => s.trim()) : [],
+                        location: row['Location'] || row['Place'] || null
+                    };
+                });
+
+                // Commit to Virtual DOM state
+                setData(cleaned);
+                
+                if (missingDates > 0) {
+                    addLog(`Data strategy: ${validCount} valid, ${missingDates} rows missing Start Dates.`, 'warn');
+                } else {
+                    addLog(`Data strategy complete. 100% Date Integrity.`, 'success');
+                }
+                setStatus('Active');
+            };
+
+            // Render the Virtual DOM Layout
+            return html`
+                ${html`<${VibeMonitor} logs=${logs} status=${status} />`}
+                <div id="app-grid">
+                    <div class="pane map-pane">
+                        <div style="color:#555">Map Canvas (Ready for Leaflet Injection)</div>
+                    </div>
+                    <div class="pane media-pane">
+                        <div style="color:#555">Media Carousel (Awaiting Media Links)</div>
+                    </div>
+                    <div class="pane content-pane">
+                        <h2>Content Layer v3.0</h2>
+                        <p>Currently tracking ${data.length} verified records in Preact state.</p>
+                        ${data.length > 0 ? html`
+                            <pre style="font-size:11px; color:#aaa; background:#111; padding: 10px;">
+                                ${JSON.stringify(data[0], null, 2)}
+                            </pre>
+                        ` : ''}
+                    </div>
+                    <div class="pane timeline-pane">
+                        <div style="color:#555">SVG Scrubber Bridge (Awaiting Canvas)</div>
+                    </div>
+                </div>
+            `;
+        };
+
+        // Ignite the Preact Engine
+        render(html`<${App} />`, document.getElementById('root'));
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Modern TimeMapper Core</title>
     <style>
         :root { --bg: #121212; --pane: #1e1e1e; --border: #333; --text: #eee; }
