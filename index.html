@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modern TimeMapper Core - v3.5.0</title>
+    <title>Modern TimeMapper Core - v3.6.0</title>
     <style>
         :root { --bg: #121212; --pane: #1e1e1e; --border: #333; --text: #eee; }
         body { margin: 0; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
@@ -17,7 +17,7 @@
         .timeline-pane { grid-column: 1 / span 2; grid-row: 3; background: #0a0a0a; display: flex; align-items: center; justify-content: center; }
 
         #vibe-monitor {
-            position: fixed; top: 15px; right: 15px; width: 450px; height: 350px;
+            position: fixed; top: 15px; right: 15px; width: 480px; height: 380px;
             background: rgba(10, 10, 15, 0.95); border: 1px solid #444; border-radius: 8px;
             display: flex; flex-direction: column; z-index: 9999;
             box-shadow: 0 8px 24px rgba(0,0,0,0.8); backdrop-filter: blur(8px);
@@ -54,7 +54,7 @@
         import Papa from 'papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v3.5.0';
+        const APP_VERSION = 'v3.6.0';
 
         const useStore = () => {
             const [logs, setLogs] = useState([]);
@@ -112,53 +112,61 @@
             const { logs, addLog, data, setData, status, setStatus } = useStore();
 
             useEffect(() => {
-                addLog(`Engine ${APP_VERSION} initialized. Native Fetch active.`, 'info');
+                addLog(`Engine ${APP_VERSION} initialized. CDN-Direct Mode.`, 'info');
                 const params = new URLSearchParams(window.location.search);
                 let sourceParam = params.get('source');
                 const gid = params.get('gid') || '0'; 
 
                 if (!sourceParam) return setStatus('Awaiting Source');
 
-                let sheetId = sourceParam;
-                if (sourceParam.includes('google.com')) {
-                    const match = sourceParam.match(/\/d\/([a-zA-Z0-9-_]+)/);
-                    if (match && match[1]) sheetId = match[1];
+                // SMART ROUTER: Detect Editor vs Published IDs
+                let fetchUrl = '';
+                
+                if (sourceParam.includes('http')) {
+                    if (sourceParam.includes('/e/2PACX')) {
+                        // User pasted a proper Published Web URL
+                        addLog('Detected bulletproof 2PACX Published URL.', 'success');
+                        fetchUrl = sourceParam.split('/pub')[0] + '/pub?output=csv';
+                    } else if (sourceParam.includes('/d/')) {
+                        // User pasted an Editor URL
+                        const match = sourceParam.match(/\/d\/([a-zA-Z0-9-_]+)/);
+                        addLog(`Detected Editor URL. ID: ${match[1].substring(0,6)}...`, 'warn');
+                        // Attempt the GViz backdoor which sometimes bypasses CORS for Editor IDs
+                        fetchUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv&gid=${gid}`;
+                    } else {
+                        fetchUrl = sourceParam; 
+                    }
+                } else {
+                    // It's just an ID
+                    if (sourceParam.startsWith('2PACX')) {
+                        addLog('Using secure 2PACX CDN route.', 'success');
+                        fetchUrl = `https://docs.google.com/spreadsheets/d/e/${sourceParam}/pub?output=csv&gid=${gid}`;
+                    } else {
+                        addLog('Using standard Editor ID route.', 'warn');
+                        fetchUrl = `https://docs.google.com/spreadsheets/d/${sourceParam}/gviz/tq?tqx=out:csv&gid=${gid}`;
+                    }
                 }
 
-                addLog(`Targeting Sheet ID: ${sheetId.substring(0, 8)}...`, 'info');
-                fetchGoogleSheetData(sheetId, gid);
+                executeFetch(fetchUrl);
             }, []);
 
-            /*
-             * ------------------------------------------
-             * THE REDIRECT-SAFE FETCH ARCHITECTURE
-             * ------------------------------------------
-             */
-            const fetchGoogleSheetData = async (sheetId, gid) => {
+            const executeFetch = async (url) => {
                 setStatus('Fetching Data');
-                const pubUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/pub?output=csv&gid=${gid}`;
-                
-                addLog(`Executing async fetch() on /pub endpoint...`, 'info');
+                addLog(`Executing fetch()...`, 'info');
 
                 try {
-                    // 1. Native fetch automatically handles 307 redirects safely
-                    const response = await fetch(pubUrl);
+                    const response = await fetch(url);
                     
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-
-                    // 2. Extract the raw text payload
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    
                     const csvText = await response.text();
 
-                    // 3. Check for stealth HTML errors
                     if (csvText.trim().toLowerCase().startsWith('<!doctype html>')) {
-                        throw new Error('Google returned HTML. The sheet may not be published.');
+                        throw new Error('Received HTML. Endpoint rejected the request.');
                     }
 
-                    addLog('Text payload received! Passing to local parser...', 'success');
+                    addLog('Payload received! Parsing...', 'success');
 
-                    // 4. Parse locally
                     Papa.parse(csvText, {
                         header: true,
                         skipEmptyLines: true,
@@ -167,14 +175,22 @@
                             validateAndCleanData(results.data);
                         },
                         error: (err) => {
-                            addLog(`Local Parse Error: ${err.message}`, 'error');
+                            addLog(`Parse Error: ${err.message}`, 'error');
                             setStatus('Parse Failed');
                         }
                     });
 
                 } catch (error) {
                     addLog(`Fetch failed: ${error.message}`, 'error');
-                    addLog(`This means Google hard-blocked the request. Check your sheet's Publish settings.`, 'warn');
+                    
+                    // The Ultimate Guide for the User if it fails
+                    addLog(`--- HOW TO FIX THIS PERMANENTLY ---`, 'warn');
+                    addLog(`1. Open your Google Sheet.`, 'info');
+                    addLog(`2. Click File -> Share -> Publish to web.`, 'info');
+                    addLog(`3. Select 'Comma-separated values (.csv)'.`, 'info');
+                    addLog(`4. Click Publish and COPY the link it gives you.`, 'info');
+                    addLog(`5. Paste THAT entire link into the ?source= parameter.`, 'success');
+                    
                     setStatus('Fetch Failed');
                 }
             };
@@ -205,15 +221,11 @@
                     if (startRaw) {
                         if (!isNaN(startRaw) && startRaw > 10000) {
                             parsedDate = new Date((parseFloat(startRaw) - 25569) * 86400 * 1000);
-                        } 
-                        else if (!isNaN(startRaw) && startRaw.length === 4) {
+                        } else if (!isNaN(startRaw) && startRaw.length === 4) {
                             parsedDate = new Date(startRaw, 0, 1);
-                        }
-                        else {
+                        } else {
                             const tempDate = new Date(startRaw);
-                            if (!isNaN(tempDate.getTime())) {
-                                parsedDate = tempDate;
-                            }
+                            if (!isNaN(tempDate.getTime())) parsedDate = tempDate;
                         }
                     }
 
@@ -234,8 +246,7 @@
                 setData(cleaned);
                 
                 if (missingDates > 0) {
-                    addLog(`Data strategy: ${validCount} valid dates, ${missingDates} missing/invalid dates.`, 'warn');
-                    addLog(`Hint: Check row ${cleaned.findIndex(r => !r.startDate) + 2} in your Sheet for invalid formats.`, 'info');
+                    addLog(`Data strategy: ${validCount} valid dates, ${missingDates} missing/invalid.`, 'warn');
                 } else {
                     addLog(`Data strategy complete. 100% Date Integrity.`, 'success');
                 }
@@ -252,7 +263,7 @@
                         <div style="color:#555">Media Carousel</div>
                     </div>
                     <div class="pane content-pane">
-                        <h2>Content Layer v3.5</h2>
+                        <h2>Content Layer v3.6</h2>
                         <p>Currently tracking ${data.length} verified records in state.</p>
                         ${data.length > 0 ? html`
                             <pre style="font-size:11px; color:#aaa; background:#111; padding: 10px; border-radius: 4px; overflow-x: auto;">
