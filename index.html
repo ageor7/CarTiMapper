@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CarTiMapper | Build 1.1.8</title>
+    <title>CarTiMapper | Build 1.1.9</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -13,25 +13,41 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
     <style>
-        :root { --emerald: #34d399; }
-        body, html { height: 100%; margin: 0; overflow: hidden; font-family: ui-sans-serif, system-ui; }
-        #app-wrapper { display: grid; grid-template-rows: 1fr 340px; height: 100vh; }
-        #stage-top { display: grid; grid-template-columns: 1fr 450px; background: #fff; }
-        #map-canvas { height: 100%; width: 100%; background: #e2e8f0; }
-        #content-panel { padding: 30px; overflow-y: auto; border-left: 1px solid #e2e8f0; }
-        #media-viewport { width: 100%; aspect-ratio: 16/9; background: #111; border-radius: 8px; margin-bottom: 1.5rem; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        :root { --emerald: #34d399; --slate-50: #f8fafc; }
+        body, html { height: 100%; margin: 0; overflow: hidden; font-family: ui-sans-serif, system-ui; background: white; }
+        
+        /* 65/35 Fluid Split */
+        #app-wrapper { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+        #stage-top { display: flex; flex: 0 0 65%; width: 100%; border-bottom: 2px solid #e2e8f0; overflow: hidden; }
+        
+        #map-canvas { flex: 1; height: 100%; background: #cbd5e1; }
+        
+        /* Side Panel with internal scroll */
+        #content-panel { 
+            flex: 0 0 450px; 
+            display: flex; 
+            flex-direction: column; 
+            background: var(--slate-50); 
+            border-left: 1px solid #e2e8f0;
+            overflow-y: auto;
+        }
+
+        #media-viewport { width: 100%; background: #000; display: flex; align-items: center; justify-content: center; min-height: 200px; }
+        #text-content { padding: 25px; flex-grow: 1; }
+        
+        #timeline-viewport { flex: 0 0 35%; width: 100%; background: #fff; }
+
+        h1, h2, h3 { text-transform: none !important; } /* Kill all auto-caps */
         
         #vibe-console { 
             position: fixed; top: 20px; left: 20px; z-index: 9999;
             background: rgba(15, 23, 42, 0.98); color: var(--emerald); 
             border-radius: 12px; font-family: monospace;
-            display: block; width: 450px; height: 350px;
-            border: 1px solid #334155; box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-            resize: both; overflow: hidden;
+            display: block; width: 400px; height: 250px;
+            border: 1px solid #334155; resize: both; overflow: hidden;
         }
-        #console-header { background: #1e293b; padding: 10px 15px; cursor: move; display: flex; justify-content: space-between; border-bottom: 1px solid #334155; font-size: 11px; }
-        #console-body { padding: 12px; font-size: 11px; height: calc(100% - 35px); overflow-y: auto; }
-        .log-line { margin-bottom: 4px; border-left: 2px solid #334155; padding-left: 8px; }
+        #console-header { background: #1e293b; padding: 8px 12px; cursor: move; display: flex; justify-content: space-between; border-bottom: 1px solid #334155; font-size: 10px; }
+        #console-body { padding: 10px; font-size: 10px; height: calc(100% - 30px); overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -40,29 +56,29 @@
     <div id="stage-top">
         <div id="map-canvas"></div>
         <div id="content-panel">
-            <div id="media-viewport" class="text-white text-xs">Awaiting Selection...</div>
-            <h1 id="view-title" class="text-2xl font-bold text-slate-900 mb-4">CarTiMapper</h1>
-            <div id="view-desc" class="text-slate-600 text-base leading-relaxed"></div>
+            <div id="media-viewport"></div>
+            <div id="text-content">
+                <div id="view-date" class="text-emerald-600 font-mono text-xs font-bold mb-1"></div>
+                <h1 id="view-title" class="text-2xl font-bold text-slate-900 mb-4">CarTiMapper</h1>
+                <div id="view-desc" class="text-slate-600 text-sm leading-relaxed"></div>
+            </div>
         </div>
     </div>
     <div id="timeline-viewport"></div>
 </div>
 
 <div id="vibe-console">
-    <div id="console-header">
-        <span class="font-bold">● CarTiMapper_v1.1.8_REFINER</span>
-        <button onclick="this.parentElement.parentElement.style.display='none'">✕</button>
-    </div>
+    <div id="console-header"><span>● CarTiMapper_v1.1.9_ARCHITECT</span><button onclick="this.parentElement.parentElement.style.display='none'">✕</button></div>
     <div id="console-body"></div>
 </div>
 
 <script>
-function log(msg, type = "") {
-    const body = document.getElementById('console-body');
-    const line = document.createElement('div');
-    line.className = `log-line ${type === "error" ? "text-red-400" : ""}`;
-    line.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`;
-    body.prepend(line);
+function log(msg, err = false) {
+    const b = document.getElementById('console-body');
+    const l = document.createElement('div');
+    l.style.color = err ? '#f87171' : '#34d399';
+    l.innerHTML = `[${new Date().toLocaleTimeString('en-GB')}] ${msg}`;
+    b.prepend(l);
 }
 
 const DEFAULT_ID = '1K9kZynV-lGUd-yT6GiGsIabfjF-_k-sn5qAeEONzNIE';
@@ -71,48 +87,51 @@ const SHEET_ID = PARAMS.get('source') || DEFAULT_ID;
 
 let appMap, appTimeline, dataStore = [];
 
-// Helper to extract Year from messy date strings
-function extractYear(dateVal) {
-    if (!dateVal) return 2026;
-    const dateStr = String(dateVal);
-    // Matches 4 consecutive digits (the year)
-    const match = dateStr.match(/\d{4}/);
-    if (match) return parseInt(match[0]);
-    // Fallback for MM/DD/YY
-    const parts = dateStr.split('/');
-    if (parts.length === 3) {
-        let y = parseInt(parts[2]);
-        return y < 100 ? 2000 + y : y;
+/**
+ * SMART DATE PARSER (24h)
+ */
+function parseDateString(val) {
+    if (!val) return { year: 2026, display: "" };
+    const s = String(val).trim();
+    
+    // Attempt standard JS date parsing
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) {
+        return {
+            year: d.getFullYear(),
+            month: d.getMonth() + 1,
+            day: d.getDate(),
+            hour: d.getHours(),
+            display: d.toLocaleString('en-GB', { hour12: false })
+        };
     }
-    return 2026;
+    
+    // Fallback regex for Year
+    const yMatch = s.match(/\d{4}/);
+    return { year: yMatch ? parseInt(yMatch[0]) : 2026, display: s };
 }
 
 async function initializeApp() {
-    log("Refiner Engine 1.1.8 Active.");
+    log("Architect Engine Initializing...");
     const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
     
     Papa.parse(url, {
-        download: true,
-        header: true,
-        skipEmptyLines: true,
-        complete: (results) => {
-            dataStore = results.data.map((row, index) => {
-                let clean = { id: index };
-                for (let key in row) {
-                    clean[key.toLowerCase().replace(/[ "\s]/g, '')] = row[key];
-                }
-                return clean;
-            }).filter(item => item.title && item.title.trim() !== "");
-
-            log(`Sync: ${dataStore.length} rows verified.`, "success");
+        download: true, header: true, skipEmptyLines: true,
+        complete: (res) => {
+            dataStore = res.data.map((row, i) => {
+                let c = { id: i };
+                for (let k in row) c[k.toLowerCase().replace(/[ "\s]/g, '')] = row[k];
+                c._dateObj = parseDateString(c.startdate || c.year || c.date);
+                return c;
+            }).filter(item => item.title);
+            log(`Success: ${dataStore.length} items parsed.`);
             renderApp();
         }
     });
 }
 
 function renderApp() {
-    // 1. Map Setup
-    appMap = L.map('map-canvas', { zoomControl: false }).setView([20, 0], 2);
+    appMap = L.map('map-canvas', { zoomControl: false }).setView([0,0], 2);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(appMap);
     
     const bounds = [];
@@ -124,50 +143,44 @@ function renderApp() {
             bounds.push([lat, lon]);
         }
     });
+    if (bounds.length > 0) appMap.fitBounds(bounds);
 
-    if (bounds.length > 0) appMap.fitBounds(bounds, { padding: [50, 50] });
-
-    // 2. Timeline Setup
-    const timelineEvents = dataStore.map(item => ({
-        start_date: { year: extractYear(item.startdate || item.year || item.date) },
+    const events = dataStore.map(item => ({
+        start_date: { 
+            year: item._dateObj.year, 
+            month: item._dateObj.month, 
+            day: item._dateObj.day,
+            hour: item._dateObj.hour 
+        },
         text: { headline: item.title, text: item.description },
         media: { url: item.media || item.mediaurl || "" },
         unique_id: item.id
     }));
 
-    appTimeline = new TL.Timeline('timeline-viewport', { events: timelineEvents }, { height: 340, initial_zoom: 2 });
-
-    // 3. LISTEN FOR NAVIGATION
+    appTimeline = new TL.Timeline('timeline-viewport', { events }, { height: "100%", initial_zoom: 2 });
     appTimeline.on('change', (e) => {
-        // TimelineJS v3 change event returns an object with the data in .unique_id
-        const activeItem = dataStore.find(d => d.id === e.unique_id);
-        if (activeItem) updateUI(activeItem);
+        const active = dataStore.find(d => d.id === e.unique_id);
+        if (active) updateUI(active);
     });
 
-    // Forced Refresh
-    setTimeout(() => { 
-        appMap.invalidateSize(); 
-        if(dataStore[0]) updateUI(dataStore[0]);
-    }, 1000);
+    window.addEventListener('resize', () => { appMap.invalidateSize(); });
+    setTimeout(() => { appMap.invalidateSize(); if(dataStore[0]) updateUI(dataStore[0]); }, 800);
 }
 
 function updateUI(item) {
-    log(`Selected: ${item.title}`);
     document.getElementById('view-title').innerHTML = item.title;
     document.getElementById('view-desc').innerHTML = item.description || "";
+    document.getElementById('view-date').innerText = item._dateObj.display;
     
-    const media = item.media || item.mediaurl;
-    const viewport = document.getElementById('media-viewport');
-    viewport.innerHTML = media ? `<img src="${media}" class="w-full h-full object-contain">` : "";
+    const m = item.media || item.mediaurl;
+    document.getElementById('media-viewport').innerHTML = m ? `<img src="${m}" style="max-height:300px; width:auto; object-contain">` : "";
 
     const lat = parseFloat(item.lat || item.latitude);
     const lon = parseFloat(item.lon || item.longitude);
-    if (!isNaN(lat) && !isNaN(lon)) {
-        appMap.flyTo([lat, lon], 12, { animate: true, duration: 1 });
-    }
+    if (!isNaN(lat) && !isNaN(lon)) appMap.flyTo([lat, lon], 11);
 }
 
-// Draggable Logic
+// Minimal Drag Logic
 const con = document.getElementById("vibe-console");
 const head = document.getElementById("console-header");
 let dragging = false, ox, oy;
