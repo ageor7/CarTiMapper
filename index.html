@@ -3,6 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CarTiMapper | Build 1.2.4</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdn.knightlab.com/libs/timeline3/latest/css/timeline.css">
+    <script src="https://cdn.knightlab.com/libs/timeline3/latest/js/timeline.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <style>
+        /* GLOBAL RESET */
+        * { text-transform: none !important; margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { height: 100%; width: 100%; overflow: hidden; font-family: sans-serif; background: #fff; }
+
+        /* GRID LAYOUT: 35% | 55% | 10% */
+        .app-grid { display: flex; flex-direction: column; height: 100vh; }
+
+        /* PANE 1: Top (35%) */
+        .pane-top { height: 35vh; display: flex; width: 100%; border-bottom: 2px solid #ddd; }
+        #map-canvas { width: 50%; height: 100%; background: #222; }
+        #media-canvas { width: 50%; height: 100%; background: #000; display: flex; align-items: center; justify-content: center; border-left: 2px solid #ddd; }
+
+        /* PANE 2: Middle (55%) */
+        .pane-middle { height: 55vh; width: 100%; overflow-y: auto; padding: 40px; background: #fff; }
+        .content-wrap { max-width: 1000px; margin: 0 auto; }
+
+        /* PANE 3: Bottom (10%) */
+        .pane-bottom { height: 10vh; width: 100%; min-height: 80px; background: #f1f5f9; border-top: 2px solid #ddd; }
+
+        /* LOG BOX */
+        #vibe-logs { 
+            position: fixed; top: 10px; left: 10px; z-index: 9999;
+            background: rgba(0,0,0,0.8); color: #0f0; padding: 5px;
+            font-family: monospace; font-size: 10px; border-radius: 4px; pointer-events: none;
+        }
+        
+        img { max-height: 100%; max-width: 100%; object-fit: contain; }
+    </style>
+</head>
+<body>
+
+<div class="app-grid">
+    <div class="pane-top">
+        <div id="map-canvas"></div>
+        <div id="media-canvas"></div>
+    </div>
+    <div class="pane-middle">
+        <div class="content-wrap">
+            <div id="ui-date" class="text-emerald-600 font-mono font-bold text-sm mb-2"></div>
+            <h1 id="ui-title" class="text-3xl font-bold text-slate-900 mb-4">CarTiMapper</h1>
+            <div id="ui-desc" class="text-slate-700 text-lg leading-relaxed"></div>
+        </div>
+    </div>
+    <div class="pane-bottom" id="timeline-nav"></div>
+</div>
+
+<div id="vibe-logs"></div>
+
+<script>
+function log(msg) {
+    const l = document.getElementById('vibe-logs');
+    l.innerHTML = `> ${msg}`;
+}
+
+const SHEET_ID = new URLSearchParams(window.location.search).get('source') || '1K9kZynV-lGUd-yT6GiGsIabfjF-_k-sn5qAeEONzNIE';
+
+let appMap, appTimeline, dataStore = [];
+
+/**
+ * BRUTE FORCE DATE PARSER
+ * Strips digits to find the year and formats the display
+ */
+function getSmartDate(val) {
+    if (!val) return { y: 2026, display: "" };
+    const str = String(val);
+    
+    // Find first 4-digit sequence (Year)
+    const yearMatch = str.match(/\d{4}/);
+    const year = yearMatch ? parseInt(yearMatch[0]) : 2026;
+    
+    // Check if it's a 24h string
+    let display = str;
+    if (str.includes(':')) {
+        // Attempt to prettify: DD/MM/YYYY HH:mm
+        display = str.replace(/(\d{4})-(\d{2})-(\d{2})/, '$3/$2/$1');
+    }
+    
+    return { y: year, display: display };
+}
+
+async function boot() {
+    log("Decoupler 1.2.4 Engaged.");
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+    
+    Papa.parse(url, {
+        download: true, header: true, skipEmptyLines: 'greedy',
+        complete: (res) => {
+            dataStore = res.data.map((row, i) => {
+                let clean = { _id: i };
+                for (let k in row) clean[k.toLowerCase().replace(/[ "\s]/g, '')] = row[k];
+                clean._dateInfo = getSmartDate(clean.startdate || clean.year || clean.date);
+                return clean;
+            }).filter(item => item.title && item.title.trim() !== "");
+
+            log(`Sync: ${dataStore.length} items.`);
+            renderUI();
+        }
+    });
+}
+
+function renderUI() {
+    // 1. Initialize Map
+    appMap = L.map('map-canvas', { zoomControl: false, attributionControl: false }).setView([0,0], 2);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(appMap);
+    
+    dataStore.forEach(item => {
+        const la = parseFloat(item.lat), lo = parseFloat(item.lon);
+        if (!isNaN(la)) {
+            L.circleMarker([la, lo], { radius: 6, color: '#3b82f6', fillOpacity: 0.8 }).addTo(appMap);
+        }
+    });
+
+    // 2. Initialize Timeline Navigation
+    const events = dataStore.map(item => ({
+        start_date: { year: item._dateInfo.y },
+        text: { headline: "", text: "" }, // No text in navigation bar
+        unique_id: item._id
+    }));
+
+    // Bypassing the Title Slide by not providing a 'title' object and starting at 0
+    appTimeline = new TL.Timeline('timeline-nav', { events }, { 
+        height: "100%", 
+        start_at_slide: 0,
+        initial_zoom: 1,
+        menubar_height: 0 
+    });
+
+    appTimeline.on('change', (e) => {
+        const active = dataStore.find(d => d._id === e.unique_id);
+        if (active) syncStage(active);
+    });
+
+    // Wake up call for Map tiles
+    setTimeout(() => { 
+        appMap.invalidateSize(); 
+        if(dataStore[0]) syncStage(dataStore[0]);
+    }, 1000);
+}
+
+function syncStage(item) {
+    log(`Syncing: ${item.title}`);
+    
+    // Update Text (Middle Pane)
+    document.getElementById('ui-title').innerHTML = item.title;
+    document.getElementById('ui-desc').innerHTML = item.description || "";
+    document.getElementById('ui-date').innerText = item._dateInfo.display;
+    
+    // Update Media (Top Right)
+    const media = item.media || item.mediaurl;
+    document.getElementById('media-canvas').innerHTML = media ? `<img src="${media}">` : "";
+
+    // Update Map (Top Left)
+    const la = parseFloat(item.lat), lo = parseFloat(item.lon);
+    if (!isNaN(la)) {
+        appMap.flyTo([la, lo], 12, { animate: true, duration: 1.5 });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', boot);
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CarTiMapper | Build 1.2.3</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
