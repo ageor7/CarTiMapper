@@ -3,83 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modern TimeMapper Core - v3.11.0</title>
+    <title>Modern TimeMapper Core - v3.12.0</title>
     <style>
         :root { --bg: #121212; --paneBg: #f4f4f4; --border: #ccc; --text: #222; --accent: #007acc; }
         
         body { margin: 0; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
         
-        #app-grid { display: grid; grid-template-columns: 35% 65%; grid-template-rows: 45vh 45vh 10vh; height: 100vh; }
+        /* Flexbox architecture for native CSS resizing */
+        #app-layout { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+        
+        .top-row { display: flex; height: 45vh; min-height: 20vh; flex-shrink: 0; border-bottom: 1px solid var(--border); position: relative; }
         
         .pane { 
-            border: 1px solid var(--border); 
-            padding: 1.5rem; 
+            padding: 1rem; 
             box-sizing: border-box; 
-            overflow: hidden; 
-            position: relative; 
             background: var(--paneBg); 
+            position: relative;
         }
         
-        .map-pane { grid-column: 1; grid-row: 1; display: flex; align-items: center; justify-content: center; }
-        .media-pane { grid-column: 2; grid-row: 1; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; align-items: center; justify-content: center; }
+        /* Resizable rules */
+        .map-pane { width: 35%; min-width: 15%; resize: horizontal; overflow: auto; border-right: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
+        .media-pane { flex: 1; overflow-x: auto; scroll-snap-type: x mandatory; display: flex; align-items: center; justify-content: center; }
         
-        .content-pane { grid-column: 1 / span 2; grid-row: 2; display: flex; flex-direction: column; overflow-y: auto; position: relative; }
+        .content-pane { flex: 1; min-height: 20vh; resize: vertical; overflow-y: auto; display: flex; flex-direction: column; position: relative; border-bottom: 1px solid var(--border); }
         
         /* Timeline specific styling */
-        .timeline-pane { grid-column: 1 / span 2; grid-row: 3; padding: 0; background: #e5e5e5; display: flex; flex-direction: column; border-top: 2px solid #ccc;}
+        .timeline-pane { height: 12vh; min-height: 60px; flex-shrink: 0; padding: 0; background: #e5e5e5; display: flex; flex-direction: column; position: relative;}
         .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-x: auto; overflow-y: hidden; position: relative; display: flex; align-items: center; }
-        .timeline-track { min-width: 1200px; width: 100%; height: 2px; background: #999; position: absolute; left: 2%; right: 2%; top: 50%; }
+        .timeline-track { min-width: 1200px; width: 100%; height: 2px; background: #999; position: absolute; left: 2%; right: 2%; top: 55%; }
         
+        /* Timeline Ruler */
+        .timeline-ruler-tick { position: absolute; top: -15px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+        .tick-mark { width: 1px; height: 15px; background: #999; }
+        .tick-label { font-size: 0.65rem; color: #777; font-weight: bold; margin-bottom: 2px; }
+
+        /* Timeline Markers */
         .timeline-marker { 
-            position: absolute; 
-            top: 50%; 
-            transform: translate(-50%, -50%); 
-            width: 12px; height: 12px; 
-            border-radius: 50%; 
-            background: #666; 
-            border: 2px solid #fff; 
-            cursor: pointer; 
-            transition: all 0.2s ease; 
-            z-index: 10;
+            position: absolute; top: 50%; transform: translate(-50%, -50%); 
+            width: 14px; height: 14px; border-radius: 50%; background: #666; border: 2px solid #fff; 
+            cursor: pointer; transition: all 0.2s ease; z-index: 10;
         }
-        .timeline-marker:hover { transform: translate(-50%, -50%) scale(1.5); background: #333; }
+        .timeline-marker:hover { transform: translate(-50%, -50%) scale(1.3); background: #333; z-index: 15; }
         .timeline-marker.active { width: 18px; height: 18px; background: var(--accent); z-index: 20; box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.3); }
+        
         .timeline-label {
-            position: absolute;
-            top: -20px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 0.65rem;
-            color: #555;
-            white-space: nowrap;
-            opacity: 0;
-            transition: opacity 0.2s;
-            pointer-events: none;
+            position: absolute; top: -25px; left: 50%; transform: translateX(-50%);
+            font-size: 0.75rem; color: #222; white-space: nowrap; opacity: 0;
+            background: rgba(255, 255, 255, 0.9); padding: 2px 6px; border-radius: 4px; border: 1px solid #ccc;
+            pointer-events: none; transition: opacity 0.2s; max-width: 200px; overflow: hidden; text-overflow: ellipsis;
         }
         .timeline-marker:hover .timeline-label, .timeline-marker.active .timeline-label { opacity: 1; font-weight: bold; }
 
         /* Slide Typography */
-        .slide-container { max-width: 800px; margin: 0 auto; width: 100%; padding: 1rem 3rem; flex: 1; }
+        .slide-container { max-width: 1200px; margin: 0 auto; width: 100%; padding: 1rem; flex: 1; }
         .slide-date { color: var(--accent); font-weight: bold; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; }
         .slide-title { margin: 0.5rem 0 1rem 0; font-size: 2.5rem; color: #111; }
         .slide-desc { line-height: 1.6; font-size: 1.2rem; color: #333; }
         .slide-meta { margin-top: 2rem; font-size: 0.9rem; color: #666; display: flex; gap: 1rem; border-top: 1px solid #ddd; padding-top: 1rem; }
 
-        /* Side-Mounted Navigation */
+        /* Side-Mounted Navigation - Reduced footprint */
         .nav-btn-side {
             position: absolute; top: 50%; transform: translateY(-50%);
-            background: rgba(0, 0, 0, 0.05); color: #333; border: none;
-            width: 40px; height: 100px; font-size: 1.5rem; cursor: pointer;
+            background: rgba(0, 0, 0, 0.03); color: #333; border: none;
+            width: 30px; height: 80px; font-size: 1.2rem; cursor: pointer;
             border-radius: 4px; display: flex; align-items: center; justify-content: center;
             transition: background 0.2s; z-index: 50;
         }
         .nav-btn-side:hover { background: rgba(0, 0, 0, 0.15); }
-        .nav-btn-side:disabled { opacity: 0.2; cursor: not-allowed; }
-        .nav-left { left: 10px; }
-        .nav-right { right: 10px; }
+        .nav-btn-side:disabled { opacity: 0.1; cursor: not-allowed; }
+        .nav-left { left: 5px; }
+        .nav-right { right: 5px; }
 
         /* Minimalist Overlay Slide Counter */
-        .slide-counter { position: absolute; bottom: 10px; right: 15px; font-size: 0.75rem; color: #888; font-weight: bold; user-select: none; }
+        .slide-counter { position: absolute; bottom: 8px; right: 12px; font-size: 0.75rem; color: #888; font-weight: bold; user-select: none; }
 
         /* Vibe Monitor */
         #vibe-monitor {
@@ -119,12 +115,11 @@
         import Papa from 'papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v3.11.0';
+        const APP_VERSION = 'v3.12.0';
 
         const TM_CONFIG = {
             timeZone: 'Europe/Athens', 
-            locale: 'en-GB',           
-            paneBackground: '#f2f2f2'
+            paneBackground: '#f5f5f5'
         };
 
         const useStore = () => {
@@ -181,19 +176,48 @@
             `;
         };
 
-        // --- NEW TIMELINE COMPONENT ---
+        // --- ENHANCED TIMELINE COMPONENT WITH RULER ---
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
             const validData = data.filter(d => d.startDate);
             if (validData.length === 0) return html`<div style="padding: 1rem;">No temporal data found.</div>`;
 
             const minTime = validData[0].startDate.getTime();
             const maxTime = validData[validData.length - 1].startDate.getTime();
-            const timeRange = maxTime - minTime || 1; // Prevent division by zero if all dates are exactly the same
+            const timeRange = maxTime - minTime || 1; 
 
-            // Create markers
+            // Calculate Ruler Ticks
+            const minYear = validData[0].startDate.getFullYear();
+            const maxYear = validData[validData.length - 1].startDate.getFullYear();
+            const yearSpan = maxYear - minYear;
+            
+            let step = 1;
+            if (yearSpan > 20) step = 5;
+            if (yearSpan > 50) step = 10;
+            if (yearSpan > 200) step = 50;
+            if (yearSpan > 1000) step = 100;
+
+            const rulerTicks = [];
+            const startTick = Math.floor(minYear / step) * step;
+            for (let y = startTick; y <= maxYear; y += step) {
+                if (y < minYear) continue;
+                const tickTime = new Date(0);
+                tickTime.setFullYear(y, 0, 1);
+                
+                const percent = 2 + ((tickTime.getTime() - minTime) / timeRange) * 96;
+                // Only draw ticks that actually fit within the 2% to 98% padding
+                if (percent >= 2 && percent <= 98) {
+                    rulerTicks.push(html`
+                        <div class="timeline-ruler-tick" style="left: ${percent}%;">
+                            <div class="tick-label">${y}</div>
+                            <div class="tick-mark"></div>
+                        </div>
+                    `);
+                }
+            }
+
+            // Create Event Markers
             const markers = data.map((item, index) => {
                 if (!item.startDate) return null;
-                // Calculate position percentage (clamped slightly inward to prevent edge cutoff)
                 const percent = 2 + ((item.startDate.getTime() - minTime) / timeRange) * 96;
                 const isActive = index === activeIndex;
 
@@ -202,9 +226,8 @@
                         class="timeline-marker ${isActive ? 'active' : ''}" 
                         style="left: ${percent}%;"
                         onClick=${() => setActiveIndex(index)}
-                        title="${item.title}"
                     >
-                        <div class="timeline-label">${item.startDate.getFullYear()}</div>
+                        <div class="timeline-label">${item.title}</div>
                     </div>
                 `;
             });
@@ -212,6 +235,7 @@
             return html`
                 <div class="timeline-scroll-wrapper" id="tm-scrubber">
                     <div class="timeline-track">
+                        ${rulerTicks}
                         ${markers}
                     </div>
                 </div>
@@ -223,7 +247,7 @@
 
             useEffect(() => {
                 document.documentElement.style.setProperty('--paneBg', TM_CONFIG.paneBackground);
-                addLog(`Engine ${APP_VERSION} initialized. Strict Euro-Date Regex Active.`, 'info');
+                addLog(`Engine ${APP_VERSION} initialized. Strict Manual Date Formatter Active.`, 'info');
                 
                 const params = new URLSearchParams(window.location.search);
                 let sourceParam = params.get('source');
@@ -263,7 +287,7 @@
                         header: true,
                         skipEmptyLines: true,
                         complete: (results) => {
-                            addLog(`Successfully parsed ${results.data.length} rows. Mapping strict dates...`, 'success');
+                            addLog(`Successfully parsed ${results.data.length} rows.`, 'success');
                             validateAndCleanData(results.data);
                         },
                         error: (err) => {
@@ -290,22 +314,18 @@
                 if (!rawStr) return null;
                 let s = rawStr.toString().trim();
 
-                // 1. Google Serial Date
                 if (!isNaN(s) && s > 10000) return new Date((parseFloat(s) - 25569) * 86400 * 1000);
 
-                // 2. Exact format: DD/MM/YYYY HH:mm (Strict)
                 const euroTimeMatch = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})\s+(\d{1,2}):(\d{2})$/);
                 if (euroTimeMatch) {
                     return new Date(parseInt(euroTimeMatch[3]), parseInt(euroTimeMatch[2]) - 1, parseInt(euroTimeMatch[1]), parseInt(euroTimeMatch[4]), parseInt(euroTimeMatch[5]));
                 }
 
-                // 3. Exact format: DD/MM/YYYY (Strict - bypassing JS completely)
                 const euroDateMatch = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
                 if (euroDateMatch) {
                     return new Date(parseInt(euroDateMatch[3]), parseInt(euroDateMatch[2]) - 1, parseInt(euroDateMatch[1]));
                 }
 
-                // 4. Historical Year (-500 or 1945)
                 if (/^-?\d{1,4}$/.test(s)) {
                     let d = new Date(0);
                     d.setFullYear(parseInt(s), 0, 1);
@@ -313,7 +333,6 @@
                     return d;
                 }
 
-                // 5. Standard JS ISO Fallback (YYYY-MM-DD)
                 let d = new Date(s);
                 if (!isNaN(d.getTime())) return d;
 
@@ -322,7 +341,6 @@
 
             const validateAndCleanData = (rawData) => {
                 setStatus('Processing');
-                let failedCount = 0;
                 
                 const cleaned = rawData.map((row, index) => {
                     const startRaw = fuzzyFind(row, ['start', 'start date', 'startdate', 'date']);
@@ -331,21 +349,16 @@
                     const mediaRaw = fuzzyFind(row, ['media', 'image', 'photo', 'url']);
                     const locRaw = fuzzyFind(row, ['location', 'place', 'coordinates', 'map']);
 
-                    const pDate = parseTimelineDate(startRaw);
-                    if(!pDate && startRaw) failedCount++;
-
                     return {
                         id: index,
                         title: titleRaw || `Event ${index + 1}`,
-                        startDate: pDate,
+                        startDate: parseTimelineDate(startRaw),
                         rawStart: startRaw,
                         description: descRaw,
                         media: mediaRaw ? mediaRaw.split(',').map(s => s.trim()) : [],
                         location: locRaw || null
                     };
                 });
-
-                if (failedCount > 0) addLog(`Warning: ${failedCount} dates failed strict parsing. Check Vibe-Monitor for raw values.`, 'warn');
 
                 const sortedData = cleaned.sort((a, b) => {
                     if (!a.startDate) return 1;
@@ -358,17 +371,34 @@
                 setStatus('Active');
             };
 
+            /*
+             * Bulletproof Date Formatter
+             * Mathematically forces DD/MM/YYYY formatting, bypassing all JS locale guesswork
+             */
             const formatDate = (dateObj) => {
                 if (!dateObj) return 'Unknown Date';
+                
+                // If it's just a raw historical year
                 if (dateObj.getHours() === 0 && dateObj.getMinutes() === 0 && dateObj.getDate() === 1 && dateObj.getMonth() === 0) {
                      return dateObj.getFullYear().toString();
                 }
-                return new Intl.DateTimeFormat(TM_CONFIG.locale, {
-                    day: '2-digit', month: 'short', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit',
-                    timeZone: TM_CONFIG.timeZone,
-                    timeZoneName: 'short'
-                }).format(dateObj);
+
+                const dd = dateObj.getDate().toString().padStart(2, '0');
+                const mm = (dateObj.getMonth() + 1).toString().padStart(2, '0'); // Months are 0-indexed
+                const yyyy = dateObj.getFullYear();
+                
+                const HH = dateObj.getHours().toString().padStart(2, '0');
+                const min = dateObj.getMinutes().toString().padStart(2, '0');
+
+                // Extract offset string dynamically (e.g. GMT+2) and force it to UTC+2
+                const tzParts = new Intl.DateTimeFormat('en-GB', { 
+                    timeZone: TM_CONFIG.timeZone, timeZoneName: 'shortOffset' 
+                }).formatToParts(dateObj);
+                
+                let tzString = tzParts.find(p => p.type === 'timeZoneName')?.value || 'UTC';
+                tzString = tzString.replace('GMT', 'UTC'); // Enforce UTC nomenclature
+
+                return `${dd}/${mm}/${yyyy} ${HH}:${min} ${tzString}`;
             };
 
             const nextSlide = () => setActiveIndex(prev => Math.min(prev + 1, data.length - 1));
@@ -378,18 +408,22 @@
 
             return html`
                 ${html`<${VibeMonitor} logs=${logs} status=${status} />`}
-                <div id="app-grid">
-                    <div class="pane map-pane">
-                        <div style="color:#555; text-align:center;">
-                            <h3>Map Layer</h3>
-                            <p>Awaiting Leaflet.js Injection</p>
-                        </div>
-                    </div>
+                <div id="app-layout">
                     
-                    <div class="pane media-pane">
-                        <div style="color:#555; text-align:center;">
-                            <h3>Media Carousel</h3>
-                            <p>Awaiting Media Handler</p>
+                    <div class="top-row">
+                        <div class="pane map-pane">
+                            <div style="color:#555; text-align:center;">
+                                <h3>Map Layer</h3>
+                                <p>Awaiting Leaflet.js Injection</p>
+                                <p style="font-size: 0.8rem; margin-top: 10px;"><i>(Drag right edge to resize)</i></p>
+                            </div>
+                        </div>
+                        
+                        <div class="pane media-pane">
+                            <div style="color:#555; text-align:center;">
+                                <h3>Media Carousel</h3>
+                                <p>Awaiting Media Handler</p>
+                            </div>
                         </div>
                     </div>
                     
