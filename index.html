@@ -9,37 +9,34 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
     <style>
-        /* === [ GLOBAL STYLES v1.4.0 ] === */
+        /* === [ GLOBAL STYLES v1.5.0 ] === */
         :root { --bg: #121212; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; }
         body { margin: 0; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
         
         #tm-root { width: 100vw; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         
-        /* Layout Grid */
-        .top-row { 
-            display: flex; height: 35vh; min-height: 15vh; 
-            resize: vertical; overflow: hidden; flex-shrink: 0;
-            border-bottom: 5px solid #999; background: #fff; position: relative;
+        /* Layout Grid Engine */
+        #app-layout {
+            --top-height: 35%;
+            --map-width: 50%;
+            --timeline-height: 10%;
+            display: flex; flex-direction: column; height: 100vh; width: 100vw;
         }
-        .top-row::after { content: '≡'; position: absolute; bottom: -3px; left: 50%; transform: translateX(-50%); font-size: 1.2rem; color: #666; pointer-events: none; z-index: 50; }
         
-        .map-pane { 
-            flex-shrink: 0; border-right: 4px solid #999; overflow: hidden; position: relative; background: #e0e0e0; 
-        }
-        /* Map Resize Handle Visual Indicator */
-        .map-pane::after { content: '⋮'; position: absolute; top: 50%; right: 1px; transform: translateY(-50%); font-size: 1.2rem; color: #666; pointer-events: none; z-index: 50; }
+        .top-row { height: var(--top-height); display: flex; flex-shrink: 0; background: #fff; overflow: hidden; }
+        .map-pane { width: var(--map-width); flex-shrink: 0; background: #e0e0e0; position: relative; }
+        .map-pane.no-media { width: 100% !important; }
+        
+        /* Draggable Splitters */
+        .resizer-v { height: 6px; background: #999; cursor: row-resize; flex-shrink: 0; z-index: 100; transition: background 0.2s; }
+        .resizer-v:hover, .resizer-v:active { background: #007acc; }
+        .resizer-h { width: 6px; background: #999; cursor: col-resize; flex-shrink: 0; z-index: 100; transition: background 0.2s; }
+        .resizer-h:hover, .resizer-h:active { background: #007acc; }
 
         .media-pane { flex: 1; position: relative; padding: 0; overflow: hidden; background: #111; display: flex; flex-direction: column; }
         
-        .content-pane-wrapper { 
-            height: 55vh; min-height: 15vh; resize: vertical; flex-shrink: 0;
-            position: relative; display: flex; flex-direction: column; background: var(--paneBg); overflow: hidden; border-bottom: 5px solid #999; 
-        }
-        .content-pane-wrapper::after { content: '≡'; position: absolute; bottom: -3px; left: 50%; transform: translateX(-50%); font-size: 1.2rem; color: #666; pointer-events: none; z-index: 50; }
-
-        .timeline-pane { 
-            flex: 1; min-height: 200px; padding: 0; background: #ececec; display: flex; flex-direction: column; position: relative; overflow: hidden; 
-        }
+        .content-pane-wrapper { flex: 1; position: relative; display: flex; flex-direction: column; background: var(--paneBg); overflow: hidden; }
+        .timeline-pane { height: var(--timeline-height); min-height: 200px; flex-shrink: 0; padding: 0; background: #ececec; display: flex; flex-direction: column; position: relative; overflow: hidden; }
 
         /* Map Container & Custom Pins */
         #map-container { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; }
@@ -142,7 +139,7 @@
         .log-error { color: #ff5555; font-weight: bold; }
         .log-time { color: #6272a4; margin-right: 5px; }
         #vibe-toggle { position: absolute; bottom: 10px; left: 0; background: #222; color: #50fa7b; border: 1px solid #444; border-left: none; padding: 8px 12px; border-radius: 0 8px 8px 0; cursor: pointer; z-index: 9998; font-family: 'Courier New', monospace; font-weight: bold; box-shadow: 2px 0 10px rgba(0,0,0,0.5); }
-        /* === [ END GLOBAL STYLES v1.4.0 ] === */
+        /* === [ END GLOBAL STYLES v1.5.0 ] === */
     </style>
     
     <script type="importmap">
@@ -160,16 +157,16 @@
     <div id="root"></div>
 
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.7 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.8 ] ===
         import { h, render, Component } from 'preact';
         import { useState, useEffect, useRef } from 'preact/hooks';
         import htm from 'htm';
         import Papa from 'papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v4.4.0';
+        const APP_VERSION = 'v4.5.0';
         const MODULE_VERSIONS = {
-            Styles: 'v1.4.0',
+            Styles: 'v1.5.0',
             Utils: 'v1.0.0',
             ErrorBoundary: 'v1.0.0',
             VibeMonitor: 'v1.0.0',
@@ -177,10 +174,10 @@
             MediaViewer: 'v1.0.0',
             ContentSlider: 'v1.0.0',
             TimelineScrubber: 'v1.0.0',
-            AppOrchestrator: 'v1.4.0'
+            AppOrchestrator: 'v1.5.0'
         };
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
-        // === [ END GLOBAL VARIABLES v1.0.7 ] ===
+        // === [ END GLOBAL VARIABLES v1.0.8 ] ===
         
         // === [ UTILITIES v1.0.0 ] ===
         const stripHTML = (htmlStr) => {
@@ -597,7 +594,7 @@
         };
         // === [ END TIMELINE SCRUBBER v1.0.0 ] ===
 
-        // === [ APP ORCHESTRATOR v1.4.0 ] ===
+        // === [ APP ORCHESTRATOR v1.5.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [data, setData] = useState([]);
@@ -606,8 +603,61 @@
             const [activeIndex, setActiveIndex] = useState(0); 
             const [isMonitorOpen, setIsMonitorOpen] = useState(true);
             const [isAboutOpen, setIsAboutOpen] = useState(false);
+            const appRef = useRef(null);
 
             const addLog = (msg, type = 'info') => setLogs(p => [...p, { time: new Date().toLocaleTimeString('en-US', { hour12: false }), msg, type }]);
+
+            // Custom JS Splitter Logic (Push/Pull Neighbors)
+            const startMapResize = (e) => {
+                e.preventDefault();
+                const startX = e.clientX;
+                const mapNode = appRef.current.querySelector('.map-pane');
+                const startWidth = mapNode.offsetWidth;
+                const containerWidth = appRef.current.querySelector('.top-row').offsetWidth;
+                
+                const onMove = (e2) => {
+                    let newWidth = startWidth + (e2.clientX - startX);
+                    let pct = (newWidth / containerWidth) * 100;
+                    if (pct < 10) pct = 10; if (pct > 90) pct = 90;
+                    appRef.current.style.setProperty('--map-width', `${pct}%`);
+                };
+                const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); window.dispatchEvent(new Event('resize')); };
+                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+            };
+
+            const startTopResize = (e) => {
+                e.preventDefault();
+                const startY = e.clientY;
+                const topNode = appRef.current.querySelector('.top-row');
+                const startHeight = topNode.offsetHeight;
+                const containerHeight = appRef.current.offsetHeight;
+                
+                const onMove = (e2) => {
+                    let newHeight = startHeight + (e2.clientY - startY);
+                    let pct = (newHeight / containerHeight) * 100;
+                    if (pct < 10) pct = 10; if (pct > 80) pct = 80;
+                    appRef.current.style.setProperty('--top-height', `${pct}%`);
+                };
+                const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); window.dispatchEvent(new Event('resize')); };
+                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+            };
+
+            const startTimelineResize = (e) => {
+                e.preventDefault();
+                const startY = e.clientY;
+                const tlNode = appRef.current.querySelector('.timeline-pane');
+                const startHeight = tlNode.offsetHeight;
+                const containerHeight = appRef.current.offsetHeight;
+                
+                const onMove = (e2) => {
+                    let newHeight = startHeight - (e2.clientY - startY); // Dragging UP increases height of bottom pane
+                    let pct = (newHeight / containerHeight) * 100;
+                    if (pct < 10) pct = 10; if (pct > 80) pct = 80;
+                    appRef.current.style.setProperty('--timeline-height', `${pct}%`);
+                };
+                const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); window.dispatchEvent(new Event('resize')); };
+                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+            };
 
             useEffect(() => {
                 document.documentElement.style.setProperty('--paneBg', TM_CONFIG.paneBackground);
@@ -677,7 +727,7 @@
                             
                             const valid = cleaned.filter(r => r.startDate).sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
                             setData([...valid, ...cleaned.filter(r => !r.startDate)]);
-                            setActiveIndex(0); // Start at slide 1 (which is record 2)
+                            setActiveIndex(0); 
                             setStatus('Active');
                         },
                         error: (err) => { addLog(`Parse Error: ${err.message}`, 'error'); setStatus('Parse Failed'); }
@@ -692,19 +742,24 @@
                 <div id="tm-root">
                     ${aboutData ? html`<div id="about-modal" class=${isAboutOpen ? 'open' : ''}><button class="about-close" onClick=${() => setIsAboutOpen(false)}>×</button><h2 dangerouslySetInnerHTML=${{__html: aboutData.title}}></h2><div style="line-height: 1.6;" dangerouslySetInnerHTML=${{__html: aboutData.description}}></div></div>` : ''}
 
-                    <div id="app-layout">
+                    <div id="app-layout" ref=${appRef}>
                         <div class="top-row">
-                            <div class="map-pane" style="width: ${hasMedia ? '50%' : '100%'}; resize: ${hasMedia ? 'horizontal' : 'none'}; border-right: ${hasMedia ? '4px solid #999' : 'none'}">
+                            <div class="map-pane ${!hasMedia ? 'no-media' : ''}">
                                 <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} addLog=${addLog} />
                                 <${VibeMonitor} logs=${logs} status=${status} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} />
                             </div>
+                            ${hasMedia ? html`<div class="resizer-h" onMouseDown=${startMapResize}></div>` : ''}
                             <div class="media-pane" style="display: ${hasMedia ? 'flex' : 'none'};">
                                 <${MediaViewer} activeSlide=${activeSlide} />
                             </div>
                         </div>
+
+                        <div class="resizer-v" onMouseDown=${startTopResize}></div>
                         
                         <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} aboutData=${aboutData} setIsAboutOpen=${setIsAboutOpen} />
                         
+                        <div class="resizer-v" onMouseDown=${startTimelineResize}></div>
+
                         <div class="timeline-pane">
                             <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} />
                         </div>
@@ -712,9 +767,8 @@
                 </div>
             `;
         };
-
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
-        // === [ END APP ORCHESTRATOR v1.4.0 ] ===
+        // === [ END APP ORCHESTRATOR v1.5.0 ] ===
     </script>
 </body>
 </html>
