@@ -9,7 +9,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
     <style>
-        /* === [ GLOBAL STYLES v1.2.0 ] === */
+        /* === [ GLOBAL STYLES v1.3.0 ] === */
         :root { --bg: #121212; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; }
         body { margin: 0; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
         
@@ -36,15 +36,17 @@
         /* Map Container & Custom Pins */
         #map-container { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; }
         
-        /* Tooltip Word Wrapping Override */
+        /* Tooltip Word Wrapping Override (v1.3.0 Fix) */
         .leaflet-tooltip {
             white-space: normal !important;
-            word-wrap: break-word;
-            max-width: 500px !important;
+            word-wrap: break-word !important;
+            width: max-content !important;
+            max-width: 350px !important;
             text-align: center;
             font-size: 0.85rem;
             font-weight: normal !important;
-            line-height: 1.3;
+            line-height: 1.4;
+            padding: 6px 10px !important;
         }
 
         .custom-map-pin {
@@ -133,7 +135,7 @@
         .log-error { color: #ff5555; font-weight: bold; }
         .log-time { color: #6272a4; margin-right: 5px; }
         #vibe-toggle { position: absolute; bottom: 10px; left: 0; background: #222; color: #50fa7b; border: 1px solid #444; border-left: none; padding: 8px 12px; border-radius: 0 8px 8px 0; cursor: pointer; z-index: 9998; font-family: 'Courier New', monospace; font-weight: bold; box-shadow: 2px 0 10px rgba(0,0,0,0.5); }
-        /* === [ END GLOBAL STYLES v1.2.0 ] === */
+        /* === [ END GLOBAL STYLES v1.3.0 ] === */
     </style>
     
     <script type="importmap">
@@ -151,27 +153,27 @@
     <div id="root"></div>
 
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.5 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.6 ] ===
         import { h, render, Component } from 'preact';
         import { useState, useEffect, useRef } from 'preact/hooks';
         import htm from 'htm';
         import Papa from 'papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v4.3.5';
+        const APP_VERSION = 'v4.3.6';
         const MODULE_VERSIONS = {
-            Styles: 'v1.2.0',
+            Styles: 'v1.3.0',
             Utils: 'v1.0.0',
             ErrorBoundary: 'v1.0.0',
             VibeMonitor: 'v1.0.0',
-            MapViewer: 'v1.7.0',
+            MapViewer: 'v1.8.0',
             MediaViewer: 'v1.0.0',
             ContentSlider: 'v1.0.0',
             TimelineScrubber: 'v1.0.0',
             AppOrchestrator: 'v1.3.0'
         };
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
-        // === [ END GLOBAL VARIABLES v1.0.5 ] ===
+        // === [ END GLOBAL VARIABLES v1.0.6 ] ===
         
         // === [ UTILITIES v1.0.0 ] ===
         const stripHTML = (htmlStr) => {
@@ -253,7 +255,7 @@
         };
         // === [ END VIBE MONITOR v1.0.0 ] ===
 
-        // === [ MAP VIEWER v1.7.0 ] ===
+        // === [ MAP VIEWER v1.8.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog }) => {
             const mapDomRef = useRef(null);
             const mapInstance = useRef(null);
@@ -332,7 +334,6 @@
                                                 const p1 = pts[pts.length - 2];
                                                 const p2 = pts[pts.length - 1];
                                                 
-                                                // Calculate Euclidean angle on standard map projection
                                                 const dx = p2.lng - p1.lng;
                                                 const dy = p2.lat - p1.lat; 
                                                 const angle = 90 - (Math.atan2(dy, dx) * (180 / Math.PI));
@@ -342,7 +343,7 @@
                                                 arrow.arrowAngle = angle;
                                                 arrow.addTo(recordGroup);
                                             }
-                                        } catch(e) { console.warn("Failed arrow", e); }
+                                        } catch(e) {}
                                     }
                                 }
                             });
@@ -366,12 +367,8 @@
                             markersRef.current[idx] = recordGroup; 
                             validMarkers++;
                         }
-                    } catch(e) { 
-                        if (addLog) addLog(`Data parse error on row ${idx+2}: ${e.message}`, 'error');
-                    }
+                    } catch(e) {}
                 });
-
-                if (addLog) addLog(`Geo-Engine plotted ${validMarkers} grouped locations.`, validMarkers > 0 ? 'success' : 'warn');
 
                 setTimeout(() => {
                     try {
@@ -380,12 +377,9 @@
                             if (validMarkers > 0 && !hasFitBounds.current) {
                                 const bounds = layer.getBounds();
                                 if (bounds.isValid()) {
-                                    // Base zoom for crowded map
-                                    mapInstance.current.fitBounds(bounds, { padding: [30, 30], maxZoom: 11 });
+                                    mapInstance.current.fitBounds(bounds, { padding: [30, 30], maxZoom: 6 });
                                     hasFitBounds.current = true;
                                 }
-                            } else if (validMarkers === 0) {
-                                mapInstance.current.setView([20, 0], 2); 
                             }
                         }
                     } catch(err) { console.warn("Leaflet fitBounds aborted:", err); }
@@ -393,13 +387,12 @@
 
             }, [data]);
 
-            // 3. Active Marker Sync & Camera Fly-To
+            // 3. Active Marker Sync & Camera Physics
             useEffect(() => {
                 const map = mapInstance.current;
                 const markers = markersRef.current;
                 if (!map || Object.keys(markers).length === 0) return;
 
-                // Recursive function to reset styles
                 const resetLayer = (layer) => {
                     if (layer.setStyle) layer.setStyle({ color: '#d32f2f', weight: 4 });
                     if (layer.setIcon) {
@@ -410,7 +403,6 @@
                     if (layer.eachLayer) layer.eachLayer(resetLayer);
                 };
 
-                // Recursive function to apply active styles
                 const highlightLayer = (layer) => {
                     if (layer.setStyle) layer.setStyle({ color: '#007acc', weight: 5 });
                     if (layer.setIcon) {
@@ -421,10 +413,8 @@
                     if (layer.eachLayer) layer.eachLayer(highlightLayer);
                 };
 
-                // Reset all
                 Object.values(markers).forEach(resetLayer);
 
-                // Highlight active
                 const activeFeatureGroup = markers[activeIndex];
                 if (activeFeatureGroup) {
                     highlightLayer(activeFeatureGroup);
@@ -435,12 +425,35 @@
                             if (bounds.isValid()) {
                                 const ne = bounds.getNorthEast();
                                 const sw = bounds.getSouthWest();
+                                const isSinglePoint = (ne.lat === sw.lat && ne.lng === sw.lng);
+                                const center = bounds.getCenter();
                                 
-                                // Isolated pin check (NorthEast == SouthWest means it's a single point)
-                                if (ne.lat === sw.lat && ne.lng === sw.lng) {
-                                    map.flyTo(ne, 4, { animate: true, duration: 1.0 }); // Zoom out by 4 levels
+                                let isCrowded = false;
+
+                                // If it's a single pin, measure distance to ALL other pins
+                                if (isSinglePoint) {
+                                    Object.entries(markers).forEach(([idx, mLayer]) => {
+                                        if (String(idx) === String(activeIndex)) return;
+                                        const otherBounds = mLayer.getBounds();
+                                        if (otherBounds.isValid()) {
+                                            const otherCenter = otherBounds.getCenter();
+                                            // If another pin is within 1km (1000m), it's crowded
+                                            if (map.distance(center, otherCenter) <= 1000) {
+                                                isCrowded = true;
+                                            }
+                                        }
+                                    });
+                                }
+
+                                // Cinematic Fly Options (2.5 seconds)
+                                const flyOptions = { animate: true, duration: 2.5 };
+
+                                if (isSinglePoint && !isCrowded) {
+                                    map.flyTo(center, 6, flyOptions);
+                                } else if (isSinglePoint && isCrowded) {
+                                    map.flyTo(center, 11, flyOptions);
                                 } else {
-                                    map.flyToBounds(bounds, { animate: true, duration: 1.0, maxZoom: 11 }); // Zoom in by 5 levels for lines/clusters
+                                    map.flyToBounds(bounds, { ...flyOptions, maxZoom: 11 });
                                 }
                             }
                             if(activeFeatureGroup.openTooltip) activeFeatureGroup.openTooltip();
@@ -451,7 +464,7 @@
 
             return html`<div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>`;
         };
-        // === [ END MAP VIEWER v1.7.0 ] ===
+        // === [ END MAP VIEWER v1.8.0 ] ===
         
         // === [ MEDIA VIEWER v1.0.0 ] ===
         const MediaViewer = ({ activeSlide }) => {
