@@ -9,7 +9,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
     <style>
-        /* === [ GLOBAL STYLES v1.3.0 ] === */
+        /* === [ GLOBAL STYLES v1.4.0 ] === */
         :root { --bg: #121212; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; }
         body { margin: 0; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
         
@@ -17,26 +17,33 @@
         
         /* Layout Grid */
         .top-row { 
-            display: flex; height: 50vh; min-height: 20vh; max-height: 80vh;
-            flex-shrink: 0; resize: vertical; overflow: hidden; 
+            display: flex; height: 35vh; min-height: 15vh; 
+            resize: vertical; overflow: hidden; flex-shrink: 0;
             border-bottom: 5px solid #999; background: #fff; position: relative;
         }
         .top-row::after { content: '≡'; position: absolute; bottom: -3px; left: 50%; transform: translateX(-50%); font-size: 1.2rem; color: #666; pointer-events: none; z-index: 50; }
         
         .map-pane { 
-            width: 50%; min-width: 20%; max-width: 80%; resize: horizontal; 
-            border-right: 4px solid #999; overflow: hidden; position: relative; background: #e0e0e0; 
-            transition: width 0.3s ease;
+            flex-shrink: 0; border-right: 4px solid #999; overflow: hidden; position: relative; background: #e0e0e0; 
         }
+        /* Map Resize Handle Visual Indicator */
+        .map-pane::after { content: '⋮'; position: absolute; top: 50%; right: 1px; transform: translateY(-50%); font-size: 1.2rem; color: #666; pointer-events: none; z-index: 50; }
+
         .media-pane { flex: 1; position: relative; padding: 0; overflow: hidden; background: #111; display: flex; flex-direction: column; }
         
-        .content-pane-wrapper { flex: 1; position: relative; display: flex; flex-direction: column; background: var(--paneBg); overflow: hidden; border-bottom: 1px solid var(--border); }
-        .timeline-pane { height: 15vh; min-height: 80px; flex-shrink: 0; padding: 0; background: #ececec; display: flex; flex-direction: column; position: relative; border-top: 2px solid #ccc; }
+        .content-pane-wrapper { 
+            height: 55vh; min-height: 15vh; resize: vertical; flex-shrink: 0;
+            position: relative; display: flex; flex-direction: column; background: var(--paneBg); overflow: hidden; border-bottom: 5px solid #999; 
+        }
+        .content-pane-wrapper::after { content: '≡'; position: absolute; bottom: -3px; left: 50%; transform: translateX(-50%); font-size: 1.2rem; color: #666; pointer-events: none; z-index: 50; }
+
+        .timeline-pane { 
+            flex: 1; min-height: 200px; padding: 0; background: #ececec; display: flex; flex-direction: column; position: relative; overflow: hidden; 
+        }
 
         /* Map Container & Custom Pins */
         #map-container { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; }
         
-        /* Tooltip Word Wrapping Override (v1.3.0 Fix) */
         .leaflet-tooltip {
             white-space: normal !important;
             word-wrap: break-word !important;
@@ -135,7 +142,7 @@
         .log-error { color: #ff5555; font-weight: bold; }
         .log-time { color: #6272a4; margin-right: 5px; }
         #vibe-toggle { position: absolute; bottom: 10px; left: 0; background: #222; color: #50fa7b; border: 1px solid #444; border-left: none; padding: 8px 12px; border-radius: 0 8px 8px 0; cursor: pointer; z-index: 9998; font-family: 'Courier New', monospace; font-weight: bold; box-shadow: 2px 0 10px rgba(0,0,0,0.5); }
-        /* === [ END GLOBAL STYLES v1.3.0 ] === */
+        /* === [ END GLOBAL STYLES v1.4.0 ] === */
     </style>
     
     <script type="importmap">
@@ -153,16 +160,16 @@
     <div id="root"></div>
 
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.6 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.7 ] ===
         import { h, render, Component } from 'preact';
         import { useState, useEffect, useRef } from 'preact/hooks';
         import htm from 'htm';
         import Papa from 'papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v4.3.6';
+        const APP_VERSION = 'v4.4.0';
         const MODULE_VERSIONS = {
-            Styles: 'v1.3.0',
+            Styles: 'v1.4.0',
             Utils: 'v1.0.0',
             ErrorBoundary: 'v1.0.0',
             VibeMonitor: 'v1.0.0',
@@ -170,10 +177,10 @@
             MediaViewer: 'v1.0.0',
             ContentSlider: 'v1.0.0',
             TimelineScrubber: 'v1.0.0',
-            AppOrchestrator: 'v1.3.0'
+            AppOrchestrator: 'v1.4.0'
         };
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
-        // === [ END GLOBAL VARIABLES v1.0.6 ] ===
+        // === [ END GLOBAL VARIABLES v1.0.7 ] ===
         
         // === [ UTILITIES v1.0.0 ] ===
         const stripHTML = (htmlStr) => {
@@ -590,7 +597,7 @@
         };
         // === [ END TIMELINE SCRUBBER v1.0.0 ] ===
 
-        // === [ APP ORCHESTRATOR v1.3.0 ] ===
+        // === [ APP ORCHESTRATOR v1.4.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [data, setData] = useState([]);
@@ -631,7 +638,6 @@
                         complete: (results) => {
                             if (results.data.length === 0) return setStatus('Empty Dataset');
                             
-                            // V4.3.2 FIX: Strict array-order prioritization
                             const fuzzy = (r, names) => { 
                                 const keys = Object.keys(r);
                                 for (let name of names) {
@@ -671,6 +677,7 @@
                             
                             const valid = cleaned.filter(r => r.startDate).sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
                             setData([...valid, ...cleaned.filter(r => !r.startDate)]);
+                            setActiveIndex(0); // Start at slide 1 (which is record 2)
                             setStatus('Active');
                         },
                         error: (err) => { addLog(`Parse Error: ${err.message}`, 'error'); setStatus('Parse Failed'); }
@@ -687,7 +694,7 @@
 
                     <div id="app-layout">
                         <div class="top-row">
-                            <div class="map-pane" style="width: ${hasMedia ? '50%' : '100%'}; border-right: ${hasMedia ? '4px solid #999' : 'none'}">
+                            <div class="map-pane" style="width: ${hasMedia ? '50%' : '100%'}; resize: ${hasMedia ? 'horizontal' : 'none'}; border-right: ${hasMedia ? '4px solid #999' : 'none'}">
                                 <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} addLog=${addLog} />
                                 <${VibeMonitor} logs=${logs} status=${status} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} />
                             </div>
@@ -707,7 +714,7 @@
         };
 
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
-        // === [ END APP ORCHESTRATOR v1.3.0 ] ===
+        // === [ END APP ORCHESTRATOR v1.4.0 ] ===
     </script>
 </body>
 </html>
