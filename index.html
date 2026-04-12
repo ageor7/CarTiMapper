@@ -3,33 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modern TimeMapper Core - v3.9.0</title>
+    <title>Modern TimeMapper Core - v3.10.0</title>
     <style>
-        :root { --bg: #121212; --pane: #1e1e1e; --border: #333; --text: #eee; --accent: #8be9fd; }
+        /* CSS Variables: paneBg will be overridden dynamically by TM_CONFIG */
+        :root { --bg: #121212; --paneBg: #f4f4f4; --border: #ccc; --text: #222; --accent: #007acc; }
+        
+        /* Fallback dark theme logic for specific panes if needed later */
         body { margin: 0; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
         
         #app-grid { display: grid; grid-template-columns: 35% 65%; grid-template-rows: 45vh 45vh 10vh; height: 100vh; }
-        .pane { border: 1px solid var(--border); padding: 1.5rem; box-sizing: border-box; overflow: hidden; position: relative; }
         
-        .map-pane { grid-column: 1; grid-row: 1; background: #1a1a24; display: flex; align-items: center; justify-content: center; }
-        .media-pane { grid-column: 2; grid-row: 1; background: #151515; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; align-items: center; justify-content: center; }
+        .pane { 
+            border: 1px solid var(--border); 
+            padding: 1.5rem; 
+            box-sizing: border-box; 
+            overflow: hidden; 
+            position: relative; 
+            background: var(--paneBg); /* Injected from Config */
+        }
         
-        /* The Content Pane is now a single-slide container */
-        .content-pane { grid-column: 1 / span 2; grid-row: 2; background: var(--pane); display: flex; flex-direction: column; overflow-y: auto; }
-        .timeline-pane { grid-column: 1 / span 2; grid-row: 3; background: #0a0a0a; display: flex; align-items: center; justify-content: center; }
+        .map-pane { grid-column: 1; grid-row: 1; display: flex; align-items: center; justify-content: center; }
+        .media-pane { grid-column: 2; grid-row: 1; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; align-items: center; justify-content: center; }
+        
+        .content-pane { grid-column: 1 / span 2; grid-row: 2; display: flex; flex-direction: column; overflow-y: auto; position: relative; }
+        .timeline-pane { grid-column: 1 / span 2; grid-row: 3; display: flex; align-items: center; justify-content: center; }
 
         /* Slide Typography & Layout */
-        .slide-container { max-width: 900px; margin: 0 auto; width: 100%; padding-top: 1rem; flex: 1; }
+        .slide-container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            width: 100%; 
+            padding: 1rem 3rem; /* Extra padding on sides to prevent text overlap with nav buttons */
+            flex: 1; 
+        }
         .slide-date { color: var(--accent); font-weight: bold; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; }
-        .slide-title { margin: 0.5rem 0 1rem 0; font-size: 2.5rem; }
-        .slide-desc { line-height: 1.6; font-size: 1.2rem; color: #ccc; }
-        .slide-meta { margin-top: 2rem; font-size: 0.9rem; color: #ffb86c; display: flex; gap: 1rem; border-top: 1px solid #333; padding-top: 1rem; }
+        .slide-title { margin: 0.5rem 0 1rem 0; font-size: 2.5rem; color: #111; }
+        .slide-desc { line-height: 1.6; font-size: 1.2rem; color: #333; }
+        .slide-meta { margin-top: 2rem; font-size: 0.9rem; color: #666; display: flex; gap: 1rem; border-top: 1px solid #ddd; padding-top: 1rem; }
 
-        /* Basic Slide Navigation (Temporary until Timeline is built) */
-        .slide-nav { display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-bottom: 1px solid #333; margin-bottom: 1rem; }
-        .nav-btn { background: #333; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .nav-btn:hover { background: #555; }
-        .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        /* Side-Mounted Navigation Architecture */
+        .nav-btn-side {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.1);
+            color: #333;
+            border: none;
+            width: 40px;
+            height: 100px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .nav-btn-side:hover { background: rgba(0, 0, 0, 0.2); }
+        .nav-btn-side:disabled { opacity: 0.2; cursor: not-allowed; }
+        
+        .nav-left { left: 10px; }
+        .nav-right { right: 10px; }
+
+        /* Minimalist Overlay Slide Counter */
+        .slide-counter {
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            font-size: 0.75rem;
+            color: #888;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            user-select: none;
+        }
 
         /* Vibe Monitor */
         #vibe-monitor {
@@ -38,6 +84,7 @@
             display: flex; flex-direction: column; z-index: 9999;
             box-shadow: 0 8px 32px rgba(0,0,0,0.9); backdrop-filter: blur(8px);
             resize: both; overflow: hidden; font-family: 'Courier New', monospace;
+            color: #eee;
         }
         #vibe-header { background: #222; padding: 8px; cursor: move; font-weight: bold; border-bottom: 1px solid #444; display: flex; justify-content: space-between; user-select: none; }
         #vibe-logs { flex: 1; overflow-y: auto; padding: 10px; font-size: 12px; line-height: 1.4; word-wrap: break-word; }
@@ -70,23 +117,22 @@
         import Papa from 'papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v3.9.0';
+        const APP_VERSION = 'v3.10.0';
 
         /* * ==========================================
          * GLOBAL CONFIGURATION
          * ==========================================
-         * Easy-access parameters for the Engine.
          */
         const TM_CONFIG = {
-            timeZone: 'Europe/Athens', // Forces EET/EEST regardless of local computer time
-            locale: 'en-GB'            // Standardizes DD/MM/YYYY formatting
+            timeZone: 'Europe/Athens', 
+            locale: 'en-GB',           
+            paneBackground: '#f2f2f2' // User configurable light grey background
         };
 
         const useStore = () => {
             const [logs, setLogs] = useState([]);
             const [data, setData] = useState([]);
             const [status, setStatus] = useState('Idle');
-            // Core state for driving the TimeMapper slide experience
             const [activeIndex, setActiveIndex] = useState(0); 
 
             const addLog = (msg, type = 'info', rawData = null) => {
@@ -141,7 +187,10 @@
             const { logs, addLog, data, setData, status, setStatus, activeIndex, setActiveIndex } = useStore();
 
             useEffect(() => {
-                addLog(`Engine ${APP_VERSION} initialized. Slides Active.`, 'info');
+                // Apply global config background color
+                document.documentElement.style.setProperty('--paneBg', TM_CONFIG.paneBackground);
+
+                addLog(`Engine ${APP_VERSION} initialized. Euro-Date Fix Active.`, 'info');
                 const params = new URLSearchParams(window.location.search);
                 let sourceParam = params.get('source');
                 const gid = params.get('gid') || '0'; 
@@ -180,13 +229,9 @@
                         header: true,
                         skipEmptyLines: true,
                         complete: (results) => {
-                            // Print Exact Google Sheet Headers
-                            addLog(`Sheet Raw Headers:`, 'info', results.meta.fields);
-                            // Print the very first raw row before processing
                             if(results.data.length > 0) {
-                                addLog(`Raw Row 1 Example:`, 'info', results.data[0]);
+                                addLog(`Raw Row 1 Date Sample:`, 'info', { 'Raw Date Field': results.data[0]['Start'] || results.data[0]['Start Date'] });
                             }
-                            
                             addLog(`Successfully parsed ${results.data.length} rows. Mapping dates...`, 'success');
                             validateAndCleanData(results.data);
                         },
@@ -214,19 +259,23 @@
                 if (!rawStr) return null;
                 let s = rawStr.toString().trim();
 
+                // 1. Google Serial Date
                 if (!isNaN(s) && s > 10000) return new Date((parseFloat(s) - 25569) * 86400 * 1000);
 
+                // 2. Exact format: DD/MM/YYYY HH:mm
                 const euroTimeMatch = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})\s+(\d{1,2}):(\d{2})$/);
                 if (euroTimeMatch) {
-                    return new Date(
-                        parseInt(euroTimeMatch[3]),
-                        parseInt(euroTimeMatch[2]) - 1,
-                        parseInt(euroTimeMatch[1]),
-                        parseInt(euroTimeMatch[4]),
-                        parseInt(euroTimeMatch[5])
-                    );
+                    return new Date(parseInt(euroTimeMatch[3]), parseInt(euroTimeMatch[2]) - 1, parseInt(euroTimeMatch[1]), parseInt(euroTimeMatch[4]), parseInt(euroTimeMatch[5]));
                 }
 
+                // 3. Exact format: DD/MM/YYYY (Trap this BEFORE native fallback)
+                let parts = s.split(/[\/\-\.]/);
+                if (parts.length === 3 && parts[2].length === 4) { // Assumes ending in 4 digit year
+                    let altDate = new Date(`${parts[1]}/${parts[0]}/${parts[2]}`); // Force MM/DD/YYYY internally for JS
+                    if (!isNaN(altDate.getTime())) return altDate;
+                }
+
+                // 4. Historical Year
                 if (/^-?\d{1,4}$/.test(s)) {
                     let d = new Date(0);
                     d.setFullYear(parseInt(s), 0, 1);
@@ -234,14 +283,9 @@
                     return d;
                 }
 
+                // 5. Standard native JS Date (Fallback)
                 let d = new Date(s);
                 if (!isNaN(d.getTime())) return d;
-
-                let parts = s.split(/[\/\-\.]/);
-                if (parts.length === 3) {
-                    let altDate = new Date(`${parts[1]}/${parts[0]}/${parts[2]}`);
-                    if (!isNaN(altDate.getTime())) return altDate;
-                }
 
                 return null; 
             };
@@ -257,7 +301,7 @@
                     const locRaw = fuzzyFind(row, ['location', 'place', 'coordinates', 'map']);
 
                     return {
-                        id: index, // Original Google Sheet ID reference
+                        id: index,
                         title: titleRaw || `Event ${index + 1}`,
                         startDate: parseTimelineDate(startRaw),
                         rawStart: startRaw,
@@ -267,7 +311,6 @@
                     };
                 });
 
-                // Chronological sorting is crucial for a timeline
                 const sortedData = cleaned.sort((a, b) => {
                     if (!a.startDate) return 1;
                     if (!b.startDate) return -1;
@@ -275,22 +318,15 @@
                 });
 
                 setData(sortedData);
-                setActiveIndex(0); // Start at chronological zero
+                setActiveIndex(0); 
                 setStatus('Active');
             };
 
-            /*
-             * Timezone Aware Date Formatter
-             * Uses Intl.DateTimeFormat synced to TM_CONFIG
-             */
             const formatDate = (dateObj) => {
                 if (!dateObj) return 'Unknown Date';
-                
-                // If it's just a raw year (like 1945), don't show the fake timezone/time
                 if (dateObj.getHours() === 0 && dateObj.getMinutes() === 0 && dateObj.getDate() === 1 && dateObj.getMonth() === 0) {
                      return dateObj.getFullYear().toString();
                 }
-
                 return new Intl.DateTimeFormat(TM_CONFIG.locale, {
                     year: 'numeric', month: 'short', day: 'numeric',
                     hour: '2-digit', minute: '2-digit',
@@ -299,11 +335,9 @@
                 }).format(dateObj);
             };
 
-            // Slide Navigation Handlers
             const nextSlide = () => setActiveIndex(prev => Math.min(prev + 1, data.length - 1));
             const prevSlide = () => setActiveIndex(prev => Math.max(prev - 1, 0));
 
-            // Helper to get the current active record
             const activeSlide = data[activeIndex];
 
             return html`
@@ -324,13 +358,10 @@
                     </div>
                     
                     <div class="pane content-pane">
-                        ${data.length === 0 ? html`<p>Loading content...</p>` : html`
+                        ${data.length === 0 ? html`<p style="color: #666; text-align:center; padding: 2rem;">Loading content...</p>` : html`
                             
-                            <div class="slide-nav">
-                                <button class="nav-btn" onClick=${prevSlide} disabled=${activeIndex === 0}>◀ Previous</button>
-                                <span style="font-size: 0.9rem; color: #888;">Slide ${activeIndex + 1} of ${data.length}</span>
-                                <button class="nav-btn" onClick=${nextSlide} disabled=${activeIndex === data.length - 1}>Next ▶</button>
-                            </div>
+                            <button class="nav-btn-side nav-left" onClick=${prevSlide} disabled=${activeIndex === 0}>◀</button>
+                            <button class="nav-btn-side nav-right" onClick=${nextSlide} disabled=${activeIndex === data.length - 1}>▶</button>
 
                             <div class="slide-container" id="slide-${activeSlide.id}">
                                 <div class="slide-date">${formatDate(activeSlide.startDate)}</div>
@@ -342,6 +373,8 @@
                                     ${activeSlide.media.length > 0 ? html`<span>📸 ${activeSlide.media.length} Media Item(s) Attached</span>` : ''}
                                 </div>
                             </div>
+
+                            <div class="slide-counter">Slide ${activeIndex + 1} of ${data.length}</div>
                         `}
                     </div>
                     
