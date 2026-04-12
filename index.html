@@ -151,27 +151,27 @@
     <div id="root"></div>
 
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.3 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.4 ] ===
         import { h, render, Component } from 'preact';
         import { useState, useEffect, useRef } from 'preact/hooks';
         import htm from 'htm';
         import Papa from 'papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v4.3.3';
+        const APP_VERSION = 'v4.3.4';
         const MODULE_VERSIONS = {
             Styles: 'v1.1.0',
             Utils: 'v1.0.0',
             ErrorBoundary: 'v1.0.0',
             VibeMonitor: 'v1.0.0',
-            MapViewer: 'v1.6.0',
+            MapViewer: 'v1.6.1',
             MediaViewer: 'v1.0.0',
             ContentSlider: 'v1.0.0',
             TimelineScrubber: 'v1.0.0',
             AppOrchestrator: 'v1.3.0'
         };
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
-        // === [ END GLOBAL VARIABLES v1.0.3 ] ===
+        // === [ END GLOBAL VARIABLES v1.0.4 ] ===
         
         // === [ UTILITIES v1.0.0 ] ===
         const stripHTML = (htmlStr) => {
@@ -253,7 +253,7 @@
         };
         // === [ END VIBE MONITOR v1.0.0 ] ===
 
-        // === [ MAP VIEWER v1.6.0 ] ===
+        // === [ MAP VIEWER v1.6.1 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog }) => {
             const mapDomRef = useRef(null);
             const mapInstance = useRef(null);
@@ -261,27 +261,8 @@
             const markersRef = useRef({}); 
             const hasFitBounds = useRef(false);
 
-            // Generate Custom Pin HTML
             const createPinHtml = (isActive) => {
                 return `<div class="custom-map-pin ${isActive ? 'active' : ''}"><div class="pin-head"></div><div class="pin-stem"></div></div>`;
-            };
-
-            // Calculate arrowhead for GeoJSON lines
-            const getLineDecorator = (latlngs) => {
-                if (!latlngs || latlngs.length < 2) return null;
-                const p1 = latlngs[latlngs.length - 2];
-                const p2 = latlngs[latlngs.length - 1];
-                // Simple math to calculate angle between last two points
-                const angle = Math.atan2(p2.lng - p1.lng, p2.lat - p1.lat) * (180 / Math.PI);
-                
-                return L.marker(p2, {
-                    icon: L.divIcon({
-                        className: 'custom-arrow',
-                        html: `<div style="transform: rotate(${angle}deg); font-size: 20px; color: #d32f2f;">▲</div>`,
-                        iconSize: [20, 20],
-                        iconAnchor: [10, 10]
-                    })
-                });
             };
 
             // 1. Safe Leaflet Boot
@@ -322,7 +303,7 @@
                 markersRef.current = {};
                 let validMarkers = 0;
 
-                const defaultIcon = L.divIcon({ className: '', html: createPinHtml(false), iconSize: [24, 34], iconAnchor: [12, 34] });
+                const defaultIcon = L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false), iconSize: [24, 34], iconAnchor: [12, 34] });
 
                 data.forEach((item, idx) => {
                     const locStr = String(item.location || '').trim();
@@ -331,20 +312,43 @@
                     let addedLayer = null;
 
                     try {
+                        // A. Try GeoJSON Interpretation
                         if (locStr.startsWith('{') && locStr.includes('"type"')) {
                             const geoData = JSON.parse(locStr);
                             addedLayer = L.geoJSON(geoData, {
                                 pointToLayer: (feature, latlng) => L.marker(latlng, { icon: defaultIcon }),
                                 style: { color: '#d32f2f', weight: 4 },
                                 onEachFeature: (feature, l) => {
-                                    if (feature.geometry.type === "LineString" || feature.geometry.type === "MultiLineString") {
-                                        // We let standard GeoJSON render the line, we will add arrowheads later if needed
+                                    // Plot Directional Arrow for Lines
+                                    if (feature.geometry?.type === "LineString" || feature.geometry?.type === "MultiLineString") {
+                                        try {
+                                            const latlngs = l.getLatLngs();
+                                            let pts = feature.geometry.type === "MultiLineString" ? latlngs[latlngs.length - 1] : latlngs;
+                                            if (pts && pts.length > 1) {
+                                                const p1 = pts[pts.length - 2];
+                                                const p2 = pts[pts.length - 1];
+                                                
+                                                // Calculate physical heading angle for the SVG arrow
+                                                const dx = p2.lng - p1.lng;
+                                                const dy = p1.lat - p2.lat; 
+                                                const angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+                                                
+                                                const arrowIcon = L.divIcon({
+                                                    className: 'geo-arrow',
+                                                    html: `<div style="transform: rotate(${angle}deg); font-size: 16px; color: #d32f2f; margin-top: -8px; margin-left: -8px; text-shadow: 0 0 2px #fff;">▲</div>`,
+                                                    iconSize: [16, 16],
+                                                    iconAnchor: [8, 8]
+                                                });
+                                                L.marker(p2, { icon: arrowIcon }).addTo(layer);
+                                            }
+                                        } catch(e) { console.warn("Failed to draw directional arrow", e); }
                                     }
                                 }
                             });
                         } 
+                        // B. Try Strict Lat,Lon Number Extraction
                         else {
-                            const coordMatch = locStr.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
+                            const coordMatch = locStr.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
                             if (coordMatch) {
                                 const lat = parseFloat(coordMatch[1]);
                                 const lon = parseFloat(coordMatch[2]);
@@ -355,17 +359,18 @@
                         }
 
                         if (addedLayer) {
-                            // Apply CSS Word wrap via tooltip offset
                             addedLayer.bindTooltip(`<b>${stripHTML(item.title)}</b>`, { direction: 'top', offset: [0, -35] });
                             addedLayer.on('click', () => setActiveIndex(idx));
                             addedLayer.addTo(layer);
                             markersRef.current[idx] = addedLayer; 
                             validMarkers++;
                         }
-                    } catch(e) { console.warn("Failed to parse map layer for record", idx, e); }
+                    } catch(e) { 
+                        if (addLog) addLog(`Data parse error on row ${idx+2}: ${e.message}`, 'error');
+                    }
                 });
 
-                if (addLog) addLog(`Geo-Engine plotted ${validMarkers} locations using Custom SVG Pins.`, validMarkers > 0 ? 'success' : 'warn');
+                if (addLog) addLog(`Geo-Engine plotted ${validMarkers} locations.`, validMarkers > 0 ? 'success' : 'warn');
 
                 setTimeout(() => {
                     try {
@@ -374,7 +379,6 @@
                             if (validMarkers > 0 && !hasFitBounds.current) {
                                 const bounds = layer.getBounds();
                                 if (bounds.isValid()) {
-                                    // MaxZoom 6 for initial load keeps the world view context
                                     mapInstance.current.fitBounds(bounds, { padding: [30, 30], maxZoom: 6 });
                                     hasFitBounds.current = true;
                                 }
@@ -393,10 +397,9 @@
                 const markers = markersRef.current;
                 if (!map || Object.keys(markers).length === 0) return;
 
-                const defaultIcon = L.divIcon({ className: '', html: createPinHtml(false), iconSize: [24, 34], iconAnchor: [12, 34] });
-                const activeIcon = L.divIcon({ className: '', html: createPinHtml(true), iconSize: [24, 34], iconAnchor: [12, 34] });
+                const defaultIcon = L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false), iconSize: [24, 34], iconAnchor: [12, 34] });
+                const activeIcon = L.divIcon({ className: 'custom-div-icon', html: createPinHtml(true), iconSize: [24, 34], iconAnchor: [12, 34] });
 
-                // Reset all to default
                 Object.values(markers).forEach(layer => {
                     if (layer.setIcon) {
                         layer.setIcon(defaultIcon);
@@ -410,7 +413,7 @@
                 if (activeFeature) {
                     if (activeFeature.setIcon) {
                         activeFeature.setIcon(activeIcon);
-                        activeFeature.setZIndexOffset(1000); // Bring active pin to front
+                        activeFeature.setZIndexOffset(1000); 
                     } else if (activeFeature.eachLayer) {
                         activeFeature.eachLayer(l => {
                             if (l.setIcon) {
@@ -425,7 +428,6 @@
                         try {
                             if (activeFeature.getBounds) {
                                 const bounds = activeFeature.getBounds();
-                                // MaxZoom 8 for active fly-to ensures we don't zoom into the street level
                                 if (bounds.isValid()) map.flyToBounds(bounds, { animate: true, duration: 1.0, maxZoom: 8 });
                             } else if (activeFeature.getLatLng) {
                                 const latlng = activeFeature.getLatLng();
@@ -439,7 +441,7 @@
 
             return html`<div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>`;
         };
-        // === [ END MAP VIEWER v1.6.0 ] ===
+        // === [ END MAP VIEWER v1.6.1 ] ===
         
         // === [ MEDIA VIEWER v1.0.0 ] ===
         const MediaViewer = ({ activeSlide }) => {
