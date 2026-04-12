@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modern TimeMapper Core - v3.6.0</title>
+    <title>Modern TimeMapper Core - v3.7.0</title>
     <style>
         :root { --bg: #121212; --pane: #1e1e1e; --border: #333; --text: #eee; }
         body { margin: 0; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
@@ -54,7 +54,7 @@
         import Papa from 'papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v3.6.0';
+        const APP_VERSION = 'v3.7.0';
 
         const useStore = () => {
             const [logs, setLogs] = useState([]);
@@ -112,37 +112,27 @@
             const { logs, addLog, data, setData, status, setStatus } = useStore();
 
             useEffect(() => {
-                addLog(`Engine ${APP_VERSION} initialized. CDN-Direct Mode.`, 'info');
+                addLog(`Engine ${APP_VERSION} initialized. Loading Chrono-Engine...`, 'info');
                 const params = new URLSearchParams(window.location.search);
                 let sourceParam = params.get('source');
                 const gid = params.get('gid') || '0'; 
 
                 if (!sourceParam) return setStatus('Awaiting Source');
 
-                // SMART ROUTER: Detect Editor vs Published IDs
                 let fetchUrl = '';
-                
                 if (sourceParam.includes('http')) {
                     if (sourceParam.includes('/e/2PACX')) {
-                        // User pasted a proper Published Web URL
-                        addLog('Detected bulletproof 2PACX Published URL.', 'success');
                         fetchUrl = sourceParam.split('/pub')[0] + '/pub?output=csv';
                     } else if (sourceParam.includes('/d/')) {
-                        // User pasted an Editor URL
                         const match = sourceParam.match(/\/d\/([a-zA-Z0-9-_]+)/);
-                        addLog(`Detected Editor URL. ID: ${match[1].substring(0,6)}...`, 'warn');
-                        // Attempt the GViz backdoor which sometimes bypasses CORS for Editor IDs
                         fetchUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv&gid=${gid}`;
                     } else {
                         fetchUrl = sourceParam; 
                     }
                 } else {
-                    // It's just an ID
                     if (sourceParam.startsWith('2PACX')) {
-                        addLog('Using secure 2PACX CDN route.', 'success');
                         fetchUrl = `https://docs.google.com/spreadsheets/d/e/${sourceParam}/pub?output=csv&gid=${gid}`;
                     } else {
-                        addLog('Using standard Editor ID route.', 'warn');
                         fetchUrl = `https://docs.google.com/spreadsheets/d/${sourceParam}/gviz/tq?tqx=out:csv&gid=${gid}`;
                     }
                 }
@@ -152,26 +142,16 @@
 
             const executeFetch = async (url) => {
                 setStatus('Fetching Data');
-                addLog(`Executing fetch()...`, 'info');
-
                 try {
                     const response = await fetch(url);
-                    
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    
                     const csvText = await response.text();
-
-                    if (csvText.trim().toLowerCase().startsWith('<!doctype html>')) {
-                        throw new Error('Received HTML. Endpoint rejected the request.');
-                    }
-
-                    addLog('Payload received! Parsing...', 'success');
-
+                    
                     Papa.parse(csvText, {
                         header: true,
                         skipEmptyLines: true,
                         complete: (results) => {
-                            addLog(`Successfully parsed ${results.data.length} rows.`, 'success');
+                            addLog(`Successfully parsed ${results.data.length} rows. Mapping dates...`, 'success');
                             validateAndCleanData(results.data);
                         },
                         error: (err) => {
@@ -179,18 +159,8 @@
                             setStatus('Parse Failed');
                         }
                     });
-
                 } catch (error) {
                     addLog(`Fetch failed: ${error.message}`, 'error');
-                    
-                    // The Ultimate Guide for the User if it fails
-                    addLog(`--- HOW TO FIX THIS PERMANENTLY ---`, 'warn');
-                    addLog(`1. Open your Google Sheet.`, 'info');
-                    addLog(`2. Click File -> Share -> Publish to web.`, 'info');
-                    addLog(`3. Select 'Comma-separated values (.csv)'.`, 'info');
-                    addLog(`4. Click Publish and COPY the link it gives you.`, 'info');
-                    addLog(`5. Paste THAT entire link into the ?source= parameter.`, 'success');
-                    
                     setStatus('Fetch Failed');
                 }
             };
@@ -204,10 +174,50 @@
                 return '';
             };
 
+            /*
+             * ------------------------------------------
+             * THE CHRONO-ENGINE (Robust Date Parsing)
+             * ------------------------------------------
+             */
+            const parseTimelineDate = (rawStr) => {
+                if (!rawStr) return null;
+                let s = rawStr.toString().trim();
+
+                // 1. Google Serial Date (e.g., 45393)
+                if (!isNaN(s) && s > 10000) {
+                    return new Date((parseFloat(s) - 25569) * 86400 * 1000);
+                }
+
+                // 2. Just a Year or Negative Year (e.g., "1945", "-500", "1492")
+                // JS Native Date ruins 1-99 years. We must use setFullYear.
+                if (/^-?\d{1,4}$/.test(s)) {
+                    let d = new Date(0); // Start at epoch
+                    d.setFullYear(parseInt(s), 0, 1);
+                    d.setHours(0,0,0,0);
+                    return d;
+                }
+
+                // 3. Try Standard parsing
+                let d = new Date(s);
+                if (!isNaN(d.getTime())) return d;
+
+                // 4. Try DD/MM/YYYY (European trap)
+                let parts = s.split(/[\/\-\.]/); // Split by /, -, or .
+                if (parts.length === 3) {
+                    // Try re-assembling as MM/DD/YYYY
+                    let altDate = new Date(`${parts[1]}/${parts[0]}/${parts[2]}`);
+                    if (!isNaN(altDate.getTime())) return altDate;
+                }
+
+                return null; // I yield, it's unparseable.
+            };
+
             const validateAndCleanData = (rawData) => {
                 setStatus('Processing');
                 let validCount = 0;
                 let missingDates = 0;
+                let blankDates = 0;
+                let failedExamples = []; // Keep a log of exactly what failed
 
                 const cleaned = rawData.map((row, index) => {
                     const startRaw = fuzzyFind(row, ['start', 'start date', 'startdate', 'date']);
@@ -219,18 +229,19 @@
                     let parsedDate = null;
                     
                     if (startRaw) {
-                        if (!isNaN(startRaw) && startRaw > 10000) {
-                            parsedDate = new Date((parseFloat(startRaw) - 25569) * 86400 * 1000);
-                        } else if (!isNaN(startRaw) && startRaw.length === 4) {
-                            parsedDate = new Date(startRaw, 0, 1);
+                        parsedDate = parseTimelineDate(startRaw);
+                        if (!parsedDate || isNaN(parsedDate)) {
+                            missingDates++;
+                            // Grab up to 3 failing strings for the diagnostic monitor
+                            if (failedExamples.length < 3) {
+                                failedExamples.push(`Row ${index + 2}: "${startRaw}"`);
+                            }
                         } else {
-                            const tempDate = new Date(startRaw);
-                            if (!isNaN(tempDate.getTime())) parsedDate = tempDate;
+                            validCount++;
                         }
+                    } else {
+                        blankDates++; // Cell was literally empty
                     }
-
-                    if (!parsedDate || isNaN(parsedDate)) missingDates++;
-                    else validCount++;
 
                     return {
                         id: index,
@@ -245,8 +256,12 @@
 
                 setData(cleaned);
                 
-                if (missingDates > 0) {
-                    addLog(`Data strategy: ${validCount} valid dates, ${missingDates} missing/invalid.`, 'warn');
+                if (missingDates > 0 || blankDates > 0) {
+                    addLog(`Data strategy: ${validCount} valid dates. ${missingDates} invalid formats. ${blankDates} empty cells.`, 'warn');
+                    if (failedExamples.length > 0) {
+                        addLog(`CHRONO-ERROR SAMPLES: ${failedExamples.join(' | ')}`, 'error');
+                        addLog(`Tell me what format those samples are in, and I will write a custom Regex for them.`, 'info');
+                    }
                 } else {
                     addLog(`Data strategy complete. 100% Date Integrity.`, 'success');
                 }
@@ -263,7 +278,7 @@
                         <div style="color:#555">Media Carousel</div>
                     </div>
                     <div class="pane content-pane">
-                        <h2>Content Layer v3.6</h2>
+                        <h2>Content Layer v3.7</h2>
                         <p>Currently tracking ${data.length} verified records in state.</p>
                         ${data.length > 0 ? html`
                             <pre style="font-size:11px; color:#aaa; background:#111; padding: 10px; border-radius: 4px; overflow-x: auto;">
