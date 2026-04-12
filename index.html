@@ -9,7 +9,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
     <style>
-        /* === [ GLOBAL STYLES v1.0.0 ] === */
+        /* === [ GLOBAL STYLES v1.1.0 ] === */
         :root { --bg: #121212; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; }
         body { margin: 0; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
         
@@ -33,8 +33,35 @@
         .content-pane-wrapper { flex: 1; position: relative; display: flex; flex-direction: column; background: var(--paneBg); overflow: hidden; border-bottom: 1px solid var(--border); }
         .timeline-pane { height: 15vh; min-height: 80px; flex-shrink: 0; padding: 0; background: #ececec; display: flex; flex-direction: column; position: relative; border-top: 2px solid #ccc; }
 
-        /* Map Container */
+        /* Map Container & Custom Pins */
         #map-container { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; }
+        
+        /* Tooltip Word Wrapping Override */
+        .leaflet-tooltip {
+            white-space: normal !important;
+            word-wrap: break-word;
+            max-width: 250px;
+            text-align: center;
+            font-size: 0.85rem;
+            line-height: 1.3;
+        }
+
+        .custom-map-pin {
+            display: flex; align-items: flex-end; justify-content: center;
+            width: 24px; height: 34px; margin-left: -12px; margin-top: -34px;
+        }
+        .pin-head {
+            width: 14px; height: 14px; border-radius: 50%;
+            background: #d32f2f; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+            position: absolute; top: 0; transition: all 0.2s ease;
+        }
+        .pin-stem {
+            width: 2px; height: 20px; background: #333; position: absolute; bottom: 0;
+        }
+        
+        /* Active Pin State */
+        .custom-map-pin.active .pin-head { background: #007acc; transform: scale(1.3); z-index: 1000; }
+        .custom-map-pin.active .pin-stem { background: #007acc; width: 3px; }
 
         /* Media Carousel */
         .media-carousel { flex: 1; display: flex; width: 100%; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scroll-behavior: smooth; }
@@ -106,7 +133,7 @@
         .log-error { color: #ff5555; font-weight: bold; }
         .log-time { color: #6272a4; margin-right: 5px; }
         #vibe-toggle { position: absolute; bottom: 10px; left: 0; background: #222; color: #50fa7b; border: 1px solid #444; border-left: none; padding: 8px 12px; border-radius: 0 8px 8px 0; cursor: pointer; z-index: 9998; font-family: 'Courier New', monospace; font-weight: bold; box-shadow: 2px 0 10px rgba(0,0,0,0.5); }
-        /* === [ END GLOBAL STYLES v1.0.0 ] === */
+        /* === [ END GLOBAL STYLES v1.1.0 ] === */
     </style>
     
     <script type="importmap">
@@ -124,27 +151,27 @@
     <div id="root"></div>
 
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.2 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.3 ] ===
         import { h, render, Component } from 'preact';
         import { useState, useEffect, useRef } from 'preact/hooks';
         import htm from 'htm';
         import Papa from 'papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v4.3.2';
+        const APP_VERSION = 'v4.3.3';
         const MODULE_VERSIONS = {
-            Styles: 'v1.0.0',
+            Styles: 'v1.1.0',
             Utils: 'v1.0.0',
             ErrorBoundary: 'v1.0.0',
             VibeMonitor: 'v1.0.0',
-            MapViewer: 'v1.5.0',
+            MapViewer: 'v1.6.0',
             MediaViewer: 'v1.0.0',
             ContentSlider: 'v1.0.0',
             TimelineScrubber: 'v1.0.0',
             AppOrchestrator: 'v1.3.0'
         };
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
-        // === [ END GLOBAL VARIABLES v1.0.2 ] ===
+        // === [ END GLOBAL VARIABLES v1.0.3 ] ===
         
         // === [ UTILITIES v1.0.0 ] ===
         const stripHTML = (htmlStr) => {
@@ -226,7 +253,7 @@
         };
         // === [ END VIBE MONITOR v1.0.0 ] ===
 
-        // === [ MAP VIEWER v1.5.0 ] ===
+        // === [ MAP VIEWER v1.6.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog }) => {
             const mapDomRef = useRef(null);
             const mapInstance = useRef(null);
@@ -234,7 +261,30 @@
             const markersRef = useRef({}); 
             const hasFitBounds = useRef(false);
 
-            // 1. Safe Leaflet Boot & Cleanup
+            // Generate Custom Pin HTML
+            const createPinHtml = (isActive) => {
+                return `<div class="custom-map-pin ${isActive ? 'active' : ''}"><div class="pin-head"></div><div class="pin-stem"></div></div>`;
+            };
+
+            // Calculate arrowhead for GeoJSON lines
+            const getLineDecorator = (latlngs) => {
+                if (!latlngs || latlngs.length < 2) return null;
+                const p1 = latlngs[latlngs.length - 2];
+                const p2 = latlngs[latlngs.length - 1];
+                // Simple math to calculate angle between last two points
+                const angle = Math.atan2(p2.lng - p1.lng, p2.lat - p1.lat) * (180 / Math.PI);
+                
+                return L.marker(p2, {
+                    icon: L.divIcon({
+                        className: 'custom-arrow',
+                        html: `<div style="transform: rotate(${angle}deg); font-size: 20px; color: #d32f2f;">▲</div>`,
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 10]
+                    })
+                });
+            };
+
+            // 1. Safe Leaflet Boot
             useEffect(() => {
                 try {
                     if (mapDomRef.current && !mapInstance.current && window.L) {
@@ -262,7 +312,7 @@
                 };
             }, []);
 
-            // 2. Data Population & Initial FitBounds
+            // 2. Data Population
             useEffect(() => {
                 const map = mapInstance.current;
                 const layer = markerLayer.current;
@@ -271,6 +321,8 @@
                 layer.clearLayers();
                 markersRef.current = {};
                 let validMarkers = 0;
+
+                const defaultIcon = L.divIcon({ className: '', html: createPinHtml(false), iconSize: [24, 34], iconAnchor: [12, 34] });
 
                 data.forEach((item, idx) => {
                     const locStr = String(item.location || '').trim();
@@ -282,10 +334,13 @@
                         if (locStr.startsWith('{') && locStr.includes('"type"')) {
                             const geoData = JSON.parse(locStr);
                             addedLayer = L.geoJSON(geoData, {
-                                pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
-                                    radius: 6, fillColor: '#ffb86c', color: '#fff', weight: 2, opacity: 1, fillOpacity: 0.8
-                                }),
-                                style: { color: '#ffb86c', weight: 3 }
+                                pointToLayer: (feature, latlng) => L.marker(latlng, { icon: defaultIcon }),
+                                style: { color: '#d32f2f', weight: 4 },
+                                onEachFeature: (feature, l) => {
+                                    if (feature.geometry.type === "LineString" || feature.geometry.type === "MultiLineString") {
+                                        // We let standard GeoJSON render the line, we will add arrowheads later if needed
+                                    }
+                                }
                             });
                         } 
                         else {
@@ -294,15 +349,14 @@
                                 const lat = parseFloat(coordMatch[1]);
                                 const lon = parseFloat(coordMatch[2]);
                                 if (!isNaN(lat) && !isNaN(lon)) {
-                                    addedLayer = L.circleMarker([lat, lon], {
-                                        radius: 6, fillColor: '#ffb86c', color: '#fff', weight: 2, opacity: 1, fillOpacity: 0.8
-                                    });
+                                    addedLayer = L.marker([lat, lon], { icon: defaultIcon });
                                 }
                             }
                         }
 
                         if (addedLayer) {
-                            addedLayer.bindTooltip(`<b>${stripHTML(item.title)}</b>`);
+                            // Apply CSS Word wrap via tooltip offset
+                            addedLayer.bindTooltip(`<b>${stripHTML(item.title)}</b>`, { direction: 'top', offset: [0, -35] });
                             addedLayer.on('click', () => setActiveIndex(idx));
                             addedLayer.addTo(layer);
                             markersRef.current[idx] = addedLayer; 
@@ -311,7 +365,7 @@
                     } catch(e) { console.warn("Failed to parse map layer for record", idx, e); }
                 });
 
-                if (addLog) addLog(`Geo-Engine plotted ${validMarkers} locations on the map.`, validMarkers > 0 ? 'success' : 'warn');
+                if (addLog) addLog(`Geo-Engine plotted ${validMarkers} locations using Custom SVG Pins.`, validMarkers > 0 ? 'success' : 'warn');
 
                 setTimeout(() => {
                     try {
@@ -320,7 +374,8 @@
                             if (validMarkers > 0 && !hasFitBounds.current) {
                                 const bounds = layer.getBounds();
                                 if (bounds.isValid()) {
-                                    mapInstance.current.fitBounds(bounds, { padding: [30, 30], maxZoom: 10 });
+                                    // MaxZoom 6 for initial load keeps the world view context
+                                    mapInstance.current.fitBounds(bounds, { padding: [30, 30], maxZoom: 6 });
                                     hasFitBounds.current = true;
                                 }
                             } else if (validMarkers === 0) {
@@ -338,27 +393,31 @@
                 const markers = markersRef.current;
                 if (!map || Object.keys(markers).length === 0) return;
 
+                const defaultIcon = L.divIcon({ className: '', html: createPinHtml(false), iconSize: [24, 34], iconAnchor: [12, 34] });
+                const activeIcon = L.divIcon({ className: '', html: createPinHtml(true), iconSize: [24, 34], iconAnchor: [12, 34] });
+
+                // Reset all to default
                 Object.values(markers).forEach(layer => {
-                    if (layer.setStyle) {
-                        layer.setStyle({ radius: 6, fillColor: '#ffb86c', color: '#fff', weight: 2 });
-                    } else if (layer.eachLayer) { 
-                        layer.eachLayer(l => {
-                            if (l.setStyle) l.setStyle({ radius: 6, fillColor: '#ffb86c', color: '#fff', weight: 2 });
-                        });
+                    if (layer.setIcon) {
+                        layer.setIcon(defaultIcon);
+                        layer.setZIndexOffset(0);
+                    } else if (layer.setStyle) {
+                        layer.setStyle({ color: '#d32f2f', weight: 4 });
                     }
                 });
 
                 const activeFeature = markers[activeIndex];
                 if (activeFeature) {
-                    if (activeFeature.setStyle) {
-                        activeFeature.setStyle({ radius: 10, fillColor: '#007acc', color: '#fff', weight: 3 });
-                        if (activeFeature.bringToFront) activeFeature.bringToFront();
+                    if (activeFeature.setIcon) {
+                        activeFeature.setIcon(activeIcon);
+                        activeFeature.setZIndexOffset(1000); // Bring active pin to front
                     } else if (activeFeature.eachLayer) {
                         activeFeature.eachLayer(l => {
-                            if (l.setStyle) {
-                                l.setStyle({ radius: 10, fillColor: '#007acc', color: '#fff', weight: 3 });
-                                if (l.bringToFront) l.bringToFront();
+                            if (l.setIcon) {
+                                l.setIcon(activeIcon);
+                                l.setZIndexOffset(1000);
                             }
+                            if (l.setStyle) l.setStyle({ color: '#007acc', weight: 5 });
                         });
                     }
 
@@ -366,7 +425,8 @@
                         try {
                             if (activeFeature.getBounds) {
                                 const bounds = activeFeature.getBounds();
-                                if (bounds.isValid()) map.flyToBounds(bounds, { animate: true, duration: 1.0, maxZoom: 10 });
+                                // MaxZoom 8 for active fly-to ensures we don't zoom into the street level
+                                if (bounds.isValid()) map.flyToBounds(bounds, { animate: true, duration: 1.0, maxZoom: 8 });
                             } else if (activeFeature.getLatLng) {
                                 const latlng = activeFeature.getLatLng();
                                 if (latlng) map.flyTo(latlng, 8, { animate: true, duration: 1.0 });
@@ -379,7 +439,7 @@
 
             return html`<div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>`;
         };
-        // === [ END MAP VIEWER v1.5.0 ] ===
+        // === [ END MAP VIEWER v1.6.0 ] ===
         
         // === [ MEDIA VIEWER v1.0.0 ] ===
         const MediaViewer = ({ activeSlide }) => {
