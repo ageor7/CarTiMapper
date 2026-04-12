@@ -124,27 +124,27 @@
     <div id="root"></div>
 
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.1 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.2 ] ===
         import { h, render, Component } from 'preact';
         import { useState, useEffect, useRef } from 'preact/hooks';
         import htm from 'htm';
         import Papa from 'papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v4.3.1';
+        const APP_VERSION = 'v4.3.2';
         const MODULE_VERSIONS = {
             Styles: 'v1.0.0',
             Utils: 'v1.0.0',
             ErrorBoundary: 'v1.0.0',
             VibeMonitor: 'v1.0.0',
-            MapViewer: 'v1.4.0',
+            MapViewer: 'v1.5.0',
             MediaViewer: 'v1.0.0',
             ContentSlider: 'v1.0.0',
             TimelineScrubber: 'v1.0.0',
-            AppOrchestrator: 'v1.2.0'
+            AppOrchestrator: 'v1.3.0'
         };
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
-        // === [ END GLOBAL VARIABLES v1.0.1 ] ===
+        // === [ END GLOBAL VARIABLES v1.0.2 ] ===
         
         // === [ UTILITIES v1.0.0 ] ===
         const stripHTML = (htmlStr) => {
@@ -226,7 +226,7 @@
         };
         // === [ END VIBE MONITOR v1.0.0 ] ===
 
-        // === [ MAP VIEWER v1.4.0 ] ===
+        // === [ MAP VIEWER v1.5.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog }) => {
             const mapDomRef = useRef(null);
             const mapInstance = useRef(null);
@@ -289,7 +289,6 @@
                             });
                         } 
                         else {
-                            // Upgraded Regex: Catches Lat,Lon or Lat Lon (spaces or commas)
                             const coordMatch = locStr.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
                             if (coordMatch) {
                                 const lat = parseFloat(coordMatch[1]);
@@ -312,13 +311,12 @@
                     } catch(e) { console.warn("Failed to parse map layer for record", idx, e); }
                 });
 
-                // Report success to the Vibe-Monitor
                 if (addLog) addLog(`Geo-Engine plotted ${validMarkers} locations on the map.`, validMarkers > 0 ? 'success' : 'warn');
 
                 setTimeout(() => {
                     try {
                         if (mapInstance.current) {
-                            mapInstance.current.invalidateSize(); // Force DOM to calculate dimensions
+                            mapInstance.current.invalidateSize(); 
                             if (validMarkers > 0 && !hasFitBounds.current) {
                                 const bounds = layer.getBounds();
                                 if (bounds.isValid()) {
@@ -326,7 +324,7 @@
                                     hasFitBounds.current = true;
                                 }
                             } else if (validMarkers === 0) {
-                                mapInstance.current.setView([20, 0], 2); // Show whole world if no markers found
+                                mapInstance.current.setView([20, 0], 2); 
                             }
                         }
                     } catch(err) { console.warn("Leaflet fitBounds aborted:", err); }
@@ -381,7 +379,7 @@
 
             return html`<div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>`;
         };
-        // === [ END MAP VIEWER v1.4.0 ] ===
+        // === [ END MAP VIEWER v1.5.0 ] ===
         
         // === [ MEDIA VIEWER v1.0.0 ] ===
         const MediaViewer = ({ activeSlide }) => {
@@ -507,7 +505,7 @@
         };
         // === [ END TIMELINE SCRUBBER v1.0.0 ] ===
 
-        // === [ APP ORCHESTRATOR v1.2.0 ] ===
+        // === [ APP ORCHESTRATOR v1.3.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [data, setData] = useState([]);
@@ -547,7 +545,17 @@
                         header: true, skipEmptyLines: true,
                         complete: (results) => {
                             if (results.data.length === 0) return setStatus('Empty Dataset');
-                            const fuzzy = (r, names) => { for(let k of Object.keys(r)) if(names.includes(k.trim().toLowerCase())) return String(r[k]).trim(); return ''; };
+                            
+                            // V4.3.2 FIX: Strict array-order prioritization
+                            const fuzzy = (r, names) => { 
+                                const keys = Object.keys(r);
+                                for (let name of names) {
+                                    for (let k of keys) {
+                                        if (k.trim().toLowerCase() === name && r[k]) return String(r[k]).trim();
+                                    }
+                                }
+                                return ''; 
+                            };
                             
                             setAboutData({ title: fuzzy(results.data[0], ['title', 'headline', 'name']) || 'About', description: fuzzy(results.data[0], ['description', 'text', 'content']) });
 
@@ -569,7 +577,7 @@
                                 return {
                                     id: index, title: fuzzy(row, ['title', 'headline', 'name']) || `Event ${index + 1}`,
                                     startDate: (pS && !isNaN(pS.getTime())) ? pS : null, endDate: (pE && !isNaN(pE.getTime())) ? pE : null,
-                                    description: fuzzy(row, ['description', 'text', 'content']), location: fuzzy(row, ['location', 'place', 'coordinates', 'map', 'latlon']),
+                                    description: fuzzy(row, ['description', 'text', 'content']), location: fuzzy(row, ['location', 'latlon', 'coordinates']),
                                     media: fuzzy(row, ['media', 'image', 'photo', 'url']) ? fuzzy(row, ['media', 'image', 'photo', 'url']).split(',').map(x=>x.trim()) : [],
                                     mediaCaption: fuzzy(row, ['media caption', 'caption']), mediaCredit: fuzzy(row, ['media credit', 'credit']),
                                     tags: fuzzy(row, ['tags', 'category', 'type', 'group']) ? fuzzy(row, ['tags', 'category', 'type', 'group']).split(',').map(t=>t.trim()).filter(t=>t) : []
@@ -614,7 +622,7 @@
         };
 
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
-        // === [ END APP ORCHESTRATOR v1.2.0 ] ===
+        // === [ END APP ORCHESTRATOR v1.3.0 ] ===
     </script>
 </body>
 </html>
