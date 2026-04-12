@@ -157,14 +157,14 @@
     <div id="root"></div>
 
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.8 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.9 ] ===
         import { h, render, Component } from 'preact';
         import { useState, useEffect, useRef } from 'preact/hooks';
         import htm from 'htm';
         import Papa from 'papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v4.5.0';
+        const APP_VERSION = 'v4.6.0';
         const MODULE_VERSIONS = {
             Styles: 'v1.5.0',
             Utils: 'v1.0.0',
@@ -173,11 +173,11 @@
             MapViewer: 'v1.8.0',
             MediaViewer: 'v1.0.0',
             ContentSlider: 'v1.0.0',
-            TimelineScrubber: 'v1.0.0',
+            TimelineScrubber: 'v2.0.0',
             AppOrchestrator: 'v1.5.0'
         };
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
-        // === [ END GLOBAL VARIABLES v1.0.8 ] ===
+        // === [ END GLOBAL VARIABLES v1.0.9 ] ===
         
         // === [ UTILITIES v1.0.0 ] ===
         const stripHTML = (htmlStr) => {
@@ -533,19 +533,52 @@
         };
         // === [ END CONTENT SLIDER v1.0.0 ] ===
 
-        // === [ TIMELINE SCRUBBER v1.0.0 ] ===
+        // === [ TIMELINE SCRUBBER v2.0.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
             const dragRef = useRef({ isDragging: false, startX: 0, scrollLeft: 0 });
 
+            // 1. Auto-Center & Auto-Zoom Physics
             useEffect(() => {
+                const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
                 const activeEl = document.getElementById(`timeline-marker-${activeIndex}`);
-                if (activeEl && wrapperRef.current && !dragRef.current.isDragging) {
-                    wrapperRef.current.scrollTo({ left: activeEl.offsetLeft - (wrapperRef.current.offsetWidth / 2), behavior: 'smooth' });
-                }
-            }, [activeIndex, zoomLevel, data]);
+                
+                if (validData.length > 1 && activeEl && wrapperRef.current && !dragRef.current.isDragging) {
+                    // --- Auto-Zoom Math ---
+                    const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
+                    if (activeDataIndex >= 0) {
+                        const minTime = validData[0].startDate.getTime();
+                        const maxTime = validData[validData.length - 1].startDate.getTime();
+                        const timeRange = maxTime - minTime || 1;
+                        
+                        const activeTime = validData[activeDataIndex].startDate.getTime();
+                        let closestDist = Infinity;
+                        
+                        if (activeDataIndex > 0) closestDist = Math.min(closestDist, activeTime - validData[activeDataIndex-1].startDate.getTime());
+                        if (activeDataIndex < validData.length - 1) closestDist = Math.min(closestDist, validData[activeDataIndex+1].startDate.getTime() - activeTime);
 
+                        // If nearest event is less than 3% of timeline total time away, zoom in to pull them apart
+                        const distPct = closestDist / timeRange;
+                        if (distPct > 0 && distPct < 0.03) {
+                             const targetZoom = 0.06 / distPct; // Target 6% visual separation
+                             setZoomLevel(prev => {
+                                 const newZoom = Math.min(Math.max(prev, targetZoom), 15);
+                                 return Math.abs(prev - newZoom) > 0.5 ? newZoom : prev; // Only update if significant change to prevent jitter
+                             });
+                        }
+                    }
+
+                    // --- Auto-Center Math ---
+                    setTimeout(() => {
+                        if (wrapperRef.current) {
+                            wrapperRef.current.scrollTo({ left: activeEl.offsetLeft - (wrapperRef.current.offsetWidth / 2), behavior: 'smooth' });
+                        }
+                    }, 50);
+                }
+            }, [activeIndex, data]);
+
+            // Drag Controls
             const onMouseDown = (e) => { dragRef.current = { isDragging: true, startX: e.pageX - wrapperRef.current.offsetLeft, scrollLeft: wrapperRef.current.scrollLeft }; wrapperRef.current.classList.add('is-dragging'); };
             const onMouseUpLeave = () => { dragRef.current.isDragging = false; wrapperRef.current?.classList.remove('is-dragging'); };
             const onMouseMove = (e) => {
@@ -557,43 +590,74 @@
             const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
             if (validData.length === 0) return html`<div style="padding:1rem;">No valid temporal data.</div>`;
 
+            // Core Timeline Metrics
             const minTime = validData[0].startDate.getTime();
-            const timeRange = validData[validData.length - 1].startDate.getTime() - minTime || 1; 
+            const maxTime = validData[validData.length - 1].startDate.getTime();
+            const timeRange = maxTime - minTime || 1; 
             const yearSpan = validData[validData.length - 1].startDate.getFullYear() - validData[0].startDate.getFullYear();
             
-            let step = 1; if (yearSpan > 20) step = 5; if (yearSpan > 50) step = 10; if (yearSpan > 200) step = 50; if (yearSpan > 1000) step = 100;
+            // Dynamic Ruler Step Math (Adapts to Zoom Level)
+            const visibleYears = yearSpan / zoomLevel;
+            let step = 1; 
+            if (visibleYears > 1000) step = 100; // Centuries
+            else if (visibleYears > 200) step = 50; // Half-Centuries
+            else if (visibleYears > 50) step = 10; // Decades
+            else if (visibleYears > 20) step = 5; // Half-Decades
+            else step = 1; // Years
 
             const rulerTicks = [];
             const startTick = Math.floor(validData[0].startDate.getFullYear() / step) * step;
             for (let y = startTick; y <= validData[validData.length - 1].startDate.getFullYear(); y += step) {
                 if (y < validData[0].startDate.getFullYear()) continue;
                 let d = new Date(0); d.setFullYear(y, 0, 1);
-                rulerTicks.push(html`<div class="timeline-ruler-tick" style="left: ${((d.getTime() - minTime) / timeRange) * 100}%;"><div class="tick-mark"></div><div class="tick-label">${y}</div></div>`);
+                rulerTicks.push(html`
+                    <div class="timeline-ruler-tick" style="left: ${((d.getTime() - minTime) / timeRange) * 100}%; top: 50%; height: 100%; display: flex; flex-direction: column; align-items: center; z-index: 5;">
+                        <div style="width: 1px; height: 100%; background: rgba(0,0,0,0.05); position: absolute;"></div>
+                        <div style="font-size: 0.65rem; color: #888; font-weight: bold; background: #ececec; padding: 0 4px; margin-top: -8px;">${y}</div>
+                    </div>
+                `);
             }
 
             const markers = data.map((item, index) => {
                 if (!item.startDate || isNaN(item.startDate.getTime())) return null;
+                const pct = ((item.startDate.getTime() - minTime) / timeRange) * 100;
+                const isActive = index === activeIndex;
+                
+                // Alternating TimelineJS Layout Physics
+                const isTop = index % 2 === 0;
+                const vPos = isTop ? 'bottom: 60%;' : 'top: 60%;';
+                const stemPos = isTop ? 'bottom: -30px; height: 30px;' : 'top: -30px; height: 30px;';
+                const labelPos = isTop ? 'bottom: 20px;' : 'top: 20px;';
+
                 return html`
-                    <div id="timeline-marker-${index}" class="timeline-marker ${index === activeIndex ? 'active' : ''}" style="left: ${((item.startDate.getTime() - minTime) / timeRange) * 100}%;" onClick=${() => setActiveIndex(index)}>
-                        <div class="timeline-label">${stripHTML(item.title)}</div><div class="timeline-marker-stem"></div>
+                    <div id="timeline-marker-${index}" class="timeline-marker ${isActive ? 'active' : ''}" 
+                         style="left: ${pct}%; ${vPos} transform: translateX(-50%); background: ${isActive ? '#007acc' : '#666'};" 
+                         onClick=${() => setActiveIndex(index)}>
+                        
+                        <div class="timeline-label" style="${labelPos} color: ${isActive ? '#007acc' : '#333'}; font-weight: ${isActive ? 'bold' : 'normal'};">
+                            ${stripHTML(item.title)}
+                        </div>
+                        
+                        <div class="timeline-marker-stem" style="${stemPos} background: ${isActive ? '#007acc' : '#ccc'}; opacity: ${isActive ? '1' : '0.5'};"></div>
                     </div>
                 `;
             });
 
             return html`
-                <div class="timeline-controls">
+                <div class="timeline-controls" style="bottom: auto; top: 10px;">
                     <button class="timeline-btn" onClick=${() => setZoomLevel(p => Math.max(p - 0.5, 0.5))}>-</button>
-                    <button class="timeline-btn" onClick=${() => setZoomLevel(p => Math.min(p + 0.5, 8))}>+</button>
+                    <button class="timeline-btn" onClick=${() => setZoomLevel(p => Math.min(p + 0.5, 15))}>+</button>
                 </div>
-                <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onMouseDown} onMouseLeave=${onMouseUpLeave} onMouseUp=${onMouseUpLeave} onMouseMove=${onMouseMove} onWheel=${(e) => { e.preventDefault(); setZoomLevel(p => e.deltaY < 0 ? Math.min(p + 0.5, 8) : Math.max(p - 0.5, 0.5)); }}>
-                    <div class="timeline-track-container" style="min-width: ${Math.max(100, data.length * 8) * zoomLevel}%; padding: 0 10%;">
-                        <div class="timeline-axis"></div>${rulerTicks}${markers}
+                <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onMouseDown} onMouseLeave=${onMouseUpLeave} onMouseUp=${onMouseUpLeave} onMouseMove=${onMouseMove} onWheel=${(e) => { e.preventDefault(); setZoomLevel(p => e.deltaY < 0 ? Math.min(p + 0.5, 15) : Math.max(p - 0.5, 0.5)); }}>
+                    <div class="timeline-track-container" style="min-width: ${Math.max(100, data.length * 8) * zoomLevel}%; padding: 0 10%; height: 100%;">
+                        <div class="timeline-axis" style="top: 50%; bottom: auto;"></div>
+                        ${rulerTicks}
+                        ${markers}
                     </div>
                 </div>
             `;
         };
-        // === [ END TIMELINE SCRUBBER v1.0.0 ] ===
-
+        // === [ END TIMELINE SCRUBBER v2.0.0 ] ===
         // === [ APP ORCHESTRATOR v1.5.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
