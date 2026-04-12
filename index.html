@@ -129,10 +129,23 @@
         import htm from 'htm';
         import Papa from 'papaparse';
 
+// === [ GLOBAL VARIABLES & MANIFEST v1.0.0 ] ===
         const html = htm.bind(h);
-        const APP_VERSION = 'v4.2.0';
+        const APP_VERSION = 'v4.2.1';
+        const MODULE_VERSIONS = {
+            Styles: 'v1.0.0',
+            Utils: 'v1.0.0',
+            ErrorBoundary: 'v1.0.0',
+            VibeMonitor: 'v1.0.0',
+            MapViewer: 'v1.3.0',
+            MediaViewer: 'v1.0.0',
+            ContentSlider: 'v1.0.0',
+            TimelineScrubber: 'v1.0.0',
+            AppOrchestrator: 'v1.1.0'
+        };
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
-
+        // === [ END GLOBAL VARIABLES ] ===
+        
         // === [ UTILITIES v1.0.0 ] ===
         const stripHTML = (htmlStr) => {
             if(!htmlStr) return "";
@@ -533,7 +546,7 @@
         };
         // === [ END TIMELINE SCRUBBER v1.0.0 ] ===
 
-        // === [ APP ORCHESTRATOR v1.0.0 ] ===
+// === [ APP ORCHESTRATOR v1.1.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [data, setData] = useState([]);
@@ -547,7 +560,11 @@
 
             useEffect(() => {
                 document.documentElement.style.setProperty('--paneBg', TM_CONFIG.paneBackground);
-                addLog(`Engine ${APP_VERSION} initialized. Leaflet Sandbox Active.`, 'info');
+                
+                // Print System Manifest to Vibe Monitor
+                addLog(`Engine ${APP_VERSION} Boot Sequence Initiated.`, 'info');
+                const manifestStr = Object.entries(MODULE_VERSIONS).map(([k, v]) => `${k} ${v}`).join(' | ');
+                addLog(`📦 Modules: ${manifestStr}`, 'success');
                 
                 const params = new URLSearchParams(window.location.search);
                 const gid = params.get('gid') || '0'; 
@@ -635,7 +652,8 @@
                 </div>
             `;
         };
-
+        // === [ END APP ORCHESTRATOR v1.1.0 ] ===
+        
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
         // === [ END APP ORCHESTRATOR v1.0.0 ] ===
     </script>
