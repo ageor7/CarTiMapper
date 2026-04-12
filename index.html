@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modern TimeMapper Core - v3.17.0</title>
+    <title>Modern TimeMapper Core - v3.18.0</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -14,7 +14,7 @@
         
         #app-layout { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
         
-        /* Vertically Resizable Top Row */
+        /* Top Row */
         .top-row { 
             display: flex; height: 50vh; min-height: 20vh; max-height: 80vh;
             flex-shrink: 0; resize: vertical; overflow: hidden; 
@@ -22,30 +22,36 @@
         }
         .top-row::after { content: '≡'; position: absolute; bottom: -3px; left: 50%; transform: translateX(-50%); font-size: 1.2rem; color: #fff; pointer-events: none; z-index: 50; }
         
-        /* Map Prominence & Horizontal Resizing */
+        /* Map Pane */
         .map-pane { 
             width: 60%; min-width: 20%; max-width: 80%; resize: horizontal; 
             overflow: hidden; border-right: 4px solid #999; padding: 0; position: relative;
         }
-        #map-container { width: 100%; height: 100%; background: #e0e0e0; z-index: 1; }
+        #map-container { position: absolute; top: 0; bottom: 0; left: 0; right: 0; background: #e0e0e0; z-index: 1; }
         
-        .media-pane { flex: 1; overflow-x: auto; scroll-snap-type: x mandatory; display: flex; align-items: center; justify-content: center; background: var(--paneBg); }
-        
-        /* Static Wrapper for Content Pane (Keeps Nav Fixed) */
-        .content-pane-wrapper { 
-            flex: 1; position: relative; display: flex; flex-direction: column; 
-            background: var(--paneBg); overflow: hidden; border-bottom: 1px solid var(--border); 
+        /* Media Carousel Pane */
+        .media-pane { 
+            flex: 1; position: relative; background: #111; overflow: hidden; 
         }
-        
-        /* Internal Scrolling Area for Content */
-        .content-scroll-area { 
-            flex: 1; overflow-y: auto; padding: 1rem 3rem; display: flex; flex-direction: column;
+        .media-carousel {
+            display: flex; width: 100%; height: 100%; overflow-x: auto; overflow-y: hidden;
+            scroll-snap-type: x mandatory; scroll-behavior: smooth;
         }
+        .media-item {
+            width: 100%; height: 100%; flex-shrink: 0; scroll-snap-align: center;
+            display: flex; align-items: center; justify-content: center; position: relative;
+        }
+        .media-item img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .media-item iframe { width: 100%; height: 100%; border: none; }
+        .media-counter { position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; pointer-events: none; }
 
-        /* Classic TimeMapper Timeline */
+        /* Content Pane */
+        .content-pane-wrapper { flex: 1; position: relative; display: flex; flex-direction: column; background: var(--paneBg); overflow: hidden; border-bottom: 1px solid var(--border); }
+        .content-scroll-area { flex: 1; overflow-y: auto; padding: 1rem 3rem; display: flex; flex-direction: column; }
+
+        /* Classic Timeline */
         .timeline-pane { height: 15vh; min-height: 80px; flex-shrink: 0; padding: 0; background: #ececec; display: flex; flex-direction: column; position: relative;}
         .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-x: auto; overflow-y: hidden; position: relative; display: flex; align-items: center; scroll-behavior: smooth; }
-        
         .timeline-track-container { position: relative; height: 100%; display: flex; align-items: center; transition: min-width 0.3s ease; }
         .timeline-axis { position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: #999; }
         
@@ -59,7 +65,6 @@
             cursor: pointer; transition: all 0.2s ease; z-index: 10;
         }
         .timeline-marker-stem { position: absolute; bottom: -8px; left: 4px; width: 2px; height: 8px; background: #666; }
-        
         .timeline-marker:hover { transform: translate(-50%, -2px) scale(1.3); background: #333; z-index: 15; }
         .timeline-marker.active { background: var(--accent); z-index: 20; box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.3); transform: translate(-50%, -2px) scale(1.3); }
         .timeline-marker.active .timeline-marker-stem { background: var(--accent); height: 10px; bottom: -10px; }
@@ -72,19 +77,22 @@
         }
         .timeline-marker:hover .timeline-label, .timeline-marker.active .timeline-label { opacity: 1; }
 
-        /* Timeline Zoom Controls */
         .timeline-controls { position: absolute; bottom: 10px; right: 20px; display: flex; gap: 5px; z-index: 50; }
         .timeline-btn { background: #fff; border: 1px solid #ccc; border-radius: 4px; width: 28px; height: 28px; cursor: pointer; font-weight: bold; color: #333; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .timeline-btn:hover { background: #eee; }
 
         /* Slide Typography */
         .slide-container { width: 100%; max-width: 1200px; margin: 0 auto; flex: 1; box-sizing: border-box; }
+        
+        .slide-header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
         .slide-date { color: var(--accent); font-weight: bold; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px; }
-        .slide-title { margin: 0.5rem 0 1rem 0; font-size: 2.2rem; color: #111; font-weight: normal; }
-        .slide-desc { line-height: 1.6; font-size: 1.1rem; color: #333; width: 100%; }
-        .slide-meta { margin-top: 2rem; font-size: 0.9rem; color: #666; display: flex; gap: 1rem; border-top: 1px solid #ddd; padding-top: 1rem; }
+        .tags-container { display: flex; gap: 6px; flex-wrap: wrap; max-width: 40%; justify-content: flex-end; }
+        .tag-badge { background: #e0e0e0; color: #444; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; white-space: nowrap; border: 1px solid #ccc; }
 
-        /* Fixed Navigation inside Content Wrapper */
+        .slide-title { margin: 0 0 1rem 0; font-size: 2.2rem; color: #111; font-weight: normal; }
+        .slide-desc { line-height: 1.6; font-size: 1.1rem; color: #333; width: 100%; }
+
+        /* Fixed Navigation */
         .nav-btn-side {
             position: absolute; top: 50%; transform: translateY(-50%);
             background: rgba(0, 0, 0, 0.05); color: #333; border: none;
@@ -99,7 +107,7 @@
         
         .slide-counter { position: absolute; bottom: 10px; right: 15px; font-size: 0.8rem; color: #888; font-weight: bold; user-select: none; z-index: 50; }
         
-        /* About Toggle (Now Bottom Left of Content) */
+        /* About Toggle */
         #about-toggle {
             position: absolute; bottom: 10px; left: 15px; z-index: 50;
             background: #222; color: #fff; border: 1px solid #555; border-radius: 20px;
@@ -115,9 +123,9 @@
         #about-modal.open { display: block; }
         .about-close { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5rem; cursor: pointer; }
 
-        /* Vibe Monitor Docking Architecture (Bottom Left of Map) */
+        /* Vibe Monitor - Now docks relative to Map bounds natively */
         #vibe-monitor {
-            position: fixed; width: 450px; height: 350px;
+            position: absolute; width: 450px; height: 300px;
             background: rgba(10, 10, 15, 0.95); border: 1px solid #444; border-radius: 8px;
             display: flex; flex-direction: column; z-index: 9999; color: #eee;
             box-shadow: 0 8px 32px rgba(0,0,0,0.9); backdrop-filter: blur(8px);
@@ -134,7 +142,7 @@
         .log-time { color: #6272a4; margin-right: 5px; }
         
         #vibe-toggle {
-            position: fixed; bottom: 18vh; left: 0; /* Adjusted to sit above timeline */
+            position: absolute; bottom: 10px; left: 0;
             background: #222; color: #50fa7b; border: 1px solid #444; border-left: none;
             padding: 8px 12px; border-radius: 0 8px 8px 0; cursor: pointer; z-index: 9998;
             font-family: 'Courier New', monospace; font-weight: bold; box-shadow: 2px 0 10px rgba(0,0,0,0.5);
@@ -158,435 +166,4 @@
         import { h, render, Component } from 'preact';
         import { useState, useEffect, useRef } from 'preact/hooks';
         import htm from 'htm';
-        import Papa from 'papaparse';
-
-        const html = htm.bind(h);
-        const APP_VERSION = 'v3.17.0';
-
-        const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
-
-        class ErrorBoundary extends Component {
-            constructor() { super(); this.state = { error: null }; }
-            componentDidCatch(error) { this.setState({ error }); }
-            render() {
-                if (this.state.error) return html`<div style="padding: 2rem; background: #222; color: #ff5555; height: 100vh; overflow: auto; font-family: monospace;"><h1>⚠️ Fatal UI Crash Prevented</h1><pre>${this.state.error.stack}</pre></div>`;
-                return this.props.children;
-            }
-        }
-
-        const useStore = () => {
-            const [logs, setLogs] = useState([]);
-            const [data, setData] = useState([]);
-            const [aboutData, setAboutData] = useState(null); 
-            const [status, setStatus] = useState('Idle');
-            const [activeIndex, setActiveIndex] = useState(0); 
-            const [isMonitorOpen, setIsMonitorOpen] = useState(true);
-            const [isAboutOpen, setIsAboutOpen] = useState(false);
-            const [mapInstance, setMapInstance] = useState(null);
-
-            const addLog = (msg, type = 'info') => {
-                const time = new Date().toLocaleTimeString('en-US', { hour12: false });
-                setLogs(prev => [...prev, { time, msg, type }]); 
-            };
-
-            return { 
-                logs, addLog, data, setData, aboutData, setAboutData, 
-                status, setStatus, activeIndex, setActiveIndex, 
-                isMonitorOpen, setIsMonitorOpen, isAboutOpen, setIsAboutOpen,
-                mapInstance, setMapInstance
-            };
-        };
-
-        const stripHTML = (htmlStr) => {
-            if(!htmlStr) return "";
-            const tmp = document.createElement("DIV");
-            tmp.innerHTML = String(htmlStr);
-            return tmp.textContent || tmp.innerText || "";
-        };
-
-        const VibeMonitor = ({ logs, status, isOpen, setIsOpen, activeSlide }) => {
-            const logEndRef = useRef(null);
-            
-            useEffect(() => {
-                const monitor = document.getElementById('vibe-monitor');
-                if (monitor && isOpen) {
-                    monitor.style.top = 'auto';
-                    monitor.style.bottom = '18vh'; // Bottom left of map area, just above timeline
-                    monitor.style.left = '10px';
-                }
-            }, [isOpen]);
-
-            useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [logs]);
-
-            const onDrag = (e) => {
-                const monitor = document.getElementById('vibe-monitor');
-                let shiftX = e.clientX - monitor.getBoundingClientRect().left;
-                let shiftY = e.clientY - monitor.getBoundingClientRect().top;
-                const moveAt = (pageX, pageY) => {
-                    monitor.style.left = pageX - shiftX + 'px';
-                    monitor.style.top = pageY - shiftY + 'px';
-                    monitor.style.bottom = 'auto'; // release bottom anchor
-                };
-                const onMouseMove = (e) => moveAt(e.pageX, e.pageY);
-                document.addEventListener('mousemove', onMouseMove);
-                document.onmouseup = () => { document.removeEventListener('mousemove', onMouseMove); document.onmouseup = null; };
-            };
-
-            if (!isOpen) return html`<button id="vibe-toggle" onClick=${() => setIsOpen(true)}>🟢 Monitor</button>`;
-
-            return html`
-                <div id="vibe-monitor">
-                    <div id="vibe-header" onMouseDown=${onDrag}>
-                        <span>🟢 Vibe-Monitor ${APP_VERSION}</span>
-                        <div>
-                            <span style="color: #bd93f9; margin-right: 10px;">[${status}]</span>
-                            <button class="vibe-close-btn" onClick=${() => setIsOpen(false)}>X</button>
-                        </div>
-                    </div>
-                    
-                    <div id="vibe-logs">
-                        ${logs.map((l, i) => html`<div key=${i} class="log-${l.type}"><span class="log-time">[${l.time}]</span> ${l.msg}</div>`)}
-                        <div ref=${logEndRef}></div>
-                    </div>
-
-                    ${activeSlide ? html`
-                        <div class="vibe-active-tracker">
-                            <b>📌 Active: Original Row ${activeSlide.originalRow}</b><br/>
-                            <pre style="margin: 4px 0 0 0; white-space: pre-wrap;">${JSON.stringify(activeSlide.rawRow, null, 2)}</pre>
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-        };
-
-        // --- ENHANCED ZOOMABLE TIMELINE SCRUBBER ---
-        const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
-            const wrapperRef = useRef(null);
-            const [zoomLevel, setZoomLevel] = useState(1);
-
-            const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 0.5, 5));
-            const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 0.5, 0.5));
-
-            const handleWheel = (e) => {
-                // Allows zooming with mouse wheel without scrolling the page
-                e.preventDefault();
-                if (e.deltaY < 0) handleZoomIn();
-                else handleZoomOut();
-            };
-
-            // Auto-scroll physics
-            useEffect(() => {
-                if (wrapperRef.current) {
-                    const activeMarker = wrapperRef.current.querySelector('.timeline-marker.active');
-                    if (activeMarker) {
-                        const containerWidth = wrapperRef.current.offsetWidth;
-                        const markerLeft = activeMarker.offsetLeft;
-                        wrapperRef.current.scrollTo({ left: markerLeft - (containerWidth / 2), behavior: 'smooth' });
-                    }
-                }
-            }, [activeIndex, data, zoomLevel]);
-
-            const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
-            if (validData.length === 0) return html`<div style="padding: 1rem; color:#666;">No valid temporal data found.</div>`;
-
-            const minTime = validData[0].startDate.getTime();
-            const maxTime = validData[validData.length - 1].startDate.getTime();
-            const timeRange = maxTime - minTime || 1; 
-
-            const minYear = validData[0].startDate.getFullYear();
-            const maxYear = validData[validData.length - 1].startDate.getFullYear();
-            const yearSpan = maxYear - minYear;
-            
-            let step = 1;
-            if (yearSpan > 20) step = 5;
-            if (yearSpan > 50) step = 10;
-            if (yearSpan > 200) step = 50;
-            if (yearSpan > 1000) step = 100;
-
-            const rulerTicks = [];
-            const startTick = Math.floor(minYear / step) * step;
-            for (let y = startTick; y <= maxYear; y += step) {
-                if (y < minYear) continue;
-                const tickTime = new Date(0); tickTime.setFullYear(y, 0, 1);
-                const percent = ((tickTime.getTime() - minTime) / timeRange) * 100;
-                rulerTicks.push(html`<div class="timeline-ruler-tick" style="left: ${percent}%;"><div class="tick-mark"></div><div class="tick-label">${y}</div></div>`);
-            }
-
-            const markers = data.map((item, index) => {
-                if (!item.startDate || isNaN(item.startDate.getTime())) return null;
-                const percent = ((item.startDate.getTime() - minTime) / timeRange) * 100;
-                return html`
-                    <div class="timeline-marker ${index === activeIndex ? 'active' : ''}" style="left: ${percent}%;" onClick=${() => setActiveIndex(index)}>
-                        <div class="timeline-label">${stripHTML(item.title)}</div>
-                        <div class="timeline-marker-stem"></div>
-                    </div>
-                `;
-            });
-
-            // Calculate mathematical width based on zoom level and data density
-            const baseWidth = Math.max(100, data.length * 15); // Base width scaling
-            const finalWidth = baseWidth * zoomLevel;
-
-            return html`
-                <div class="timeline-controls">
-                    <button class="timeline-btn" onClick=${handleZoomOut} title="Zoom Out">-</button>
-                    <button class="timeline-btn" onClick=${handleZoomIn} title="Zoom In">+</button>
-                </div>
-                <div class="timeline-scroll-wrapper" id="tm-scrubber" ref=${wrapperRef} onWheel=${handleWheel}>
-                    <div class="timeline-track-container" style="min-width: ${finalWidth}%; padding: 0 5%;">
-                        <div class="timeline-axis"></div>
-                        ${rulerTicks}
-                        ${markers}
-                    </div>
-                </div>
-            `;
-        };
-
-        const App = () => {
-            const { 
-                logs, addLog, data, setData, aboutData, setAboutData,
-                status, setStatus, activeIndex, setActiveIndex, 
-                isMonitorOpen, setIsMonitorOpen, isAboutOpen, setIsAboutOpen,
-                mapInstance, setMapInstance 
-            } = useStore();
-
-            useEffect(() => {
-                document.documentElement.style.setProperty('--paneBg', TM_CONFIG.paneBackground);
-                addLog(`Engine ${APP_VERSION} initialized. Global Map Sync Active.`, 'info');
-                
-                if (window.L && !mapInstance) {
-                    const map = L.map('map-container', { zoomControl: false }).setView([20, 0], 2);
-                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
-                    L.control.zoom({ position: 'topright' }).addTo(map);
-                    setMapInstance(map);
-                }
-                
-                const params = new URLSearchParams(window.location.search);
-                let sourceParam = params.get('source');
-                const gid = params.get('gid') || '0'; 
-
-                if (!sourceParam) return setStatus('Awaiting Source');
-
-                let fetchUrl = '';
-                if (sourceParam.includes('http')) {
-                    if (sourceParam.includes('/e/2PACX')) fetchUrl = sourceParam.split('/pub')[0] + '/pub?output=csv';
-                    else if (sourceParam.includes('/d/')) {
-                        const match = sourceParam.match(/\/d\/([a-zA-Z0-9-_]+)/);
-                        fetchUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv&gid=${gid}`;
-                    } else fetchUrl = sourceParam; 
-                } else {
-                    if (sourceParam.startsWith('2PACX')) fetchUrl = `https://docs.google.com/spreadsheets/d/e/${sourceParam}/pub?output=csv&gid=${gid}`;
-                    else fetchUrl = `https://docs.google.com/spreadsheets/d/${sourceParam}/gviz/tq?tqx=out:csv&gid=${gid}`;
-                }
-
-                executeFetch(fetchUrl);
-            }, []);
-
-            const executeFetch = async (url) => {
-                setStatus('Fetching Data');
-                try {
-                    const response = await fetch(url);
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    const csvText = await response.text();
-                    
-                    Papa.parse(csvText, {
-                        header: true, skipEmptyLines: true,
-                        complete: (results) => { validateAndCleanData(results.data); },
-                        error: (err) => { addLog(`Parse Error: ${err.message}`, 'error'); setStatus('Parse Failed'); }
-                    });
-                } catch (error) { addLog(`Fetch failed: ${error.message}`, 'error'); setStatus('Fetch Failed'); }
-            };
-
-            const fuzzyFind = (row, possibleNames) => {
-                const keys = Object.keys(row);
-                for (let k of keys) {
-                    const cleanKey = k.trim().toLowerCase();
-                    if (possibleNames.includes(cleanKey)) return row[k] ? String(row[k]).trim() : '';
-                }
-                return '';
-            };
-
-            const parseDynamicDate = (str) => {
-                if (!str) return null;
-                let cleanStr = String(str).trim();
-                if (/^\d+\.?\d*$/.test(cleanStr) && parseFloat(cleanStr) > 10000) return new Date((parseFloat(cleanStr) - 25569) * 86400 * 1000);
-                if (/^-?\d{1,4}$/.test(cleanStr)) { let d = new Date(0); d.setFullYear(parseInt(cleanStr), 0, 1); d.setHours(0,0,0,0); return d; }
-                let isoStr = cleanStr.replace(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/, (match, dd, mm, yyyy) => `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`);
-                let d = new Date(isoStr); if (!isNaN(d.getTime())) return d;
-                d = new Date(cleanStr); if (!isNaN(d.getTime())) return d;
-                return null;
-            };
-
-            const validateAndCleanData = (rawData) => {
-                setStatus('Processing');
-                if (rawData.length === 0) return setStatus('Empty Dataset');
-
-                const aboutRaw = rawData[0];
-                setAboutData({
-                    title: fuzzyFind(aboutRaw, ['title', 'headline', 'name']) || 'About',
-                    description: fuzzyFind(aboutRaw, ['description', 'text', 'content']),
-                    rawRow: aboutRaw
-                });
-
-                const timelineRaw = rawData.slice(1);
-                
-                const cleaned = timelineRaw.map((row, index) => {
-                    const startRaw = fuzzyFind(row, ['start', 'start date', 'startdate', 'date']);
-                    const endRaw = fuzzyFind(row, ['end', 'end date', 'enddate']);
-                    const titleRaw = fuzzyFind(row, ['title', 'headline', 'name']);
-                    const descRaw = fuzzyFind(row, ['description', 'text', 'content']);
-                    const mediaRaw = fuzzyFind(row, ['media', 'image', 'photo', 'url']);
-                    const locRaw = fuzzyFind(row, ['location', 'place', 'coordinates', 'map', 'latlon']);
-
-                    let pStart = parseDynamicDate(startRaw);
-                    if (pStart && isNaN(pStart.getTime())) pStart = null;
-                    let pEnd = parseDynamicDate(endRaw);
-                    if (pEnd && isNaN(pEnd.getTime())) pEnd = null;
-
-                    return {
-                        id: index, // Start counting timeline items at 0 logically, output will be +1
-                        originalRow: index + 3, // Row 1 is headers, Row 2 is About, so first item is Row 3
-                        title: titleRaw || `Event ${index + 1}`,
-                        startDate: pStart, endDate: pEnd,
-                        description: descRaw,
-                        media: mediaRaw ? mediaRaw.split(',').map(s => s.trim()) : [],
-                        location: locRaw || null,
-                        rawRow: row
-                    };
-                });
-
-                const validRecords = cleaned.filter(r => r.startDate !== null);
-                const nullRecords = cleaned.filter(r => r.startDate === null);
-                validRecords.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
-                
-                setData([...validRecords, ...nullRecords]);
-                setActiveIndex(0); 
-                setStatus('Active');
-            };
-
-            // Global Map Sync
-            useEffect(() => {
-                if (mapInstance && data.length > 0) {
-                    
-                    // Clear existing markers
-                    if (mapInstance.markersLayer) {
-                        mapInstance.removeLayer(mapInstance.markersLayer);
-                    }
-                    
-                    const markersLayer = L.layerGroup().addTo(mapInstance);
-                    mapInstance.markersLayer = markersLayer;
-
-                    // Populate all map pins
-                    data.forEach((item, idx) => {
-                        if (item.location) {
-                            const coordMatch = String(item.location).match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);
-                            if (coordMatch) {
-                                const lat = parseFloat(coordMatch[1]);
-                                const lon = parseFloat(coordMatch[2]);
-                                const isActive = idx === activeIndex;
-                                
-                                const marker = L.circleMarker([lat, lon], {
-                                    radius: isActive ? 8 : 5,
-                                    fillColor: isActive ? '#007acc' : '#ffb86c',
-                                    color: '#fff', weight: 2, opacity: 1, fillOpacity: 0.9
-                                }).addTo(markersLayer);
-                                
-                                marker.bindTooltip(`<b>${stripHTML(item.title)}</b>`);
-                                
-                                // Map click syncs back to app state
-                                marker.on('click', () => setActiveIndex(idx));
-                                
-                                // Fly to active marker
-                                if (isActive) {
-                                    mapInstance.flyTo([lat, lon], 6, { animate: true, duration: 1.0 });
-                                    marker.openTooltip();
-                                }
-                            }
-                        }
-                    });
-                }
-            }, [activeIndex, data, mapInstance]);
-
-            const formatDateStr = (dateObj, showWeekday = true) => {
-                if (!dateObj || isNaN(dateObj.getTime())) return null;
-                if (dateObj.getHours() === 0 && dateObj.getMinutes() === 0 && dateObj.getDate() === 1 && dateObj.getMonth() === 0) return dateObj.getFullYear().toString();
-
-                let weekdayStr = '';
-                if (showWeekday) {
-                    try { weekdayStr = new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: TM_CONFIG.timeZone }).format(dateObj) + ' '; } 
-                    catch (e) { weekdayStr = new Intl.DateTimeFormat('en-GB', { weekday: 'short' }).format(dateObj) + ' '; }
-                }
-
-                const dd = dateObj.getDate().toString().padStart(2, '0');
-                const mm = (dateObj.getMonth() + 1).toString().padStart(2, '0'); 
-                const yyyy = dateObj.getFullYear();
-                const HH = dateObj.getHours().toString().padStart(2, '0');
-                const min = dateObj.getMinutes().toString().padStart(2, '0');
-                let timeStr = (HH === '00' && min === '00') ? '' : ` ${HH}:${min}`;
-
-                return `${weekdayStr}${dd}/${mm}/${yyyy}${timeStr}`.trim();
-            };
-
-            const getFullDateDisplay = (start, end) => {
-                const sStr = formatDateStr(start, true);
-                const eStr = formatDateStr(end, false);
-                if (!sStr) return 'Unknown Date';
-                if (!eStr) return sStr;
-                return `${sStr} - ${eStr}`;
-            };
-
-            const nextSlide = () => setActiveIndex(prev => Math.min(prev + 1, data.length - 1));
-            const prevSlide = () => setActiveIndex(prev => Math.max(prev - 1, 0));
-            const activeSlide = data[activeIndex];
-
-            return html`
-                ${html`<${VibeMonitor} logs=${logs} status=${status} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} />`}
-                
-                ${aboutData ? html`
-                    <div id="about-modal" class=${isAboutOpen ? 'open' : ''}>
-                        <button class="about-close" onClick=${() => setIsAboutOpen(false)}>×</button>
-                        <h2 dangerouslySetInnerHTML=${{__html: aboutData.title}}></h2>
-                        <div style="line-height: 1.6;" dangerouslySetInnerHTML=${{__html: aboutData.description}}></div>
-                    </div>
-                ` : ''}
-
-                <div id="app-layout">
-                    <div class="top-row">
-                        <div class="pane map-pane"><div id="map-container"></div></div>
-                        <div class="pane media-pane"><div style="color:#555; text-align:center;"><h3>Media Carousel</h3></div></div>
-                    </div>
-                    
-                    <div class="content-pane-wrapper">
-                        <button class="nav-btn-side nav-left" onClick=${prevSlide} disabled=${activeIndex === 0}>◀</button>
-                        <button class="nav-btn-side nav-right" onClick=${nextSlide} disabled=${activeIndex === data.length - 1}>▶</button>
-                        
-                        <div class="content-scroll-area">
-                            ${data.length === 0 ? html`<p style="text-align:center; padding: 2rem;">Loading content...</p>` : html`
-                                <div class="slide-container" id="slide-${activeSlide?.id || 0}">
-                                    <div class="slide-date">${getFullDateDisplay(activeSlide?.startDate, activeSlide?.endDate)}</div>
-                                    <h2 class="slide-title" dangerouslySetInnerHTML=${{__html: activeSlide?.title || 'No Title'}}></h2>
-                                    <div class="slide-desc" dangerouslySetInnerHTML=${{__html: activeSlide?.description || ''}}></div>
-                                    
-                                    <div class="slide-meta">
-                                        ${activeSlide?.location ? html`<span>📍 ${activeSlide.location}</span>` : ''}
-                                        ${activeSlide?.media?.length > 0 ? html`<span>📸 ${activeSlide.media.length} Media Item(s)</span>` : ''}
-                                    </div>
-                                </div>
-                            `}
-                        </div>
-                        
-                        ${aboutData ? html`<button id="about-toggle" onClick=${() => setIsAboutOpen(true)}>ℹ️ About</button>` : ''}
-                        <div class="slide-counter">Slide ${activeIndex + 1} of ${data.length}</div>
-                    </div>
-                    
-                    <div class="timeline-pane">
-                        <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} />
-                    </div>
-                </div>
-            `;
-        };
-
-        render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
-    </script>
-</body>
-</html>
+        import
