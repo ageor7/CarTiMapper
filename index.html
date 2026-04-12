@@ -124,28 +124,28 @@
     <div id="root"></div>
 
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.0 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.1 ] ===
         import { h, render, Component } from 'preact';
         import { useState, useEffect, useRef } from 'preact/hooks';
         import htm from 'htm';
         import Papa from 'papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v4.3.0';
+        const APP_VERSION = 'v4.3.1';
         const MODULE_VERSIONS = {
             Styles: 'v1.0.0',
             Utils: 'v1.0.0',
             ErrorBoundary: 'v1.0.0',
             VibeMonitor: 'v1.0.0',
-            MapViewer: 'v1.3.0',
+            MapViewer: 'v1.4.0',
             MediaViewer: 'v1.0.0',
             ContentSlider: 'v1.0.0',
             TimelineScrubber: 'v1.0.0',
-            AppOrchestrator: 'v1.1.0'
+            AppOrchestrator: 'v1.2.0'
         };
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
-        // === [ END GLOBAL VARIABLES v1.0.0 ] ===
-
+        // === [ END GLOBAL VARIABLES v1.0.1 ] ===
+        
         // === [ UTILITIES v1.0.0 ] ===
         const stripHTML = (htmlStr) => {
             if(!htmlStr) return "";
@@ -226,8 +226,8 @@
         };
         // === [ END VIBE MONITOR v1.0.0 ] ===
 
-        // === [ MAP VIEWER v1.3.0 ] ===
-        const MapViewer = ({ data, activeIndex, setActiveIndex }) => {
+        // === [ MAP VIEWER v1.4.0 ] ===
+        const MapViewer = ({ data, activeIndex, setActiveIndex, addLog }) => {
             const mapDomRef = useRef(null);
             const mapInstance = useRef(null);
             const markerLayer = useRef(null);
@@ -289,7 +289,8 @@
                             });
                         } 
                         else {
-                            const coordMatch = locStr.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
+                            // Upgraded Regex: Catches Lat,Lon or Lat Lon (spaces or commas)
+                            const coordMatch = locStr.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
                             if (coordMatch) {
                                 const lat = parseFloat(coordMatch[1]);
                                 const lon = parseFloat(coordMatch[2]);
@@ -311,17 +312,25 @@
                     } catch(e) { console.warn("Failed to parse map layer for record", idx, e); }
                 });
 
+                // Report success to the Vibe-Monitor
+                if (addLog) addLog(`Geo-Engine plotted ${validMarkers} locations on the map.`, validMarkers > 0 ? 'success' : 'warn');
+
                 setTimeout(() => {
                     try {
-                        if (mapInstance.current && validMarkers > 0 && !hasFitBounds.current) {
-                            const bounds = layer.getBounds();
-                            if (bounds.isValid()) {
-                                mapInstance.current.fitBounds(bounds, { padding: [30, 30], maxZoom: 10 });
-                                hasFitBounds.current = true;
+                        if (mapInstance.current) {
+                            mapInstance.current.invalidateSize(); // Force DOM to calculate dimensions
+                            if (validMarkers > 0 && !hasFitBounds.current) {
+                                const bounds = layer.getBounds();
+                                if (bounds.isValid()) {
+                                    mapInstance.current.fitBounds(bounds, { padding: [30, 30], maxZoom: 10 });
+                                    hasFitBounds.current = true;
+                                }
+                            } else if (validMarkers === 0) {
+                                mapInstance.current.setView([20, 0], 2); // Show whole world if no markers found
                             }
                         }
                     } catch(err) { console.warn("Leaflet fitBounds aborted:", err); }
-                }, 100);
+                }, 150);
 
             }, [data]);
 
@@ -366,14 +375,14 @@
                             }
                             if(activeFeature.openTooltip) activeFeature.openTooltip();
                         } catch(err) { console.warn("Leaflet flyTo aborted:", err); }
-                    }, 50);
+                    }, 100);
                 }
             }, [activeIndex, data]);
 
             return html`<div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>`;
         };
-        // === [ END MAP VIEWER v1.3.0 ] ===
-
+        // === [ END MAP VIEWER v1.4.0 ] ===
+        
         // === [ MEDIA VIEWER v1.0.0 ] ===
         const MediaViewer = ({ activeSlide }) => {
             if (!activeSlide || !activeSlide.media || activeSlide.media.length === 0) return html`
@@ -498,7 +507,7 @@
         };
         // === [ END TIMELINE SCRUBBER v1.0.0 ] ===
 
-        // === [ APP ORCHESTRATOR v1.1.0 ] ===
+        // === [ APP ORCHESTRATOR v1.2.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [data, setData] = useState([]);
@@ -586,7 +595,7 @@
                     <div id="app-layout">
                         <div class="top-row">
                             <div class="map-pane" style="width: ${hasMedia ? '50%' : '100%'}; border-right: ${hasMedia ? '4px solid #999' : 'none'}">
-                                <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} />
+                                <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} addLog=${addLog} />
                                 <${VibeMonitor} logs=${logs} status=${status} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} />
                             </div>
                             <div class="media-pane" style="display: ${hasMedia ? 'flex' : 'none'};">
@@ -605,7 +614,7 @@
         };
 
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
-        // === [ END APP ORCHESTRATOR v1.1.0 ] ===
+        // === [ END APP ORCHESTRATOR v1.2.0 ] ===
     </script>
 </body>
 </html>
