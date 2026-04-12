@@ -9,7 +9,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
     <style>
-        /* === [ GLOBAL STYLES v1.1.0 ] === */
+        /* === [ GLOBAL STYLES v1.2.0 ] === */
         :root { --bg: #121212; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; }
         body { margin: 0; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
         
@@ -40,9 +40,10 @@
         .leaflet-tooltip {
             white-space: normal !important;
             word-wrap: break-word;
-            max-width: 250px;
+            max-width: 500px !important;
             text-align: center;
             font-size: 0.85rem;
+            font-weight: normal !important;
             line-height: 1.3;
         }
 
@@ -59,7 +60,6 @@
             width: 2px; height: 20px; background: #333; position: absolute; bottom: 0;
         }
         
-        /* Active Pin State */
         .custom-map-pin.active .pin-head { background: #007acc; transform: scale(1.3); z-index: 1000; }
         .custom-map-pin.active .pin-stem { background: #007acc; width: 3px; }
 
@@ -133,7 +133,7 @@
         .log-error { color: #ff5555; font-weight: bold; }
         .log-time { color: #6272a4; margin-right: 5px; }
         #vibe-toggle { position: absolute; bottom: 10px; left: 0; background: #222; color: #50fa7b; border: 1px solid #444; border-left: none; padding: 8px 12px; border-radius: 0 8px 8px 0; cursor: pointer; z-index: 9998; font-family: 'Courier New', monospace; font-weight: bold; box-shadow: 2px 0 10px rgba(0,0,0,0.5); }
-        /* === [ END GLOBAL STYLES v1.1.0 ] === */
+        /* === [ END GLOBAL STYLES v1.2.0 ] === */
     </style>
     
     <script type="importmap">
@@ -151,27 +151,27 @@
     <div id="root"></div>
 
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.4 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.5 ] ===
         import { h, render, Component } from 'preact';
         import { useState, useEffect, useRef } from 'preact/hooks';
         import htm from 'htm';
         import Papa from 'papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v4.3.4';
+        const APP_VERSION = 'v4.3.5';
         const MODULE_VERSIONS = {
-            Styles: 'v1.1.0',
+            Styles: 'v1.2.0',
             Utils: 'v1.0.0',
             ErrorBoundary: 'v1.0.0',
             VibeMonitor: 'v1.0.0',
-            MapViewer: 'v1.6.1',
+            MapViewer: 'v1.7.0',
             MediaViewer: 'v1.0.0',
             ContentSlider: 'v1.0.0',
             TimelineScrubber: 'v1.0.0',
             AppOrchestrator: 'v1.3.0'
         };
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
-        // === [ END GLOBAL VARIABLES v1.0.4 ] ===
+        // === [ END GLOBAL VARIABLES v1.0.5 ] ===
         
         // === [ UTILITIES v1.0.0 ] ===
         const stripHTML = (htmlStr) => {
@@ -253,7 +253,7 @@
         };
         // === [ END VIBE MONITOR v1.0.0 ] ===
 
-        // === [ MAP VIEWER v1.6.1 ] ===
+        // === [ MAP VIEWER v1.7.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog }) => {
             const mapDomRef = useRef(null);
             const mapInstance = useRef(null);
@@ -261,9 +261,17 @@
             const markersRef = useRef({}); 
             const hasFitBounds = useRef(false);
 
-            const createPinHtml = (isActive) => {
-                return `<div class="custom-map-pin ${isActive ? 'active' : ''}"><div class="pin-head"></div><div class="pin-stem"></div></div>`;
-            };
+            const createPinHtml = (isActive) => `<div class="custom-map-pin ${isActive ? 'active' : ''}"><div class="pin-head"></div><div class="pin-stem"></div></div>`;
+            
+            const createArrowIcon = (angle, isActive) => L.divIcon({
+                className: 'geo-arrow',
+                html: `<div style="transform: rotate(${angle}deg); font-size: 16px; color: ${isActive ? '#007acc' : '#d32f2f'}; margin-top: -8px; margin-left: -8px; text-shadow: 0 0 2px #fff;">▲</div>`,
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            });
+
+            const defaultPinIcon = L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false), iconSize: [24, 34], iconAnchor: [12, 34] });
+            const activePinIcon = L.divIcon({ className: 'custom-div-icon', html: createPinHtml(true), iconSize: [24, 34], iconAnchor: [12, 34] });
 
             // 1. Safe Leaflet Boot
             useEffect(() => {
@@ -303,23 +311,19 @@
                 markersRef.current = {};
                 let validMarkers = 0;
 
-                const defaultIcon = L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false), iconSize: [24, 34], iconAnchor: [12, 34] });
-
                 data.forEach((item, idx) => {
                     const locStr = String(item.location || '').trim();
                     if (!locStr) return;
 
-                    let addedLayer = null;
+                    const recordGroup = L.featureGroup();
 
                     try {
-                        // A. Try GeoJSON Interpretation
                         if (locStr.startsWith('{') && locStr.includes('"type"')) {
                             const geoData = JSON.parse(locStr);
-                            addedLayer = L.geoJSON(geoData, {
-                                pointToLayer: (feature, latlng) => L.marker(latlng, { icon: defaultIcon }),
+                            const geoLayer = L.geoJSON(geoData, {
+                                pointToLayer: (feature, latlng) => L.marker(latlng, { icon: defaultPinIcon }),
                                 style: { color: '#d32f2f', weight: 4 },
                                 onEachFeature: (feature, l) => {
-                                    // Plot Directional Arrow for Lines
                                     if (feature.geometry?.type === "LineString" || feature.geometry?.type === "MultiLineString") {
                                         try {
                                             const latlngs = l.getLatLngs();
@@ -328,41 +332,38 @@
                                                 const p1 = pts[pts.length - 2];
                                                 const p2 = pts[pts.length - 1];
                                                 
-                                                // Calculate physical heading angle for the SVG arrow
+                                                // Calculate Euclidean angle on standard map projection
                                                 const dx = p2.lng - p1.lng;
-                                                const dy = p1.lat - p2.lat; 
-                                                const angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+                                                const dy = p2.lat - p1.lat; 
+                                                const angle = 90 - (Math.atan2(dy, dx) * (180 / Math.PI));
                                                 
-                                                const arrowIcon = L.divIcon({
-                                                    className: 'geo-arrow',
-                                                    html: `<div style="transform: rotate(${angle}deg); font-size: 16px; color: #d32f2f; margin-top: -8px; margin-left: -8px; text-shadow: 0 0 2px #fff;">▲</div>`,
-                                                    iconSize: [16, 16],
-                                                    iconAnchor: [8, 8]
-                                                });
-                                                L.marker(p2, { icon: arrowIcon }).addTo(layer);
+                                                const arrow = L.marker(p2, { icon: createArrowIcon(angle, false) });
+                                                arrow.isArrow = true;
+                                                arrow.arrowAngle = angle;
+                                                arrow.addTo(recordGroup);
                                             }
-                                        } catch(e) { console.warn("Failed to draw directional arrow", e); }
+                                        } catch(e) { console.warn("Failed arrow", e); }
                                     }
                                 }
                             });
+                            geoLayer.addTo(recordGroup);
                         } 
-                        // B. Try Strict Lat,Lon Number Extraction
                         else {
-                            const coordMatch = locStr.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
+                            const coordMatch = locStr.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
                             if (coordMatch) {
                                 const lat = parseFloat(coordMatch[1]);
                                 const lon = parseFloat(coordMatch[2]);
                                 if (!isNaN(lat) && !isNaN(lon)) {
-                                    addedLayer = L.marker([lat, lon], { icon: defaultIcon });
+                                    L.marker([lat, lon], { icon: defaultPinIcon }).addTo(recordGroup);
                                 }
                             }
                         }
 
-                        if (addedLayer) {
-                            addedLayer.bindTooltip(`<b>${stripHTML(item.title)}</b>`, { direction: 'top', offset: [0, -35] });
-                            addedLayer.on('click', () => setActiveIndex(idx));
-                            addedLayer.addTo(layer);
-                            markersRef.current[idx] = addedLayer; 
+                        if (recordGroup.getLayers().length > 0) {
+                            recordGroup.bindTooltip(`${stripHTML(item.title)}`, { direction: 'top', offset: [0, -35] });
+                            recordGroup.on('click', () => setActiveIndex(idx));
+                            recordGroup.addTo(layer);
+                            markersRef.current[idx] = recordGroup; 
                             validMarkers++;
                         }
                     } catch(e) { 
@@ -370,7 +371,7 @@
                     }
                 });
 
-                if (addLog) addLog(`Geo-Engine plotted ${validMarkers} locations.`, validMarkers > 0 ? 'success' : 'warn');
+                if (addLog) addLog(`Geo-Engine plotted ${validMarkers} grouped locations.`, validMarkers > 0 ? 'success' : 'warn');
 
                 setTimeout(() => {
                     try {
@@ -379,7 +380,8 @@
                             if (validMarkers > 0 && !hasFitBounds.current) {
                                 const bounds = layer.getBounds();
                                 if (bounds.isValid()) {
-                                    mapInstance.current.fitBounds(bounds, { padding: [30, 30], maxZoom: 6 });
+                                    // Base zoom for crowded map
+                                    mapInstance.current.fitBounds(bounds, { padding: [30, 30], maxZoom: 11 });
                                     hasFitBounds.current = true;
                                 }
                             } else if (validMarkers === 0) {
@@ -397,43 +399,51 @@
                 const markers = markersRef.current;
                 if (!map || Object.keys(markers).length === 0) return;
 
-                const defaultIcon = L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false), iconSize: [24, 34], iconAnchor: [12, 34] });
-                const activeIcon = L.divIcon({ className: 'custom-div-icon', html: createPinHtml(true), iconSize: [24, 34], iconAnchor: [12, 34] });
-
-                Object.values(markers).forEach(layer => {
+                // Recursive function to reset styles
+                const resetLayer = (layer) => {
+                    if (layer.setStyle) layer.setStyle({ color: '#d32f2f', weight: 4 });
                     if (layer.setIcon) {
-                        layer.setIcon(defaultIcon);
-                        layer.setZIndexOffset(0);
-                    } else if (layer.setStyle) {
-                        layer.setStyle({ color: '#d32f2f', weight: 4 });
+                        if (layer.isArrow) layer.setIcon(createArrowIcon(layer.arrowAngle, false));
+                        else layer.setIcon(defaultPinIcon);
+                        if (layer.setZIndexOffset) layer.setZIndexOffset(0);
                     }
-                });
+                    if (layer.eachLayer) layer.eachLayer(resetLayer);
+                };
 
-                const activeFeature = markers[activeIndex];
-                if (activeFeature) {
-                    if (activeFeature.setIcon) {
-                        activeFeature.setIcon(activeIcon);
-                        activeFeature.setZIndexOffset(1000); 
-                    } else if (activeFeature.eachLayer) {
-                        activeFeature.eachLayer(l => {
-                            if (l.setIcon) {
-                                l.setIcon(activeIcon);
-                                l.setZIndexOffset(1000);
-                            }
-                            if (l.setStyle) l.setStyle({ color: '#007acc', weight: 5 });
-                        });
+                // Recursive function to apply active styles
+                const highlightLayer = (layer) => {
+                    if (layer.setStyle) layer.setStyle({ color: '#007acc', weight: 5 });
+                    if (layer.setIcon) {
+                        if (layer.isArrow) layer.setIcon(createArrowIcon(layer.arrowAngle, true));
+                        else layer.setIcon(activePinIcon);
+                        if (layer.setZIndexOffset) layer.setZIndexOffset(1000);
                     }
+                    if (layer.eachLayer) layer.eachLayer(highlightLayer);
+                };
+
+                // Reset all
+                Object.values(markers).forEach(resetLayer);
+
+                // Highlight active
+                const activeFeatureGroup = markers[activeIndex];
+                if (activeFeatureGroup) {
+                    highlightLayer(activeFeatureGroup);
 
                     setTimeout(() => {
                         try {
-                            if (activeFeature.getBounds) {
-                                const bounds = activeFeature.getBounds();
-                                if (bounds.isValid()) map.flyToBounds(bounds, { animate: true, duration: 1.0, maxZoom: 8 });
-                            } else if (activeFeature.getLatLng) {
-                                const latlng = activeFeature.getLatLng();
-                                if (latlng) map.flyTo(latlng, 8, { animate: true, duration: 1.0 });
+                            const bounds = activeFeatureGroup.getBounds();
+                            if (bounds.isValid()) {
+                                const ne = bounds.getNorthEast();
+                                const sw = bounds.getSouthWest();
+                                
+                                // Isolated pin check (NorthEast == SouthWest means it's a single point)
+                                if (ne.lat === sw.lat && ne.lng === sw.lng) {
+                                    map.flyTo(ne, 4, { animate: true, duration: 1.0 }); // Zoom out by 4 levels
+                                } else {
+                                    map.flyToBounds(bounds, { animate: true, duration: 1.0, maxZoom: 11 }); // Zoom in by 5 levels for lines/clusters
+                                }
                             }
-                            if(activeFeature.openTooltip) activeFeature.openTooltip();
+                            if(activeFeatureGroup.openTooltip) activeFeatureGroup.openTooltip();
                         } catch(err) { console.warn("Leaflet flyTo aborted:", err); }
                     }, 100);
                 }
@@ -441,7 +451,7 @@
 
             return html`<div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>`;
         };
-        // === [ END MAP VIEWER v1.6.1 ] ===
+        // === [ END MAP VIEWER v1.7.0 ] ===
         
         // === [ MEDIA VIEWER v1.0.0 ] ===
         const MediaViewer = ({ activeSlide }) => {
