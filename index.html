@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modern TimeMapper Core - v4.2.0</title>
+    <title>Modern TimeMapper Core - v4.3.0</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -124,14 +124,14 @@
     <div id="root"></div>
 
     <script type="module">
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.0 ] ===
         import { h, render, Component } from 'preact';
         import { useState, useEffect, useRef } from 'preact/hooks';
         import htm from 'htm';
         import Papa from 'papaparse';
 
-// === [ GLOBAL VARIABLES & MANIFEST v1.0.0 ] ===
         const html = htm.bind(h);
-        const APP_VERSION = 'v4.2.1';
+        const APP_VERSION = 'v4.3.0';
         const MODULE_VERSIONS = {
             Styles: 'v1.0.0',
             Utils: 'v1.0.0',
@@ -144,8 +144,8 @@
             AppOrchestrator: 'v1.1.0'
         };
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
-        // === [ END GLOBAL VARIABLES ] ===
-        
+        // === [ END GLOBAL VARIABLES v1.0.0 ] ===
+
         // === [ UTILITIES v1.0.0 ] ===
         const stripHTML = (htmlStr) => {
             if(!htmlStr) return "";
@@ -226,7 +226,7 @@
         };
         // === [ END VIBE MONITOR v1.0.0 ] ===
 
-// === [ MAP VIEWER v1.3.0 ] ===
+        // === [ MAP VIEWER v1.3.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex }) => {
             const mapDomRef = useRef(null);
             const mapInstance = useRef(null);
@@ -289,7 +289,6 @@
                             });
                         } 
                         else {
-                            // Robust regex: extracts any "number, number" sequence even if surrounded by text
                             const coordMatch = locStr.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
                             if (coordMatch) {
                                 const lat = parseFloat(coordMatch[1]);
@@ -332,7 +331,6 @@
                 const markers = markersRef.current;
                 if (!map || Object.keys(markers).length === 0) return;
 
-                // Reset all to default
                 Object.values(markers).forEach(layer => {
                     if (layer.setStyle) {
                         layer.setStyle({ radius: 6, fillColor: '#ffb86c', color: '#fff', weight: 2 });
@@ -345,7 +343,6 @@
 
                 const activeFeature = markers[activeIndex];
                 if (activeFeature) {
-                    // Emphasize Active
                     if (activeFeature.setStyle) {
                         activeFeature.setStyle({ radius: 10, fillColor: '#007acc', color: '#fff', weight: 3 });
                         if (activeFeature.bringToFront) activeFeature.bringToFront();
@@ -376,51 +373,6 @@
             return html`<div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>`;
         };
         // === [ END MAP VIEWER v1.3.0 ] ===
-        
-            // 3. Active Marker Sync & Camera Fly-To
-            useEffect(() => {
-                const map = mapInstance.current;
-                const markers = markersRef.current;
-                if (!map || Object.keys(markers).length === 0) return;
-
-                Object.values(markers).forEach(layer => {
-                    if (layer.setStyle) {
-                        layer.setStyle({ radius: 5, fillColor: '#ffb86c', color: '#fff', weight: 2 });
-                    } else if (layer.eachLayer) { 
-                        layer.eachLayer(l => {
-                            if (l.setStyle) l.setStyle({ radius: 5, fillColor: '#ffb86c', color: '#fff', weight: 2 });
-                        });
-                    }
-                });
-
-                const activeFeature = markers[activeIndex];
-                if (activeFeature) {
-                    if (activeFeature.setStyle) {
-                        activeFeature.setStyle({ radius: 8, fillColor: '#007acc', color: '#fff', weight: 3 });
-                    } else if (activeFeature.eachLayer) {
-                        activeFeature.eachLayer(l => {
-                            if (l.setStyle) l.setStyle({ radius: 8, fillColor: '#007acc', color: '#fff', weight: 3 });
-                        });
-                    }
-
-                    setTimeout(() => {
-                        try {
-                            if (activeFeature.getBounds) {
-                                const bounds = activeFeature.getBounds();
-                                if (bounds.isValid()) map.flyToBounds(bounds, { animate: true, duration: 1.0, maxZoom: 10 });
-                            } else if (activeFeature.getLatLng) {
-                                const latlng = activeFeature.getLatLng();
-                                if (latlng) map.flyTo(latlng, 8, { animate: true, duration: 1.0 });
-                            }
-                            if(activeFeature.openTooltip) activeFeature.openTooltip();
-                        } catch(err) { console.warn("Leaflet flyTo aborted:", err); }
-                    }, 50);
-                }
-            }, [activeIndex, data]);
-
-            return html`<div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>`;
-        };
-        // === [ END MAP VIEWER v1.2.0 ] ===
 
         // === [ MEDIA VIEWER v1.0.0 ] ===
         const MediaViewer = ({ activeSlide }) => {
@@ -546,7 +498,7 @@
         };
         // === [ END TIMELINE SCRUBBER v1.0.0 ] ===
 
-// === [ APP ORCHESTRATOR v1.1.0 ] ===
+        // === [ APP ORCHESTRATOR v1.1.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [data, setData] = useState([]);
@@ -561,7 +513,6 @@
             useEffect(() => {
                 document.documentElement.style.setProperty('--paneBg', TM_CONFIG.paneBackground);
                 
-                // Print System Manifest to Vibe Monitor
                 addLog(`Engine ${APP_VERSION} Boot Sequence Initiated.`, 'info');
                 const manifestStr = Object.entries(MODULE_VERSIONS).map(([k, v]) => `${k} ${v}`).join(' | ');
                 addLog(`📦 Modules: ${manifestStr}`, 'success');
@@ -652,10 +603,9 @@
                 </div>
             `;
         };
-        // === [ END APP ORCHESTRATOR v1.1.0 ] ===
-        
+
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
-        // === [ END APP ORCHESTRATOR v1.0.0 ] ===
+        // === [ END APP ORCHESTRATOR v1.1.0 ] ===
     </script>
 </body>
 </html>
