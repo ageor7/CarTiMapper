@@ -3,44 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modern TimeMapper Core - v3.15.0</title>
+    <title>Modern TimeMapper Core - v3.16.0</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
     <style>
         :root { --bg: #121212; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; }
-        
         body { margin: 0; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
         
         #app-layout { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
         
+        /* Vertically Resizable Top Row */
         .top-row { 
-            display: flex; height: 45vh; min-height: 15vh; max-height: 80vh;
+            display: flex; height: 50vh; min-height: 20vh; max-height: 80vh;
             flex-shrink: 0; resize: vertical; overflow: hidden; 
-            border-bottom: 2px solid #aaa; background: #fff; position: relative;
+            border-bottom: 5px solid #999; background: #fff; position: relative;
         }
+        /* Resize Handle Hint */
+        .top-row::after { content: '≡'; position: absolute; bottom: -3px; left: 50%; transform: translateX(-50%); font-size: 1.2rem; color: #fff; pointer-events: none; z-index: 50; }
         
         .pane { padding: 1rem; box-sizing: border-box; background: var(--paneBg); position: relative; }
         
+        /* Map Prominence & Horizontal Resizing */
         .map-pane { 
-            width: 35%; min-width: 15%; max-width: 80%; resize: horizontal; 
-            overflow: hidden; border-right: 2px solid #aaa; padding: 0;
-            position: relative;
+            width: 60%; min-width: 20%; max-width: 80%; resize: horizontal; 
+            overflow: hidden; border-right: 4px solid #999; padding: 0; position: relative;
         }
-        /* Leaflet Container */
         #map-container { width: 100%; height: 100%; background: #e0e0e0; z-index: 1; }
         
         .media-pane { flex: 1; overflow-x: auto; scroll-snap-type: x mandatory; display: flex; align-items: center; justify-content: center; }
-        
         .content-pane { flex: 1; overflow-y: auto; display: flex; flex-direction: column; position: relative; border-bottom: 1px solid var(--border); }
         
-        /* Timeline UI - Expanded width for auto-focus zooming */
+        /* Auto-Zooming Timeline */
         .timeline-pane { height: 12vh; min-height: 60px; flex-shrink: 0; padding: 0; background: #e5e5e5; display: flex; flex-direction: column; position: relative;}
         .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-x: auto; overflow-y: hidden; position: relative; display: flex; align-items: center; scroll-behavior: smooth; }
         
-        .timeline-axis { position: absolute; bottom: 15px; left: 2%; right: 2%; height: 2px; background: #888; min-width: 2000px; /* Force wide track to prevent crowding */ }
-        
+        .timeline-axis { position: absolute; bottom: 15px; left: 2%; right: 2%; height: 2px; background: #888; }
         .timeline-ruler-tick { position: absolute; bottom: 15px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; pointer-events: none; }
         .tick-mark { width: 2px; height: 10px; background: #888; margin-bottom: 2px; }
         .tick-label { font-size: 0.7rem; color: #555; font-weight: bold; }
@@ -52,15 +51,14 @@
         }
         .timeline-marker-stem { position: absolute; bottom: -10px; left: 5px; width: 2px; height: 10px; background: #666; }
         .timeline-marker:hover { transform: translateX(-50%) scale(1.3); background: #333; z-index: 15; }
-        .timeline-marker.active { background: var(--accent); z-index: 20; box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.3); }
-        .timeline-marker.active .timeline-marker-stem { background: var(--accent); }
+        .timeline-marker.active { background: var(--accent); z-index: 20; box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.3); transform: translateX(-50%) scale(1.3); }
+        .timeline-marker.active .timeline-marker-stem { background: var(--accent); height: 12px; bottom: -12px;}
         
         .timeline-label {
             position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
             font-size: 0.8rem; color: #222; white-space: nowrap; opacity: 0; font-weight: normal;
             background: rgba(255, 255, 255, 0.95); padding: 4px 8px; border-radius: 4px; border: 1px solid #ccc;
-            pointer-events: none; transition: opacity 0.2s; max-width: 250px; overflow: hidden; text-overflow: ellipsis;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            pointer-events: none; transition: opacity 0.2s; max-width: 250px; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         .timeline-marker:hover .timeline-label, .timeline-marker.active .timeline-label { opacity: 1; }
 
@@ -71,7 +69,6 @@
         .slide-desc { line-height: 1.6; font-size: 1.1rem; color: #333; width: 100%; }
         .slide-meta { margin-top: 2rem; font-size: 0.9rem; color: #666; display: flex; gap: 1rem; border-top: 1px solid #ddd; padding-top: 1rem; }
 
-        /* Controls */
         .nav-btn-side {
             position: absolute; top: 50%; transform: translateY(-50%);
             background: rgba(0, 0, 0, 0.05); color: #333; border: none;
@@ -110,9 +107,7 @@
         }
         #vibe-header { background: #222; padding: 8px; cursor: move; font-weight: bold; border-bottom: 1px solid #444; display: flex; justify-content: space-between; align-items: center; user-select: none; }
         .vibe-close-btn { background: #ff5555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; padding: 2px 6px; }
-        
-        .vibe-active-tracker { background: #1a1a24; padding: 8px; border-bottom: 1px solid #444; font-size: 0.75rem; color: #f1fa8c; overflow-y: auto; max-height: 100px; border-top: 1px solid #333;}
-        
+        .vibe-active-tracker { background: #1a1a24; padding: 8px; border-bottom: 1px solid #444; font-size: 0.75rem; color: #f1fa8c; overflow-y: auto; max-height: 120px; border-top: 1px solid #333;}
         #vibe-logs { flex: 1; overflow-y: auto; padding: 10px; font-size: 12px; line-height: 1.4; word-wrap: break-word; }
         .log-info { color: #8be9fd; }
         .log-success { color: #50fa7b; }
@@ -123,4 +118,444 @@
         #vibe-toggle {
             position: fixed; top: 50%; left: 0; transform: translateY(-50%);
             background: #222; color: #50fa7b; border: 1px solid #444; border-left: none;
-            padding: 10px 15px; border
+            padding: 10px 15px; border-radius: 0 8px 8px 0; cursor: pointer; z-index: 9998;
+            font-family: 'Courier New', monospace; font-weight: bold; box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+        }
+    </style>
+    <script type="importmap">
+    {
+        "imports": {
+            "preact": "https://esm.sh/preact@10.19.3",
+            "preact/hooks": "https://esm.sh/preact@10.19.3/hooks",
+            "htm": "https://esm.sh/htm@3.1.1",
+            "papaparse": "https://esm.sh/papaparse@5.4.1"
+        }
+    }
+    </script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="module">
+        import { h, render, Component } from 'preact';
+        import { useState, useEffect, useRef } from 'preact/hooks';
+        import htm from 'htm';
+        import Papa from 'papaparse';
+
+        const html = htm.bind(h);
+        const APP_VERSION = 'v3.16.0';
+
+        const TM_CONFIG = {
+            timeZone: 'Europe/Athens', 
+            paneBackground: '#fcfcfc'
+        };
+
+        // --- GLOBAL ERROR BOUNDARY (CRASH PROTECTOR) ---
+        class ErrorBoundary extends Component {
+            constructor() { super(); this.state = { error: null }; }
+            componentDidCatch(error) { this.setState({ error }); }
+            render() {
+                if (this.state.error) {
+                    return html`
+                        <div style="padding: 2rem; background: #222; color: #ff5555; height: 100vh; overflow: auto; font-family: monospace;">
+                            <h1>⚠️ Fatal UI Crash Prevented</h1>
+                            <p>The engine encountered unparseable data. Copy this stack trace and send it to your AI:</p>
+                            <pre style="background: #111; padding: 1rem; color: #f1fa8c; white-space: pre-wrap;">${this.state.error.stack}</pre>
+                        </div>
+                    `;
+                }
+                return this.props.children;
+            }
+        }
+
+        const useStore = () => {
+            const [logs, setLogs] = useState([]);
+            const [data, setData] = useState([]);
+            const [aboutData, setAboutData] = useState(null); 
+            const [status, setStatus] = useState('Idle');
+            const [activeIndex, setActiveIndex] = useState(0); 
+            const [isMonitorOpen, setIsMonitorOpen] = useState(true);
+            const [isAboutOpen, setIsAboutOpen] = useState(false);
+            const [mapInstance, setMapInstance] = useState(null);
+
+            const addLog = (msg, type = 'info') => {
+                const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+                setLogs(prev => [...prev, { time, msg, type }]); 
+            };
+
+            return { 
+                logs, addLog, data, setData, aboutData, setAboutData, 
+                status, setStatus, activeIndex, setActiveIndex, 
+                isMonitorOpen, setIsMonitorOpen, isAboutOpen, setIsAboutOpen,
+                mapInstance, setMapInstance
+            };
+        };
+
+        const stripHTML = (htmlStr) => {
+            if(!htmlStr) return "";
+            const tmp = document.createElement("DIV");
+            tmp.innerHTML = String(htmlStr);
+            return tmp.textContent || tmp.innerText || "";
+        };
+
+        const VibeMonitor = ({ logs, status, isOpen, setIsOpen, activeSlide }) => {
+            const logEndRef = useRef(null);
+            
+            useEffect(() => {
+                const monitor = document.getElementById('vibe-monitor');
+                if (monitor && isOpen) {
+                    const midY = Math.max(10, (window.innerHeight - 400) / 2);
+                    monitor.style.top = `${midY}px`;
+                    monitor.style.left = '15px';
+                    monitor.style.right = 'auto'; 
+                }
+            }, [isOpen]);
+
+            useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [logs]);
+
+            const onDrag = (e) => {
+                const monitor = document.getElementById('vibe-monitor');
+                let shiftX = e.clientX - monitor.getBoundingClientRect().left;
+                let shiftY = e.clientY - monitor.getBoundingClientRect().top;
+                const moveAt = (pageX, pageY) => {
+                    monitor.style.left = pageX - shiftX + 'px';
+                    monitor.style.top = pageY - shiftY + 'px';
+                };
+                const onMouseMove = (e) => moveAt(e.pageX, e.pageY);
+                document.addEventListener('mousemove', onMouseMove);
+                document.onmouseup = () => { document.removeEventListener('mousemove', onMouseMove); document.onmouseup = null; };
+            };
+
+            if (!isOpen) return html`<button id="vibe-toggle" onClick=${() => setIsOpen(true)}>🟢 Monitor</button>`;
+
+            return html`
+                <div id="vibe-monitor">
+                    <div id="vibe-header" onMouseDown=${onDrag}>
+                        <span>🟢 Vibe-Monitor ${APP_VERSION}</span>
+                        <div>
+                            <span style="color: #bd93f9; margin-right: 10px;">[${status}]</span>
+                            <button class="vibe-close-btn" onClick=${() => setIsOpen(false)}>X</button>
+                        </div>
+                    </div>
+                    
+                    <div id="vibe-logs">
+                        ${logs.map((l, i) => html`<div key=${i} class="log-${l.type}"><span class="log-time">[${l.time}]</span> ${l.msg}</div>`)}
+                        <div ref=${logEndRef}></div>
+                    </div>
+
+                    ${activeSlide ? html`
+                        <div class="vibe-active-tracker">
+                            <b>📌 Active Row ${activeSlide.id + 2} RAW CSV DATA:</b><br/>
+                            <pre style="margin: 4px 0 0 0; white-space: pre-wrap;">${JSON.stringify(activeSlide.rawRow, null, 2)}</pre>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        };
+
+        const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
+            const wrapperRef = useRef(null);
+
+            useEffect(() => {
+                if (wrapperRef.current) {
+                    const activeMarker = wrapperRef.current.querySelector('.timeline-marker.active');
+                    if (activeMarker) {
+                        const containerWidth = wrapperRef.current.offsetWidth;
+                        const markerLeft = activeMarker.offsetLeft;
+                        wrapperRef.current.scrollTo({ left: markerLeft - (containerWidth / 2), behavior: 'smooth' });
+                    }
+                }
+            }, [activeIndex, data]);
+
+            const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
+            if (validData.length === 0) return html`<div style="padding: 1rem; color:#666;">No valid temporal data found.</div>`;
+
+            const minTime = validData[0].startDate.getTime();
+            const maxTime = validData[validData.length - 1].startDate.getTime();
+            const timeRange = maxTime - minTime || 1; 
+
+            const minYear = validData[0].startDate.getFullYear();
+            const maxYear = validData[validData.length - 1].startDate.getFullYear();
+            const yearSpan = maxYear - minYear;
+            
+            let step = 1;
+            if (yearSpan > 20) step = 5;
+            if (yearSpan > 50) step = 10;
+            if (yearSpan > 200) step = 50;
+            if (yearSpan > 1000) step = 100;
+
+            const rulerTicks = [];
+            const startTick = Math.floor(minYear / step) * step;
+            for (let y = startTick; y <= maxYear; y += step) {
+                if (y < minYear) continue;
+                const tickTime = new Date(0); tickTime.setFullYear(y, 0, 1);
+                const percent = 2 + ((tickTime.getTime() - minTime) / timeRange) * 96;
+                if (percent >= 2 && percent <= 98) {
+                    rulerTicks.push(html`<div class="timeline-ruler-tick" style="left: ${percent}%;"><div class="tick-label">${y}</div><div class="tick-mark"></div></div>`);
+                }
+            }
+
+            const markers = data.map((item, index) => {
+                if (!item.startDate || isNaN(item.startDate.getTime())) return null;
+                const percent = 2 + ((item.startDate.getTime() - minTime) / timeRange) * 96;
+                return html`
+                    <div class="timeline-marker ${index === activeIndex ? 'active' : ''}" style="left: ${percent}%;" onClick=${() => setActiveIndex(index)}>
+                        <div class="timeline-label">${stripHTML(item.title)}</div>
+                        <div class="timeline-marker-stem"></div>
+                    </div>
+                `;
+            });
+
+            // Auto-Zoom Formula: Minimum 100% width, adds 4% width per item to prevent crowding
+            const zoomFactor = Math.max(100, data.length * 4);
+
+            return html`
+                <div class="timeline-scroll-wrapper" id="tm-scrubber" ref=${wrapperRef}>
+                    <div class="timeline-axis" style="min-width: ${zoomFactor}%;">
+                        ${rulerTicks}
+                        ${markers}
+                    </div>
+                </div>
+            `;
+        };
+
+        const App = () => {
+            const { 
+                logs, addLog, data, setData, aboutData, setAboutData,
+                status, setStatus, activeIndex, setActiveIndex, 
+                isMonitorOpen, setIsMonitorOpen, isAboutOpen, setIsAboutOpen,
+                mapInstance, setMapInstance 
+            } = useStore();
+
+            useEffect(() => {
+                document.documentElement.style.setProperty('--paneBg', TM_CONFIG.paneBackground);
+                addLog(`Engine ${APP_VERSION} initialized. Error Boundaries Active.`, 'info');
+                
+                if (window.L && !mapInstance) {
+                    const map = L.map('map-container', { zoomControl: false }).setView([20, 0], 2);
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
+                    L.control.zoom({ position: 'topright' }).addTo(map);
+                    setMapInstance(map);
+                    addLog('Leaflet engine spun up successfully.', 'success');
+                }
+                
+                const params = new URLSearchParams(window.location.search);
+                let sourceParam = params.get('source');
+                const gid = params.get('gid') || '0'; 
+
+                if (!sourceParam) return setStatus('Awaiting Source');
+
+                let fetchUrl = '';
+                if (sourceParam.includes('http')) {
+                    if (sourceParam.includes('/e/2PACX')) fetchUrl = sourceParam.split('/pub')[0] + '/pub?output=csv';
+                    else if (sourceParam.includes('/d/')) {
+                        const match = sourceParam.match(/\/d\/([a-zA-Z0-9-_]+)/);
+                        fetchUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv&gid=${gid}`;
+                    } else fetchUrl = sourceParam; 
+                } else {
+                    if (sourceParam.startsWith('2PACX')) fetchUrl = `https://docs.google.com/spreadsheets/d/e/${sourceParam}/pub?output=csv&gid=${gid}`;
+                    else fetchUrl = `https://docs.google.com/spreadsheets/d/${sourceParam}/gviz/tq?tqx=out:csv&gid=${gid}`;
+                }
+
+                executeFetch(fetchUrl);
+            }, []);
+
+            const executeFetch = async (url) => {
+                setStatus('Fetching Data');
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const csvText = await response.text();
+                    
+                    Papa.parse(csvText, {
+                        header: true, skipEmptyLines: true,
+                        complete: (results) => {
+                            addLog(`Parsed ${results.data.length} rows. Parsing Dates Safely.`, 'success');
+                            validateAndCleanData(results.data);
+                        },
+                        error: (err) => { addLog(`Parse Error: ${err.message}`, 'error'); setStatus('Parse Failed'); }
+                    });
+                } catch (error) { addLog(`Fetch failed: ${error.message}`, 'error'); setStatus('Fetch Failed'); }
+            };
+
+            const fuzzyFind = (row, possibleNames) => {
+                const keys = Object.keys(row);
+                for (let k of keys) {
+                    const cleanKey = k.trim().toLowerCase();
+                    if (possibleNames.includes(cleanKey)) return row[k] ? String(row[k]).trim() : '';
+                }
+                return '';
+            };
+
+            /*
+             * ELEGANT DYNAMIC DATE PARSER
+             * Searches string for DD/MM/YYYY, swaps it to native YYYY-MM-DD for zero-crash JS parsing.
+             */
+            const parseDynamicDate = (str) => {
+                if (!str) return null;
+                let cleanStr = String(str).trim();
+
+                if (/^\d+\.?\d*$/.test(cleanStr) && parseFloat(cleanStr) > 10000) {
+                    return new Date((parseFloat(cleanStr) - 25569) * 86400 * 1000);
+                }
+                if (/^-?\d{1,4}$/.test(cleanStr)) {
+                    let d = new Date(0); d.setFullYear(parseInt(cleanStr), 0, 1); d.setHours(0,0,0,0); return d;
+                }
+
+                let isoStr = cleanStr.replace(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/, (match, dd, mm, yyyy) => {
+                    return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+                });
+
+                let d = new Date(isoStr);
+                if (!isNaN(d.getTime())) return d;
+                
+                d = new Date(cleanStr);
+                if (!isNaN(d.getTime())) return d;
+                return null;
+            };
+
+            const validateAndCleanData = (rawData) => {
+                setStatus('Processing');
+                if (rawData.length === 0) return setStatus('Empty Dataset');
+
+                const aboutRaw = rawData[0];
+                setAboutData({
+                    title: fuzzyFind(aboutRaw, ['title', 'headline', 'name']) || 'About',
+                    description: fuzzyFind(aboutRaw, ['description', 'text', 'content']),
+                    rawRow: aboutRaw
+                });
+
+                const timelineRaw = rawData.slice(1);
+                
+                const cleaned = timelineRaw.map((row, index) => {
+                    const startRaw = fuzzyFind(row, ['start', 'start date', 'startdate', 'date']);
+                    const endRaw = fuzzyFind(row, ['end', 'end date', 'enddate']);
+                    const titleRaw = fuzzyFind(row, ['title', 'headline', 'name']);
+                    const descRaw = fuzzyFind(row, ['description', 'text', 'content']);
+                    const mediaRaw = fuzzyFind(row, ['media', 'image', 'photo', 'url']);
+                    const locRaw = fuzzyFind(row, ['location', 'place', 'coordinates', 'map', 'latlon']);
+
+                    let pStart = parseDynamicDate(startRaw);
+                    if (pStart && isNaN(pStart.getTime())) pStart = null;
+                    let pEnd = parseDynamicDate(endRaw);
+                    if (pEnd && isNaN(pEnd.getTime())) pEnd = null;
+
+                    return {
+                        id: index + 1,
+                        title: titleRaw || `Event ${index + 2}`,
+                        startDate: pStart, endDate: pEnd,
+                        description: descRaw,
+                        media: mediaRaw ? mediaRaw.split(',').map(s => s.trim()) : [],
+                        location: locRaw || null,
+                        rawRow: row
+                    };
+                });
+
+                const validRecords = cleaned.filter(r => r.startDate !== null);
+                const nullRecords = cleaned.filter(r => r.startDate === null);
+                validRecords.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+                
+                setData([...validRecords, ...nullRecords]);
+                setActiveIndex(0); 
+                setStatus('Active');
+            };
+
+            useEffect(() => {
+                if (mapInstance && data.length > 0) {
+                    const activeSlide = data[activeIndex];
+                    if (activeSlide && activeSlide.location) {
+                        const coordMatch = String(activeSlide.location).match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);
+                        if (coordMatch) {
+                            const lat = parseFloat(coordMatch[1]);
+                            const lon = parseFloat(coordMatch[2]);
+                            mapInstance.flyTo([lat, lon], 7, { animate: true, duration: 1.5 });
+                            mapInstance.eachLayer((layer) => { if (layer instanceof L.Marker) mapInstance.removeLayer(layer); });
+                            L.marker([lat, lon]).addTo(mapInstance).bindPopup(`<b>${stripHTML(activeSlide.title)}</b>`).openPopup();
+                            addLog(`Map flying to: ${lat}, ${lon}`, 'info');
+                        }
+                    }
+                }
+            }, [activeIndex, data, mapInstance]);
+
+            // Formatter returning exactly: Wed 24/05/1944 06:00
+            const formatDateStr = (dateObj, showWeekday = true) => {
+                if (!dateObj || isNaN(dateObj.getTime())) return null;
+                if (dateObj.getHours() === 0 && dateObj.getMinutes() === 0 && dateObj.getDate() === 1 && dateObj.getMonth() === 0) return dateObj.getFullYear().toString();
+
+                let weekdayStr = '';
+                if (showWeekday) {
+                    try { weekdayStr = new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: TM_CONFIG.timeZone }).format(dateObj) + ' '; } 
+                    catch (e) { weekdayStr = new Intl.DateTimeFormat('en-GB', { weekday: 'short' }).format(dateObj) + ' '; }
+                }
+
+                const dd = dateObj.getDate().toString().padStart(2, '0');
+                const mm = (dateObj.getMonth() + 1).toString().padStart(2, '0'); 
+                const yyyy = dateObj.getFullYear();
+                const HH = dateObj.getHours().toString().padStart(2, '0');
+                const min = dateObj.getMinutes().toString().padStart(2, '0');
+                let timeStr = (HH === '00' && min === '00') ? '' : ` ${HH}:${min}`;
+
+                return `${weekdayStr}${dd}/${mm}/${yyyy}${timeStr}`.trim();
+            };
+
+            const getFullDateDisplay = (start, end) => {
+                const sStr = formatDateStr(start, true);
+                const eStr = formatDateStr(end, false);
+                if (!sStr) return 'Unknown Date';
+                if (!eStr) return sStr;
+                return `${sStr} - ${eStr}`;
+            };
+
+            const nextSlide = () => setActiveIndex(prev => Math.min(prev + 1, data.length - 1));
+            const prevSlide = () => setActiveIndex(prev => Math.max(prev - 1, 0));
+            const activeSlide = data[activeIndex];
+
+            return html`
+                ${html`<${VibeMonitor} logs=${logs} status=${status} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} />`}
+                
+                ${aboutData ? html`
+                    <button id="about-toggle" onClick=${() => setIsAboutOpen(true)}>ℹ️ About</button>
+                    <div id="about-modal" class=${isAboutOpen ? 'open' : ''}>
+                        <button class="about-close" onClick=${() => setIsAboutOpen(false)}>×</button>
+                        <h2 dangerouslySetInnerHTML=${{__html: aboutData.title}}></h2>
+                        <div style="line-height: 1.6;" dangerouslySetInnerHTML=${{__html: aboutData.description}}></div>
+                    </div>
+                ` : ''}
+
+                <div id="app-layout">
+                    <div class="top-row">
+                        <div class="pane map-pane"><div id="map-container"></div></div>
+                        <div class="pane media-pane"><div style="color:#555; text-align:center;"><h3>Media Carousel</h3></div></div>
+                    </div>
+                    
+                    <div class="pane content-pane">
+                        ${data.length === 0 ? html`<p style="text-align:center;">Loading content...</p>` : html`
+                            <button class="nav-btn-side nav-left" onClick=${prevSlide} disabled=${activeIndex === 0}>◀</button>
+                            <button class="nav-btn-side nav-right" onClick=${nextSlide} disabled=${activeIndex === data.length - 1}>▶</button>
+
+                            <div class="slide-container" id="slide-${activeSlide?.id || 0}">
+                                <div class="slide-date">${getFullDateDisplay(activeSlide?.startDate, activeSlide?.endDate)}</div>
+                                <h2 class="slide-title" dangerouslySetInnerHTML=${{__html: activeSlide?.title || 'No Title'}}></h2>
+                                <div class="slide-desc" dangerouslySetInnerHTML=${{__html: activeSlide?.description || ''}}></div>
+                                
+                                <div class="slide-meta">
+                                    ${activeSlide?.location ? html`<span>📍 ${activeSlide.location}</span>` : ''}
+                                    ${activeSlide?.media?.length > 0 ? html`<span>📸 ${activeSlide.media.length} Media Item(s)</span>` : ''}
+                                </div>
+                            </div>
+
+                            <div class="slide-counter">Slide ${activeIndex + 1} of ${data.length}</div>
+                        `}
+                    </div>
+                    
+                    <div class="timeline-pane">
+                        <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} />
+                    </div>
+                </div>
+            `;
+        };
+
+        render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
+    </script>
+</body>
+</html>
