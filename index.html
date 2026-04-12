@@ -3,41 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modern TimeMapper Core - v3.14.0</title>
+    <title>Modern TimeMapper Core - v3.15.0</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
     <style>
         :root { --bg: #121212; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; }
         
         body { margin: 0; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
         
-        /* Flexbox Resizable Architecture */
         #app-layout { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
         
-        /* Top Row (Map + Media) - Vertically Resizable */
         .top-row { 
             display: flex; height: 45vh; min-height: 15vh; max-height: 80vh;
             flex-shrink: 0; resize: vertical; overflow: hidden; 
-            border-bottom: 2px solid #aaa; background: #fff;
+            border-bottom: 2px solid #aaa; background: #fff; position: relative;
         }
         
         .pane { padding: 1rem; box-sizing: border-box; background: var(--paneBg); position: relative; }
         
-        /* Map Pane - Horizontally Resizable */
         .map-pane { 
             width: 35%; min-width: 15%; max-width: 80%; resize: horizontal; 
-            overflow: auto; border-right: 2px solid #aaa; 
-            display: flex; align-items: center; justify-content: center; 
+            overflow: hidden; border-right: 2px solid #aaa; padding: 0;
+            position: relative;
         }
+        /* Leaflet Container */
+        #map-container { width: 100%; height: 100%; background: #e0e0e0; z-index: 1; }
         
         .media-pane { flex: 1; overflow-x: auto; scroll-snap-type: x mandatory; display: flex; align-items: center; justify-content: center; }
         
-        /* Content Pane - Takes all remaining vertical space */
         .content-pane { flex: 1; overflow-y: auto; display: flex; flex-direction: column; position: relative; border-bottom: 1px solid var(--border); }
         
-        /* Timeline UI */
+        /* Timeline UI - Expanded width for auto-focus zooming */
         .timeline-pane { height: 12vh; min-height: 60px; flex-shrink: 0; padding: 0; background: #e5e5e5; display: flex; flex-direction: column; position: relative;}
-        .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-x: auto; overflow-y: hidden; position: relative; display: flex; align-items: center; }
+        .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-x: auto; overflow-y: hidden; position: relative; display: flex; align-items: center; scroll-behavior: smooth; }
         
-        .timeline-axis { position: absolute; bottom: 15px; left: 2%; right: 2%; height: 2px; background: #888; min-width: 1200px; }
+        .timeline-axis { position: absolute; bottom: 15px; left: 2%; right: 2%; height: 2px; background: #888; min-width: 2000px; /* Force wide track to prevent crowding */ }
         
         .timeline-ruler-tick { position: absolute; bottom: 15px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; pointer-events: none; }
         .tick-mark { width: 2px; height: 10px; background: #888; margin-bottom: 2px; }
@@ -62,14 +64,14 @@
         }
         .timeline-marker:hover .timeline-label, .timeline-marker.active .timeline-label { opacity: 1; }
 
-        /* Fluid Slide Typography */
+        /* Slide Typography */
         .slide-container { width: 100%; margin: 0 auto; padding: 1rem 3rem; flex: 1; box-sizing: border-box; }
-        .slide-date { color: var(--accent); font-weight: bold; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; }
+        .slide-date { color: var(--accent); font-weight: bold; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px; }
         .slide-title { margin: 0.5rem 0 1rem 0; font-size: 2.2rem; color: #111; font-weight: normal; }
         .slide-desc { line-height: 1.6; font-size: 1.1rem; color: #333; width: 100%; }
         .slide-meta { margin-top: 2rem; font-size: 0.9rem; color: #666; display: flex; gap: 1rem; border-top: 1px solid #ddd; padding-top: 1rem; }
 
-        /* Nav & Counter */
+        /* Controls */
         .nav-btn-side {
             position: absolute; top: 50%; transform: translateY(-50%);
             background: rgba(0, 0, 0, 0.05); color: #333; border: none;
@@ -81,12 +83,26 @@
         .nav-btn-side:disabled { opacity: 0.1; cursor: not-allowed; }
         .nav-left { left: 5px; }
         .nav-right { right: 5px; }
-
         .slide-counter { position: absolute; bottom: 8px; right: 12px; font-size: 0.75rem; color: #888; font-weight: bold; user-select: none; }
 
-        /* Vibe Monitor Docking Architecture */
+        /* About Toggle Button & Modal */
+        #about-toggle {
+            position: absolute; top: 15px; right: 15px; z-index: 9000;
+            background: #222; color: #fff; border: 1px solid #555; border-radius: 20px;
+            padding: 6px 12px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        #about-modal {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 80%; max-width: 800px; max-height: 80vh; overflow-y: auto;
+            background: #fff; z-index: 9999; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            padding: 2rem; display: none; border: 1px solid #ccc; color: #222;
+        }
+        #about-modal.open { display: block; }
+        .about-close { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+
+        /* Vibe Monitor */
         #vibe-monitor {
-            position: fixed; width: 450px; height: 350px;
+            position: fixed; width: 450px; height: 400px;
             background: rgba(10, 10, 15, 0.95); border: 1px solid #444; border-radius: 8px;
             display: flex; flex-direction: column; z-index: 9999; color: #eee;
             box-shadow: 0 8px 32px rgba(0,0,0,0.9); backdrop-filter: blur(8px);
@@ -95,7 +111,7 @@
         #vibe-header { background: #222; padding: 8px; cursor: move; font-weight: bold; border-bottom: 1px solid #444; display: flex; justify-content: space-between; align-items: center; user-select: none; }
         .vibe-close-btn { background: #ff5555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; padding: 2px 6px; }
         
-        .vibe-active-tracker { background: #1a1a24; padding: 8px; border-bottom: 1px solid #444; font-size: 0.8rem; color: #f1fa8c; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .vibe-active-tracker { background: #1a1a24; padding: 8px; border-bottom: 1px solid #444; font-size: 0.75rem; color: #f1fa8c; overflow-y: auto; max-height: 100px; border-top: 1px solid #333;}
         
         #vibe-logs { flex: 1; overflow-y: auto; padding: 10px; font-size: 12px; line-height: 1.4; word-wrap: break-word; }
         .log-info { color: #8be9fd; }
@@ -103,393 +119,8 @@
         .log-warn { color: #ffb86c; }
         .log-error { color: #ff5555; font-weight: bold; }
         .log-time { color: #6272a4; margin-right: 5px; }
-        .log-pre { background: #111; padding: 8px; border-radius: 4px; color: #f8f8f2; overflow-x: auto; font-size: 11px; margin: 4px 0; border: 1px solid #333; }
-
+        
         #vibe-toggle {
             position: fixed; top: 50%; left: 0; transform: translateY(-50%);
             background: #222; color: #50fa7b; border: 1px solid #444; border-left: none;
-            padding: 10px 15px; border-radius: 0 8px 8px 0; cursor: pointer; z-index: 9998;
-            font-family: 'Courier New', monospace; font-weight: bold; box-shadow: 2px 0 10px rgba(0,0,0,0.5);
-        }
-    </style>
-    <script type="importmap">
-    {
-        "imports": {
-            "preact": "https://esm.sh/preact@10.19.3",
-            "preact/hooks": "https://esm.sh/preact@10.19.3/hooks",
-            "htm": "https://esm.sh/htm@3.1.1",
-            "papaparse": "https://esm.sh/papaparse@5.4.1"
-        }
-    }
-    </script>
-</head>
-<body>
-    <div id="root"></div>
-
-    <script type="module">
-        import { h, render } from 'preact';
-        import { useState, useEffect, useRef } from 'preact/hooks';
-        import htm from 'htm';
-        import Papa from 'papaparse';
-
-        const html = htm.bind(h);
-        const APP_VERSION = 'v3.14.0';
-
-        const TM_CONFIG = {
-            timeZone: 'Europe/Athens', 
-            paneBackground: '#fcfcfc'
-        };
-
-        const useStore = () => {
-            const [logs, setLogs] = useState([]);
-            const [data, setData] = useState([]);
-            const [status, setStatus] = useState('Idle');
-            const [activeIndex, setActiveIndex] = useState(0); 
-            const [isMonitorOpen, setIsMonitorOpen] = useState(true);
-
-            const addLog = (msg, type = 'info', rawData = null) => {
-                const time = new Date().toLocaleTimeString('en-US', { hour12: false });
-                setLogs(prev => [...prev, { time, msg, type, rawData }]);
-            };
-
-            return { logs, addLog, data, setData, status, setStatus, activeIndex, setActiveIndex, isMonitorOpen, setIsMonitorOpen };
-        };
-
-        const VibeMonitor = ({ logs, status, isOpen, setIsOpen, activeSlide }) => {
-            const logEndRef = useRef(null);
-            
-            // Mid-Left Docking Logic
-            useEffect(() => {
-                const monitor = document.getElementById('vibe-monitor');
-                if (monitor && isOpen) {
-                    // Calculate exact middle of the screen mathematically
-                    const midY = Math.max(10, (window.innerHeight - 350) / 2);
-                    monitor.style.top = `${midY}px`;
-                    monitor.style.left = '15px';
-                    monitor.style.right = 'auto'; 
-                }
-            }, [isOpen]);
-
-            useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [logs]);
-
-            const onDrag = (e) => {
-                const monitor = document.getElementById('vibe-monitor');
-                let shiftX = e.clientX - monitor.getBoundingClientRect().left;
-                let shiftY = e.clientY - monitor.getBoundingClientRect().top;
-                const moveAt = (pageX, pageY) => {
-                    monitor.style.left = pageX - shiftX + 'px';
-                    monitor.style.top = pageY - shiftY + 'px';
-                };
-                const onMouseMove = (e) => moveAt(e.pageX, e.pageY);
-                document.addEventListener('mousemove', onMouseMove);
-                document.onmouseup = () => {
-                    document.removeEventListener('mousemove', onMouseMove);
-                    document.onmouseup = null;
-                };
-            };
-
-            if (!isOpen) return html`<button id="vibe-toggle" onClick=${() => setIsOpen(true)}>🟢 Monitor</button>`;
-
-            return html`
-                <div id="vibe-monitor">
-                    <div id="vibe-header" onMouseDown=${onDrag}>
-                        <span>🟢 Vibe-Monitor ${APP_VERSION}</span>
-                        <div>
-                            <span style="color: #bd93f9; margin-right: 10px;">[${status}]</span>
-                            <button class="vibe-close-btn" onClick=${() => setIsOpen(false)}>X</button>
-                        </div>
-                    </div>
-                    ${activeSlide ? html`
-                        <div class="vibe-active-tracker">
-                            📌 Active: Row ${activeSlide.id + 2} | ${activeSlide.title}
-                        </div>
-                    ` : ''}
-                    <div id="vibe-logs">
-                        ${logs.map((l, i) => html`
-                            <div key=${i} class="log-${l.type}">
-                                <span class="log-time">[${l.time}]</span> ${l.msg}
-                                ${l.rawData ? html`<pre class="log-pre">${JSON.stringify(l.rawData, null, 2)}</pre>` : ''}
-                            </div>
-                        `)}
-                        <div ref=${logEndRef}></div>
-                    </div>
-                </div>
-            `;
-        };
-
-        const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
-            const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
-            if (validData.length === 0) return html`<div style="padding: 1rem; color:#666;">No valid temporal data found.</div>`;
-
-            const minTime = validData[0].startDate.getTime();
-            const maxTime = validData[validData.length - 1].startDate.getTime();
-            const timeRange = maxTime - minTime || 1; 
-
-            const minYear = validData[0].startDate.getFullYear();
-            const maxYear = validData[validData.length - 1].startDate.getFullYear();
-            const yearSpan = maxYear - minYear;
-            
-            let step = 1;
-            if (yearSpan > 20) step = 5;
-            if (yearSpan > 50) step = 10;
-            if (yearSpan > 200) step = 50;
-            if (yearSpan > 1000) step = 100;
-
-            const rulerTicks = [];
-            const startTick = Math.floor(minYear / step) * step;
-            for (let y = startTick; y <= maxYear; y += step) {
-                if (y < minYear) continue;
-                const tickTime = new Date(0);
-                tickTime.setFullYear(y, 0, 1);
-                
-                const percent = 2 + ((tickTime.getTime() - minTime) / timeRange) * 96;
-                if (percent >= 2 && percent <= 98) {
-                    rulerTicks.push(html`
-                        <div class="timeline-ruler-tick" style="left: ${percent}%;">
-                            <div class="tick-label">${y}</div>
-                            <div class="tick-mark"></div>
-                        </div>
-                    `);
-                }
-            }
-
-            const markers = data.map((item, index) => {
-                if (!item.startDate || isNaN(item.startDate.getTime())) return null;
-                const percent = 2 + ((item.startDate.getTime() - minTime) / timeRange) * 96;
-                const isActive = index === activeIndex;
-
-                return html`
-                    <div 
-                        class="timeline-marker ${isActive ? 'active' : ''}" 
-                        style="left: ${percent}%;"
-                        onClick=${() => setActiveIndex(index)}
-                    >
-                        <div class="timeline-label">${item.title}</div>
-                        <div class="timeline-marker-stem"></div>
-                    </div>
-                `;
-            });
-
-            return html`
-                <div class="timeline-scroll-wrapper" id="tm-scrubber">
-                    <div class="timeline-axis"></div>
-                    ${rulerTicks}
-                    ${markers}
-                </div>
-            `;
-        };
-
-        const App = () => {
-            const { logs, addLog, data, setData, status, setStatus, activeIndex, setActiveIndex, isMonitorOpen, setIsMonitorOpen } = useStore();
-
-            useEffect(() => {
-                document.documentElement.style.setProperty('--paneBg', TM_CONFIG.paneBackground);
-                addLog(`Engine ${APP_VERSION} initialized. Elegant Regex Pipeline Active.`, 'info');
-                
-                const params = new URLSearchParams(window.location.search);
-                let sourceParam = params.get('source');
-                const gid = params.get('gid') || '0'; 
-
-                if (!sourceParam) return setStatus('Awaiting Source');
-
-                let fetchUrl = '';
-                if (sourceParam.includes('http')) {
-                    if (sourceParam.includes('/e/2PACX')) fetchUrl = sourceParam.split('/pub')[0] + '/pub?output=csv';
-                    else if (sourceParam.includes('/d/')) {
-                        const match = sourceParam.match(/\/d\/([a-zA-Z0-9-_]+)/);
-                        fetchUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv&gid=${gid}`;
-                    } else fetchUrl = sourceParam; 
-                } else {
-                    if (sourceParam.startsWith('2PACX')) fetchUrl = `https://docs.google.com/spreadsheets/d/e/${sourceParam}/pub?output=csv&gid=${gid}`;
-                    else fetchUrl = `https://docs.google.com/spreadsheets/d/${sourceParam}/gviz/tq?tqx=out:csv&gid=${gid}`;
-                }
-
-                executeFetch(fetchUrl);
-            }, []);
-
-            const executeFetch = async (url) => {
-                setStatus('Fetching Data');
-                try {
-                    const response = await fetch(url);
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    const csvText = await response.text();
-                    
-                    Papa.parse(csvText, {
-                        header: true, skipEmptyLines: true,
-                        complete: (results) => {
-                            addLog(`Parsed ${results.data.length} rows. Initiating regex safety pipeline.`, 'success');
-                            validateAndCleanData(results.data);
-                        },
-                        error: (err) => { addLog(`Parse Error: ${err.message}`, 'error'); setStatus('Parse Failed'); }
-                    });
-                } catch (error) { addLog(`Fetch failed: ${error.message}`, 'error'); setStatus('Fetch Failed'); }
-            };
-
-            const fuzzyFind = (row, possibleNames) => {
-                const keys = Object.keys(row);
-                for (let k of keys) {
-                    const cleanKey = k.trim().toLowerCase();
-                    if (possibleNames.includes(cleanKey)) return row[k] ? row[k].trim() : '';
-                }
-                return '';
-            };
-
-            /*
-             * ------------------------------------------
-             * THE ELEGANT REGEX PIPELINE
-             * ------------------------------------------
-             * Gracefully extracts European dates and safely drops to null
-             * on total failure to guarantee 0 render crashes.
-             */
-            const parseTimelineDate = (rawStr) => {
-                if (!rawStr) return null;
-                let s = rawStr.toString().trim();
-
-                // 1. Google Serial Date
-                if (!isNaN(s) && parseFloat(s) > 10000) {
-                    return new Date((parseFloat(s) - 25569) * 86400 * 1000);
-                }
-
-                // 2. Just a Year (-500, 1945)
-                if (/^-?\d{1,4}$/.test(s)) {
-                    let d = new Date(0);
-                    d.setFullYear(parseInt(s), 0, 1);
-                    d.setHours(0,0,0,0);
-                    return d;
-                }
-
-                // 3. Elegant Euro Regex Hunter
-                // Hunts for DD/MM/YYYY inside any string, with optional HH:MM
-                const euroMatch = s.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
-                if (euroMatch) {
-                    const [ , dd, mm, yyyy, hh, min ] = euroMatch;
-                    let d = new Date(parseInt(yyyy), parseInt(mm) - 1, parseInt(dd), parseInt(hh || 0), parseInt(min || 0));
-                    if (!isNaN(d.getTime())) return d;
-                }
-
-                // 4. Ultimate Failsafe Fallback
-                let d = new Date(s);
-                if (!isNaN(d.getTime())) return d;
-
-                return null; 
-            };
-
-            const validateAndCleanData = (rawData) => {
-                setStatus('Processing');
-                
-                const cleaned = rawData.map((row, index) => {
-                    const startRaw = fuzzyFind(row, ['start', 'start date', 'startdate', 'date']);
-                    const titleRaw = fuzzyFind(row, ['title', 'headline', 'name']);
-                    const descRaw = fuzzyFind(row, ['description', 'text', 'content']);
-                    const mediaRaw = fuzzyFind(row, ['media', 'image', 'photo', 'url']);
-                    const locRaw = fuzzyFind(row, ['location', 'place', 'coordinates', 'map']);
-
-                    let pDate = parseTimelineDate(startRaw);
-                    
-                    // Final Immunity Check: Drop Invalid Date Objects before state assignment
-                    if (pDate && isNaN(pDate.getTime())) pDate = null;
-
-                    return {
-                        id: index,
-                        title: titleRaw || `Event ${index + 1}`,
-                        startDate: pDate,
-                        rawStart: startRaw,
-                        description: descRaw,
-                        media: mediaRaw ? mediaRaw.split(',').map(s => s.trim()) : [],
-                        location: locRaw || null
-                    };
-                });
-
-                // Filter out null dates for sorting
-                const validRecords = cleaned.filter(r => r.startDate !== null);
-                const nullRecords = cleaned.filter(r => r.startDate === null);
-
-                // Sort valid records
-                validRecords.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
-                
-                // Recombine (valid first, broken at the end)
-                const finalData = [...validRecords, ...nullRecords];
-
-                setData(finalData);
-                setActiveIndex(0); 
-                setStatus('Active');
-            };
-
-            const formatDate = (dateObj) => {
-                if (!dateObj || isNaN(dateObj.getTime())) return 'Unknown Date';
-                
-                if (dateObj.getHours() === 0 && dateObj.getMinutes() === 0 && dateObj.getDate() === 1 && dateObj.getMonth() === 0) {
-                     return dateObj.getFullYear().toString();
-                }
-
-                const dd = dateObj.getDate().toString().padStart(2, '0');
-                const mm = (dateObj.getMonth() + 1).toString().padStart(2, '0'); 
-                const yyyy = dateObj.getFullYear();
-                const HH = dateObj.getHours().toString().padStart(2, '0');
-                const min = dateObj.getMinutes().toString().padStart(2, '0');
-
-                // Dynamically fetch exact timezone offset and convert to UTC notation
-                const tzParts = new Intl.DateTimeFormat('en-GB', { 
-                    timeZone: TM_CONFIG.timeZone, timeZoneName: 'shortOffset' 
-                }).formatToParts(dateObj);
-                
-                let tzStr = tzParts.find(p => p.type === 'timeZoneName')?.value || 'UTC';
-                tzStr = tzStr.replace('GMT', 'UTC'); 
-
-                return `${dd}/${mm}/${yyyy} ${HH}:${min} ${tzStr}`;
-            };
-
-            const nextSlide = () => setActiveIndex(prev => Math.min(prev + 1, data.length - 1));
-            const prevSlide = () => setActiveIndex(prev => Math.max(prev - 1, 0));
-
-            const activeSlide = data[activeIndex];
-
-            return html`
-                ${html`<${VibeMonitor} logs=${logs} status=${status} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} />`}
-                
-                <div id="app-layout">
-                    <div class="top-row">
-                        <div class="pane map-pane">
-                            <div style="color:#555; text-align:center;">
-                                <h3>Map Layer</h3>
-                                <p>Awaiting Leaflet</p>
-                            </div>
-                        </div>
-                        <div class="pane media-pane">
-                            <div style="color:#555; text-align:center;">
-                                <h3>Media Carousel</h3>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="pane content-pane">
-                        ${data.length === 0 ? html`<p style="text-align:center;">Loading content...</p>` : html`
-                            <button class="nav-btn-side nav-left" onClick=${prevSlide} disabled=${activeIndex === 0}>◀</button>
-                            <button class="nav-btn-side nav-right" onClick=${nextSlide} disabled=${activeIndex === data.length - 1}>▶</button>
-
-                            <div class="slide-container" id="slide-${activeSlide?.id || 0}">
-                                <div class="slide-date">${formatDate(activeSlide?.startDate)}</div>
-                                <h2 class="slide-title" dangerouslySetInnerHTML=${{__html: activeSlide?.title || 'No Title'}}></h2>
-                                <div class="slide-desc" dangerouslySetInnerHTML=${{__html: activeSlide?.description || ''}}></div>
-                                
-                                <div class="slide-meta">
-                                    ${activeSlide?.location ? html`<span>📍 ${activeSlide.location}</span>` : ''}
-                                    ${activeSlide?.media?.length > 0 ? html`<span>📸 ${activeSlide.media.length} Media Item(s)</span>` : ''}
-                                </div>
-                            </div>
-
-                            <div class="slide-counter">Slide ${activeIndex + 1} of ${data.length}</div>
-                        `}
-                    </div>
-                    
-                    <div class="timeline-pane">
-                        <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} />
-                    </div>
-                </div>
-            `;
-        };
-
-        render(html`<${App} />`, document.getElementById('root'));
-    </script>
-</body>
-</html>
+            padding: 10px 15px; border
