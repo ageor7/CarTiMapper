@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modern TimeMapper Core - v3.10.0</title>
+    <title>Modern TimeMapper Core - v3.11.0</title>
     <style>
-        /* CSS Variables: paneBg will be overridden dynamically by TM_CONFIG */
         :root { --bg: #121212; --paneBg: #f4f4f4; --border: #ccc; --text: #222; --accent: #007acc; }
         
-        /* Fallback dark theme logic for specific panes if needed later */
         body { margin: 0; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
         
         #app-grid { display: grid; grid-template-columns: 35% 65%; grid-template-rows: 45vh 45vh 10vh; height: 100vh; }
@@ -19,72 +17,77 @@
             box-sizing: border-box; 
             overflow: hidden; 
             position: relative; 
-            background: var(--paneBg); /* Injected from Config */
+            background: var(--paneBg); 
         }
         
         .map-pane { grid-column: 1; grid-row: 1; display: flex; align-items: center; justify-content: center; }
         .media-pane { grid-column: 2; grid-row: 1; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; align-items: center; justify-content: center; }
         
         .content-pane { grid-column: 1 / span 2; grid-row: 2; display: flex; flex-direction: column; overflow-y: auto; position: relative; }
-        .timeline-pane { grid-column: 1 / span 2; grid-row: 3; display: flex; align-items: center; justify-content: center; }
-
-        /* Slide Typography & Layout */
-        .slide-container { 
-            max-width: 800px; 
-            margin: 0 auto; 
-            width: 100%; 
-            padding: 1rem 3rem; /* Extra padding on sides to prevent text overlap with nav buttons */
-            flex: 1; 
+        
+        /* Timeline specific styling */
+        .timeline-pane { grid-column: 1 / span 2; grid-row: 3; padding: 0; background: #e5e5e5; display: flex; flex-direction: column; border-top: 2px solid #ccc;}
+        .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-x: auto; overflow-y: hidden; position: relative; display: flex; align-items: center; }
+        .timeline-track { min-width: 1200px; width: 100%; height: 2px; background: #999; position: absolute; left: 2%; right: 2%; top: 50%; }
+        
+        .timeline-marker { 
+            position: absolute; 
+            top: 50%; 
+            transform: translate(-50%, -50%); 
+            width: 12px; height: 12px; 
+            border-radius: 50%; 
+            background: #666; 
+            border: 2px solid #fff; 
+            cursor: pointer; 
+            transition: all 0.2s ease; 
+            z-index: 10;
         }
+        .timeline-marker:hover { transform: translate(-50%, -50%) scale(1.5); background: #333; }
+        .timeline-marker.active { width: 18px; height: 18px; background: var(--accent); z-index: 20; box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.3); }
+        .timeline-label {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.65rem;
+            color: #555;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+        .timeline-marker:hover .timeline-label, .timeline-marker.active .timeline-label { opacity: 1; font-weight: bold; }
+
+        /* Slide Typography */
+        .slide-container { max-width: 800px; margin: 0 auto; width: 100%; padding: 1rem 3rem; flex: 1; }
         .slide-date { color: var(--accent); font-weight: bold; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; }
         .slide-title { margin: 0.5rem 0 1rem 0; font-size: 2.5rem; color: #111; }
         .slide-desc { line-height: 1.6; font-size: 1.2rem; color: #333; }
         .slide-meta { margin-top: 2rem; font-size: 0.9rem; color: #666; display: flex; gap: 1rem; border-top: 1px solid #ddd; padding-top: 1rem; }
 
-        /* Side-Mounted Navigation Architecture */
+        /* Side-Mounted Navigation */
         .nav-btn-side {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            background: rgba(0, 0, 0, 0.1);
-            color: #333;
-            border: none;
-            width: 40px;
-            height: 100px;
-            font-size: 1.5rem;
-            cursor: pointer;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s;
+            position: absolute; top: 50%; transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.05); color: #333; border: none;
+            width: 40px; height: 100px; font-size: 1.5rem; cursor: pointer;
+            border-radius: 4px; display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s; z-index: 50;
         }
-        .nav-btn-side:hover { background: rgba(0, 0, 0, 0.2); }
+        .nav-btn-side:hover { background: rgba(0, 0, 0, 0.15); }
         .nav-btn-side:disabled { opacity: 0.2; cursor: not-allowed; }
-        
         .nav-left { left: 10px; }
         .nav-right { right: 10px; }
 
         /* Minimalist Overlay Slide Counter */
-        .slide-counter {
-            position: absolute;
-            bottom: 10px;
-            right: 15px;
-            font-size: 0.75rem;
-            color: #888;
-            font-weight: bold;
-            letter-spacing: 0.5px;
-            user-select: none;
-        }
+        .slide-counter { position: absolute; bottom: 10px; right: 15px; font-size: 0.75rem; color: #888; font-weight: bold; user-select: none; }
 
         /* Vibe Monitor */
         #vibe-monitor {
             position: fixed; top: 15px; right: 15px; width: 500px; height: 400px;
             background: rgba(10, 10, 15, 0.95); border: 1px solid #444; border-radius: 8px;
-            display: flex; flex-direction: column; z-index: 9999;
+            display: flex; flex-direction: column; z-index: 9999; color: #eee;
             box-shadow: 0 8px 32px rgba(0,0,0,0.9); backdrop-filter: blur(8px);
             resize: both; overflow: hidden; font-family: 'Courier New', monospace;
-            color: #eee;
         }
         #vibe-header { background: #222; padding: 8px; cursor: move; font-weight: bold; border-bottom: 1px solid #444; display: flex; justify-content: space-between; user-select: none; }
         #vibe-logs { flex: 1; overflow-y: auto; padding: 10px; font-size: 12px; line-height: 1.4; word-wrap: break-word; }
@@ -95,7 +98,6 @@
         .log-time { color: #6272a4; margin-right: 5px; }
         .log-pre { background: #111; padding: 8px; border-radius: 4px; color: #f8f8f2; overflow-x: auto; font-size: 11px; margin: 4px 0; border: 1px solid #333; }
     </style>
-    
     <script type="importmap">
     {
         "imports": {
@@ -117,16 +119,12 @@
         import Papa from 'papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v3.10.0';
+        const APP_VERSION = 'v3.11.0';
 
-        /* * ==========================================
-         * GLOBAL CONFIGURATION
-         * ==========================================
-         */
         const TM_CONFIG = {
             timeZone: 'Europe/Athens', 
             locale: 'en-GB',           
-            paneBackground: '#f2f2f2' // User configurable light grey background
+            paneBackground: '#f2f2f2'
         };
 
         const useStore = () => {
@@ -183,14 +181,50 @@
             `;
         };
 
+        // --- NEW TIMELINE COMPONENT ---
+        const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
+            const validData = data.filter(d => d.startDate);
+            if (validData.length === 0) return html`<div style="padding: 1rem;">No temporal data found.</div>`;
+
+            const minTime = validData[0].startDate.getTime();
+            const maxTime = validData[validData.length - 1].startDate.getTime();
+            const timeRange = maxTime - minTime || 1; // Prevent division by zero if all dates are exactly the same
+
+            // Create markers
+            const markers = data.map((item, index) => {
+                if (!item.startDate) return null;
+                // Calculate position percentage (clamped slightly inward to prevent edge cutoff)
+                const percent = 2 + ((item.startDate.getTime() - minTime) / timeRange) * 96;
+                const isActive = index === activeIndex;
+
+                return html`
+                    <div 
+                        class="timeline-marker ${isActive ? 'active' : ''}" 
+                        style="left: ${percent}%;"
+                        onClick=${() => setActiveIndex(index)}
+                        title="${item.title}"
+                    >
+                        <div class="timeline-label">${item.startDate.getFullYear()}</div>
+                    </div>
+                `;
+            });
+
+            return html`
+                <div class="timeline-scroll-wrapper" id="tm-scrubber">
+                    <div class="timeline-track">
+                        ${markers}
+                    </div>
+                </div>
+            `;
+        };
+
         const App = () => {
             const { logs, addLog, data, setData, status, setStatus, activeIndex, setActiveIndex } = useStore();
 
             useEffect(() => {
-                // Apply global config background color
                 document.documentElement.style.setProperty('--paneBg', TM_CONFIG.paneBackground);
-
-                addLog(`Engine ${APP_VERSION} initialized. Euro-Date Fix Active.`, 'info');
+                addLog(`Engine ${APP_VERSION} initialized. Strict Euro-Date Regex Active.`, 'info');
+                
                 const params = new URLSearchParams(window.location.search);
                 let sourceParam = params.get('source');
                 const gid = params.get('gid') || '0'; 
@@ -229,10 +263,7 @@
                         header: true,
                         skipEmptyLines: true,
                         complete: (results) => {
-                            if(results.data.length > 0) {
-                                addLog(`Raw Row 1 Date Sample:`, 'info', { 'Raw Date Field': results.data[0]['Start'] || results.data[0]['Start Date'] });
-                            }
-                            addLog(`Successfully parsed ${results.data.length} rows. Mapping dates...`, 'success');
+                            addLog(`Successfully parsed ${results.data.length} rows. Mapping strict dates...`, 'success');
                             validateAndCleanData(results.data);
                         },
                         error: (err) => {
@@ -262,20 +293,19 @@
                 // 1. Google Serial Date
                 if (!isNaN(s) && s > 10000) return new Date((parseFloat(s) - 25569) * 86400 * 1000);
 
-                // 2. Exact format: DD/MM/YYYY HH:mm
+                // 2. Exact format: DD/MM/YYYY HH:mm (Strict)
                 const euroTimeMatch = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})\s+(\d{1,2}):(\d{2})$/);
                 if (euroTimeMatch) {
                     return new Date(parseInt(euroTimeMatch[3]), parseInt(euroTimeMatch[2]) - 1, parseInt(euroTimeMatch[1]), parseInt(euroTimeMatch[4]), parseInt(euroTimeMatch[5]));
                 }
 
-                // 3. Exact format: DD/MM/YYYY (Trap this BEFORE native fallback)
-                let parts = s.split(/[\/\-\.]/);
-                if (parts.length === 3 && parts[2].length === 4) { // Assumes ending in 4 digit year
-                    let altDate = new Date(`${parts[1]}/${parts[0]}/${parts[2]}`); // Force MM/DD/YYYY internally for JS
-                    if (!isNaN(altDate.getTime())) return altDate;
+                // 3. Exact format: DD/MM/YYYY (Strict - bypassing JS completely)
+                const euroDateMatch = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+                if (euroDateMatch) {
+                    return new Date(parseInt(euroDateMatch[3]), parseInt(euroDateMatch[2]) - 1, parseInt(euroDateMatch[1]));
                 }
 
-                // 4. Historical Year
+                // 4. Historical Year (-500 or 1945)
                 if (/^-?\d{1,4}$/.test(s)) {
                     let d = new Date(0);
                     d.setFullYear(parseInt(s), 0, 1);
@@ -283,7 +313,7 @@
                     return d;
                 }
 
-                // 5. Standard native JS Date (Fallback)
+                // 5. Standard JS ISO Fallback (YYYY-MM-DD)
                 let d = new Date(s);
                 if (!isNaN(d.getTime())) return d;
 
@@ -292,6 +322,7 @@
 
             const validateAndCleanData = (rawData) => {
                 setStatus('Processing');
+                let failedCount = 0;
                 
                 const cleaned = rawData.map((row, index) => {
                     const startRaw = fuzzyFind(row, ['start', 'start date', 'startdate', 'date']);
@@ -300,16 +331,21 @@
                     const mediaRaw = fuzzyFind(row, ['media', 'image', 'photo', 'url']);
                     const locRaw = fuzzyFind(row, ['location', 'place', 'coordinates', 'map']);
 
+                    const pDate = parseTimelineDate(startRaw);
+                    if(!pDate && startRaw) failedCount++;
+
                     return {
                         id: index,
                         title: titleRaw || `Event ${index + 1}`,
-                        startDate: parseTimelineDate(startRaw),
+                        startDate: pDate,
                         rawStart: startRaw,
                         description: descRaw,
                         media: mediaRaw ? mediaRaw.split(',').map(s => s.trim()) : [],
                         location: locRaw || null
                     };
                 });
+
+                if (failedCount > 0) addLog(`Warning: ${failedCount} dates failed strict parsing. Check Vibe-Monitor for raw values.`, 'warn');
 
                 const sortedData = cleaned.sort((a, b) => {
                     if (!a.startDate) return 1;
@@ -328,7 +364,7 @@
                      return dateObj.getFullYear().toString();
                 }
                 return new Intl.DateTimeFormat(TM_CONFIG.locale, {
-                    year: 'numeric', month: 'short', day: 'numeric',
+                    day: '2-digit', month: 'short', year: 'numeric',
                     hour: '2-digit', minute: '2-digit',
                     timeZone: TM_CONFIG.timeZone,
                     timeZoneName: 'short'
@@ -378,8 +414,8 @@
                         `}
                     </div>
                     
-                    <div class="pane timeline-pane">
-                        <div style="color:#555;">SVG Scrubber Bridge (Awaiting D3/SVG Canvas)</div>
+                    <div class="timeline-pane">
+                        <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} />
                     </div>
                 </div>
             `;
