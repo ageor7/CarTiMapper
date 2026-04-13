@@ -9,19 +9,20 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
     <style>
-        /* === [ GLOBAL STYLES v2.5.0 ] === */
+        /* === [ GLOBAL STYLES v2.6.0 ] === */
         :root { --bg: #121212; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; }
         body { margin: 0; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
         
         #tm-root { position: fixed; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; display: flex; flex-direction: column; }
-        #app-layout { --top-height: 35%; --map-width: 50%; --timeline-height: 15%; display: flex; flex-direction: column; flex: 1; width: 100vw; }
+        #app-layout { --top-height: 35%; --map-width: 50%; --timeline-height: 15%; display: flex; flex-direction: column; flex: 1; width: 100vw; height: 100%; }
         
         /**
-         * REQUIREMENT: Strict boundary protocol. Flex panes must NEVER grow based on internal text volume.
-         * METHODOLOGY: Apply `min-height: 0; min-width: 0;` to all structural flex children. This overrides 
-         * the browser's default `min-height: auto` quirk, ensuring content scrolls instead of blowing up the layout.
+         * REQUIREMENT: Strict boundary protocol (The "Iron Box"). 
+         * Flex panes must NEVER grow based on internal text volume or lazy-loaded maps.
+         * METHODOLOGY: Use `flex: 0 0 var(--height)` combined with explicit `max-height`.
+         * This mathematically castrates the browser's default behavior to stretch flex containers around large content.
          */
-        .top-row { height: var(--top-height); display: flex; flex-shrink: 0; background: #fff; overflow: hidden; min-height: 0; min-width: 0; }
+        .top-row { flex: 0 0 var(--top-height); height: var(--top-height); max-height: var(--top-height); display: flex; background: #fff; overflow: hidden; min-height: 0; min-width: 0; }
         .map-pane { width: var(--map-width); flex-shrink: 0; background: #e0e0e0; position: relative; min-height: 0; min-width: 0; }
         .map-pane.no-media { width: 100% !important; }
         
@@ -31,8 +32,11 @@
         .resizer-h:hover, .resizer-h:active { background: #007acc; }
 
         .media-pane { flex: 1; position: relative; padding: 0; overflow: hidden; background: #111; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
-        .content-pane-wrapper { flex: 1; position: relative; display: flex; flex-direction: column; background: var(--paneBg); overflow: hidden; min-height: 0; min-width: 0; }
-        .timeline-pane { height: var(--timeline-height); min-height: 160px; flex-shrink: 0; padding: 0; background: #ececec; display: flex; flex-direction: column; position: relative; overflow: hidden; min-width: 0; }
+        
+        /* The middle pane takes up exactly the remaining vertical space */
+        .content-pane-wrapper { flex: 1 1 0%; position: relative; display: flex; flex-direction: column; background: var(--paneBg); overflow: hidden; min-height: 0; min-width: 0; }
+        
+        .timeline-pane { flex: 0 0 var(--timeline-height); height: var(--timeline-height); max-height: var(--timeline-height); padding: 0; background: #ececec; display: flex; flex-direction: column; position: relative; overflow: hidden; min-width: 0; min-height: 0;}
 
         #map-container { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; }
         .leaflet-tooltip { white-space: normal !important; word-wrap: break-word !important; width: max-content !important; max-width: 300px !important; text-align: left !important; font-size: 0.85rem; font-weight: normal !important; line-height: 1.4; padding: 6px 10px !important; text-wrap: balance !important; }
@@ -118,7 +122,7 @@
         .log-error { color: #ff5555; font-weight: bold; }
         .log-time { color: #6272a4; margin-right: 5px; }
         #vibe-toggle { position: absolute; bottom: 10px; left: 0; background: #222; color: #50fa7b; border: 1px solid #444; border-left: none; padding: 8px 12px; border-radius: 0 8px 8px 0; cursor: pointer; z-index: 9998; font-family: 'Courier New', monospace; font-weight: bold; box-shadow: 2px 0 10px rgba(0,0,0,0.5); }
-        /* === [ END GLOBAL STYLES v2.5.0 ] === */
+        /* === [ END GLOBAL STYLES v2.6.0 ] === */
     </style>
     
     <script type="importmap">
@@ -136,7 +140,7 @@
     <div id="root"></div>
 
     <script type="module">
-        /// === [ GLOBAL VARIABLES & MANIFEST v1.0.18 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.19 ] ===
         import { h, render, Component } from 'preact';
         import { useState, useEffect, useRef } from 'preact/hooks';
         import htm from 'htm';
@@ -147,9 +151,9 @@
         // Automated Global Registry
         const APP_VERSION = 'v5.7.0';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v2.5.0', Globals: 'v1.8.0' }; 
+        const MODULE_VERSIONS = { Styles: 'v2.6.0', Globals: 'v1.9.0' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
-        // === [ END GLOBAL VARIABLES v1.0.18 ] ===
+        // === [ END GLOBAL VARIABLES v1.0.19 ] ===
         
         // === [ UTILITIES ] ===
         const stripHTML = (htmlStr) => {
@@ -505,16 +509,7 @@
         MODULE_VERSIONS['ContentSlider'] = 'v1.0.0';
         // === [ END CONTENT SLIDER ] ===
 
-        // === [ TIMELINE SCRUBBER v10.0.0 ] ===
-        /**
-         * REQUIREMENT:
-         * 1. Ensure the timeline expands physically when zoomed, rather than relying on buggy CSS percentages.
-         * 2. Support native 2-finger pinch-to-zoom on touch devices without zooming the entire browser UI.
-         * * METHODOLOGY:
-         * 1. Physical Pixels: Calculate the exact `containerW` in pixels, multiply by `zoomLevel`, and explicitly apply `width: Xpx` to the track.
-         * 2. Multi-Touch: Intercept `onTouchStart` and `onTouchMove`. If `e.touches.length === 2`, calculate the hypotenuse
-         * between the two fingers. Scale the initial zoom by the pinch ratio.
-         */
+        // === [ TIMELINE SCRUBBER v11.0.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -659,7 +654,7 @@
             const onUp = () => { dragRef.current.isDragging = false; wrapperRef.current?.classList.remove('is-dragging'); };
             const onMove = (e) => {
                 if (e.touches && e.touches.length === 2) {
-                    e.preventDefault(); // Block browser native page-zoom
+                    e.preventDefault(); 
                     const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
                     const scale = dist / touchZoomRef.current.initialDist;
                     setZoomLevel(Math.min(Math.max(touchZoomRef.current.initialZoom * scale, 0.5), 150));
@@ -693,11 +688,14 @@
             let majorStepMs = majorSteps[0];
             for (let s of majorSteps) { if (targetMsPerMajorTick <= s) majorStepMs = s; }
 
+            // Refined Smart Ticks specifically for weeks/hours
             let formatType = 'year'; let minorStepMs = MONTH;
             if (majorStepMs <= YEAR) { formatType = 'month'; minorStepMs = 7 * DAY; }
             if (majorStepMs <= MONTH) { formatType = 'day'; minorStepMs = DAY; }
+            if (majorStepMs <= 7 * DAY) { formatType = 'day'; minorStepMs = 12 * HOUR; }
             if (majorStepMs <= DAY) { formatType = 'time'; minorStepMs = 4 * HOUR; }
-            if (majorStepMs <= 12 * HOUR) { formatType = 'time'; minorStepMs = HOUR; }
+            if (majorStepMs <= 12 * HOUR) { formatType = 'time'; minorStepMs = 2 * HOUR; }
+            if (majorStepMs <= 6 * HOUR) { formatType = 'time'; minorStepMs = HOUR; }
 
             const rulerTicks = [];
             let currentD = new Date(minTime);
@@ -765,7 +763,7 @@
                 let activeAnchor = '';
                 if (isActive) {
                     const distanceToAxis = availableLanesHeight - topPos - blockHeight;
-                    const triangleWidth = hasDuration ? (endPct - startPct) : ((10 / containerW) * 100); 
+                    const triangleWidth = hasDuration ? (endPct - startPct) : ((10 / trackWidthPx) * 100); 
                     
                     activeAnchor = html`
                         <div style="position: absolute; left: 0; top: ${blockHeight}px; height: ${distanceToAxis}px; width: 1px; background: #007acc; z-index: 20;"></div>
@@ -786,6 +784,7 @@
                 `;
             });
 
+            // CRITICAL: flex-shrink: 0 ensures the physical width expands for zoom without being squished!
             return html`
                 <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;">
                     <div class="timeline-controls">
@@ -793,7 +792,7 @@
                         <button class="timeline-btn" onClick=${() => setZoomLevel(p => Math.min(p + 0.5, 150))}>+</button>
                     </div>
                     <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${(e) => { e.preventDefault(); setZoomLevel(p => e.deltaY < 0 ? Math.min(p + 0.5, 150) : Math.max(p - 0.5, 0.5)); }}>
-                        <div class="timeline-track-container" style="width: ${trackWidthPx}px; height: 100%;">
+                        <div class="timeline-track-container" style="width: ${trackWidthPx}px; flex-shrink: 0; min-width: 100%; height: 100%;">
                             
                             ${orderedTags.map((tag, i) => html`
                                 <div class="tag-lane" style="top: ${i * laneHeight}px; height: ${laneHeight}px; background: ${i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent'};">
@@ -811,10 +810,10 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v10.0.0';
-        // === [ END TIMELINE SCRUBBER v10.0.0 ] ===
+        MODULE_VERSIONS['TimelineScrubber'] = 'v11.0.0';
+        // === [ END TIMELINE SCRUBBER v11.0.0 ] ===
 
-        // === [ APP ORCHESTRATOR v1.8.0 ] ===
+        // === [ APP ORCHESTRATOR v1.9.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [data, setData] = useState([]);
@@ -1004,10 +1003,10 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.8.0';
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.9.0';
         
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
-        // === [ END APP ORCHESTRATOR v1.8.0 ] ===
+        // === [ END APP ORCHESTRATOR v1.9.0 ] ===
     </script>
 </body>
 </html>
