@@ -9,7 +9,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
     <style>
-        /* === [ GLOBAL STYLES v1.6.0 ] === */
+        /* === [ GLOBAL STYLES v1.7.0 ] === */
         :root { --bg: #121212; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; }
         body { margin: 0; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
         
@@ -19,7 +19,7 @@
         #app-layout {
             --top-height: 35%;
             --map-width: 50%;
-            --timeline-height: 10%;
+            --timeline-height: 15%; /* Expanded slightly for swimlanes */
             display: flex; flex-direction: column; height: 100vh; width: 100vw;
         }
         
@@ -27,7 +27,6 @@
         .map-pane { width: var(--map-width); flex-shrink: 0; background: #e0e0e0; position: relative; }
         .map-pane.no-media { width: 100% !important; }
         
-        /* Draggable Splitters */
         .resizer-v { height: 6px; background: #999; cursor: row-resize; flex-shrink: 0; z-index: 100; transition: background 0.2s; }
         .resizer-v:hover, .resizer-v:active { background: #007acc; }
         .resizer-h { width: 6px; background: #999; cursor: col-resize; flex-shrink: 0; z-index: 100; transition: background 0.2s; }
@@ -36,40 +35,24 @@
         .media-pane { flex: 1; position: relative; padding: 0; overflow: hidden; background: #111; display: flex; flex-direction: column; }
         
         .content-pane-wrapper { flex: 1; position: relative; display: flex; flex-direction: column; background: var(--paneBg); overflow: hidden; }
+        
+        /* Timeline Flex adjustments */
         .timeline-pane { height: var(--timeline-height); min-height: 200px; flex-shrink: 0; padding: 0; background: #ececec; display: flex; flex-direction: column; position: relative; overflow: hidden; }
 
-        /* Map Container & Custom Pins */
         #map-container { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; }
         
         .leaflet-tooltip {
-            white-space: normal !important;
-            word-wrap: break-word !important;
-            width: max-content !important;
-            max-width: 350px !important;
-            text-align: center;
-            font-size: 0.85rem;
-            font-weight: normal !important;
-            line-height: 1.4;
-            padding: 6px 10px !important;
+            white-space: normal !important; word-wrap: break-word !important; width: max-content !important;
+            max-width: 350px !important; text-align: center; font-size: 0.85rem; font-weight: normal !important;
+            line-height: 1.4; padding: 6px 10px !important;
         }
 
-        .custom-map-pin {
-            display: flex; align-items: flex-end; justify-content: center;
-            width: 24px; height: 34px; margin-left: -12px; margin-top: -34px;
-        }
-        .pin-head {
-            width: 14px; height: 14px; border-radius: 50%;
-            background: #d32f2f; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.4);
-            position: absolute; top: 0; transition: all 0.2s ease;
-        }
-        .pin-stem {
-            width: 2px; height: 20px; background: #333; position: absolute; bottom: 0;
-        }
-        
+        .custom-map-pin { display: flex; align-items: flex-end; justify-content: center; width: 24px; height: 34px; margin-left: -12px; margin-top: -34px; }
+        .pin-head { width: 14px; height: 14px; border-radius: 50%; background: #d32f2f; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.4); position: absolute; top: 0; transition: all 0.2s ease; }
+        .pin-stem { width: 2px; height: 20px; background: #333; position: absolute; bottom: 0; }
         .custom-map-pin.active .pin-head { background: #007acc; transform: scale(1.3); z-index: 1000; }
         .custom-map-pin.active .pin-stem { background: #007acc; width: 3px; }
 
-        /* Media Carousel */
         .media-carousel { flex: 1; display: flex; width: 100%; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scroll-behavior: smooth; }
         .media-item { width: 100%; height: 100%; flex-shrink: 0; scroll-snap-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
         .media-content-wrapper { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
@@ -80,7 +63,6 @@
         .media-credit { color: #aaa; font-size: 0.7rem; }
         .media-counter { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; pointer-events: none; }
 
-        /* Content Slider */
         .content-scroll-area { flex: 1; overflow-y: auto; padding: 1rem 3rem; display: flex; flex-direction: column; }
         .slide-container { width: 100%; max-width: 1200px; margin: 0 auto; flex: 1; box-sizing: border-box; }
         .slide-header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
@@ -97,37 +79,39 @@
         .nav-right { right: 10px; }
         .slide-counter { position: absolute; bottom: 10px; right: 15px; font-size: 0.8rem; color: #888; font-weight: bold; user-select: none; z-index: 50; }
         
-        /* About Modal */
         #about-toggle { position: absolute; bottom: 10px; left: 15px; z-index: 50; background: #222; color: #fff; border: 1px solid #555; border-radius: 20px; padding: 4px 12px; cursor: pointer; font-size: 0.8rem; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         #about-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; max-width: 800px; max-height: 80vh; overflow-y: auto; background: #fff; z-index: 9999; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); padding: 2rem; display: none; border: 1px solid #ccc; color: #222; }
         #about-modal.open { display: block; }
         .about-close { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5rem; cursor: pointer; }
 
-        /* Timeline Scrubber */
-        .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-x: auto; overflow-y: hidden; position: relative; display: flex; align-items: center; scroll-behavior: smooth; cursor: grab; }
+        /* TIMELINE SWIMLANES */
+        .timeline-scroll-wrapper { width: 100%; height: 100%; overflow: auto; position: relative; display: flex; align-items: flex-start; scroll-behavior: smooth; cursor: grab; }
         .timeline-scroll-wrapper.is-dragging { scroll-behavior: auto; cursor: grabbing; }
-        .timeline-scroll-wrapper::-webkit-scrollbar { height: 8px; }
+        .timeline-scroll-wrapper::-webkit-scrollbar { height: 8px; width: 8px; }
         .timeline-scroll-wrapper::-webkit-scrollbar-thumb { background: #bbb; border-radius: 4px; }
-        .timeline-track-container { position: relative; height: 100%; display: flex; align-items: center; transition: min-width 0.3s ease; }
+        .timeline-track-container { position: relative; transition: min-width 0.3s ease; }
         
-        /* Bottom Aligned Axis */
-        .timeline-axis { position: absolute; bottom: 25px; left: 0; right: 0; height: 2px; background: #999; }
+        .tag-lane { border-bottom: 1px dashed #ccc; display: flex; align-items: center; box-sizing: border-box; width: 100%; position: absolute; left: 0; right: 0; }
+        .tag-lane-label { position: sticky; left: 0; background: rgba(236,236,236,0.95); z-index: 40; padding: 0 12px; font-size: 0.8rem; font-weight: bold; color: #555; border-right: 1px solid #999; height: 100%; display: flex; align-items: center; }
         
-        /* Upward Pins */
-        .timeline-marker { position: absolute; width: 12px; height: 12px; border-radius: 50%; background: #888; border: 2px solid #fff; cursor: pointer; transition: all 0.2s ease; z-index: 10; }
-        .timeline-marker-stem { position: absolute; left: 4px; width: 2px; background: #888; }
-        .timeline-marker:hover { background: #555; z-index: 15; }
-        .timeline-marker.active { background: var(--accent); z-index: 20; box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.3); transform: translate(-50%, -2px) scale(1.2); }
-        .timeline-marker.active .timeline-marker-stem { background: var(--accent); }
-        
-        .timeline-label { position: absolute; left: 50%; transform: translateX(-50%); font-size: 0.75rem; color: #333; white-space: nowrap; opacity: 0; background: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 4px; border: 1px solid #ccc; pointer-events: none; transition: opacity 0.2s; max-width: 250px; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .timeline-marker:hover .timeline-label, .timeline-marker.active .timeline-label { opacity: 1; }
+        .event-group { position: absolute; top: 0; bottom: 30px; z-index: 10; transition: z-index 0.2s; }
+        .event-group.active { z-index: 30; }
+        .event-stem { position: absolute; left: 0; width: 2px; }
+        .event-block { 
+            position: absolute; left: -80px; width: 160px; display: flex; align-items: center; justify-content: center;
+            text-align: center; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            cursor: pointer; transition: all 0.2s ease; overflow: hidden; word-wrap: break-word; box-sizing: border-box; border: 1px solid rgba(0,0,0,0.1);
+        }
+        .event-block:hover { filter: brightness(1.05); transform: scale(1.02); z-index: 40; box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+        .event-dot { position: absolute; left: -4px; bottom: -5px; width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.5); }
 
-        .timeline-controls { position: absolute; top: 10px; right: 20px; display: flex; gap: 5px; z-index: 50; }
-        .timeline-btn { background: #fff; border: 1px solid #ccc; border-radius: 4px; width: 28px; height: 28px; cursor: pointer; font-weight: bold; color: #333; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .timeline-axis { position: absolute; bottom: 0; left: 0; right: 0; height: 30px; background: #e0e0e0; border-top: 2px solid #999; z-index: 5; }
+        .timeline-ruler-tick { position: absolute; bottom: 0; display: flex; flex-direction: column; align-items: center; z-index: 5; }
+
+        .timeline-controls { position: sticky; top: 10px; left: 10px; display: flex; gap: 5px; z-index: 50; width: fit-content; float: right; margin-right: 20px;}
+        .timeline-btn { background: #fff; border: 1px solid #ccc; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; font-weight: bold; color: #333; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .timeline-btn:hover { background: #eee; }
 
-        /* Vibe Monitor */
         #vibe-monitor { position: absolute; bottom: 10px; left: 10px; width: 400px; height: 300px; background: rgba(10, 10, 15, 0.95); border: 1px solid #444; border-radius: 8px; display: flex; flex-direction: column; z-index: 9999; color: #eee; box-shadow: 0 8px 32px rgba(0,0,0,0.9); resize: both; overflow: hidden; font-family: 'Courier New', monospace; }
         #vibe-header { background: #222; padding: 8px; cursor: move; font-weight: bold; border-bottom: 1px solid #444; display: flex; justify-content: space-between; align-items: center; user-select: none; }
         .vibe-close-btn { background: #ff5555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; padding: 2px 6px; }
@@ -138,7 +122,7 @@
         .log-error { color: #ff5555; font-weight: bold; }
         .log-time { color: #6272a4; margin-right: 5px; }
         #vibe-toggle { position: absolute; bottom: 10px; left: 0; background: #222; color: #50fa7b; border: 1px solid #444; border-left: none; padding: 8px 12px; border-radius: 0 8px 8px 0; cursor: pointer; z-index: 9998; font-family: 'Courier New', monospace; font-weight: bold; box-shadow: 2px 0 10px rgba(0,0,0,0.5); }
-        /* === [ END GLOBAL STYLES v1.6.0 ] === */
+        /* === [ END GLOBAL STYLES v1.7.0 ] === */
     </style>
     
     <script type="importmap">
@@ -156,27 +140,27 @@
     <div id="root"></div>
 
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.10 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.11 ] ===
         import { h, render, Component } from 'preact';
         import { useState, useEffect, useRef } from 'preact/hooks';
         import htm from 'htm';
         import Papa from 'papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v4.7.0';
+        const APP_VERSION = 'v4.8.0';
         const MODULE_VERSIONS = {
-            Styles: 'v1.6.0',
+            Styles: 'v1.7.0',
             Utils: 'v1.0.0',
             ErrorBoundary: 'v1.0.0',
             VibeMonitor: 'v1.0.0',
             MapViewer: 'v1.8.0',
             MediaViewer: 'v1.0.0',
             ContentSlider: 'v1.0.0',
-            TimelineScrubber: 'v2.1.0',
+            TimelineScrubber: 'v3.0.0',
             AppOrchestrator: 'v1.5.0'
         };
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
-        // === [ END GLOBAL VARIABLES v1.0.10 ] ===
+        // === [ END GLOBAL VARIABLES v1.0.11 ] ===
         
         // === [ UTILITIES v1.0.0 ] ===
         const stripHTML = (htmlStr) => {
@@ -532,39 +516,79 @@
         };
         // === [ END CONTENT SLIDER v1.0.0 ] ===
 
-        // === [ TIMELINE SCRUBBER v2.1.0 ] ===
+        // === [ TIMELINE SCRUBBER v3.0.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
             const dragRef = useRef({ isDragging: false, startX: 0, scrollLeft: 0 });
 
-            // 1. Auto-Center & Tighter Density Auto-Zoom Physics
+            // 1. Tag Extraction & Co-Occurrence Sorting
+            const laneHeight = 60; // 60px per tag track
+            const tagsMap = new Set();
+            const tagPairs = [];
+            
+            data.forEach(d => {
+                if(!d.startDate || isNaN(d.startDate.getTime())) return;
+                const t = d.tags && d.tags.length > 0 ? d.tags : ['Untagged'];
+                t.forEach(tag => tagsMap.add(tag));
+                for(let i=0; i<t.length-1; i++) tagPairs.push([t[i], t[i+1]]);
+            });
+
+            let orderedTags = [];
+            const remaining = Array.from(tagsMap);
+            if (remaining.length > 0) orderedTags.push(remaining.shift());
+            
+            while(remaining.length > 0) {
+                let placed = false;
+                for (let i = 0; i < remaining.length; i++) {
+                    const r = remaining[i];
+                    const pairedWithFirst = tagPairs.some(p => (p[0]===r && p[1]===orderedTags[0]) || (p[1]===r && p[0]===orderedTags[0]));
+                    const pairedWithLast = tagPairs.some(p => (p[0]===r && p[1]===orderedTags[orderedTags.length-1]) || (p[1]===r && p[0]===orderedTags[orderedTags.length-1]));
+                    
+                    if (pairedWithLast) { orderedTags.push(r); remaining.splice(i, 1); placed = true; break; }
+                    if (pairedWithFirst) { orderedTags.unshift(r); remaining.splice(i, 1); placed = true; break; }
+                }
+                if (!placed) orderedTags.push(remaining.shift());
+            }
+
+            const totalLanesHeight = orderedTags.length * laneHeight;
+
+            // 2. Auto-Center & Smart Auto-Zoom
             useEffect(() => {
                 const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
                 const activeEl = document.getElementById(`timeline-marker-${activeIndex}`);
                 
                 if (validData.length > 1 && activeEl && wrapperRef.current && !dragRef.current.isDragging) {
                     const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
+                    
                     if (activeDataIndex >= 0) {
                         const minTime = validData[0].startDate.getTime();
-                        const maxTime = validData[validData.length - 1].startDate.getTime();
-                        const timeRange = maxTime - minTime || 1;
+                        const timeRange = validData[validData.length - 1].startDate.getTime() - minTime || 1;
                         
                         const activeTime = validData[activeDataIndex].startDate.getTime();
-                        let closestDist = Infinity;
+                        const activeTags = validData[activeDataIndex].tags && validData[activeDataIndex].tags.length > 0 ? validData[activeDataIndex].tags : ['Untagged'];
                         
-                        if (activeDataIndex > 0) closestDist = Math.min(closestDist, activeTime - validData[activeDataIndex-1].startDate.getTime());
-                        if (activeDataIndex < validData.length - 1) closestDist = Math.min(closestDist, validData[activeDataIndex+1].startDate.getTime() - activeTime);
+                        let minDelta = Infinity;
+                        validData.forEach((d, idx) => {
+                            if (idx === activeDataIndex) return;
+                            const dTags = d.tags && d.tags.length > 0 ? d.tags : ['Untagged'];
+                            const sharesLane = dTags.some(t => activeTags.includes(t));
+                            if (sharesLane) {
+                                const delta = Math.abs(d.startDate.getTime() - activeTime);
+                                if (delta < minDelta) minDelta = delta;
+                            }
+                        });
 
-                        const distPct = closestDist / timeRange;
-                        
-                        // Aggressive Tighter Zoom: Target 15% visual separation
-                        if (distPct > 0 && distPct < 0.05) {
-                             const targetZoom = 0.15 / distPct; 
-                             setZoomLevel(prev => {
-                                 const newZoom = Math.min(Math.max(prev, targetZoom), 40); // Max zoom increased to 40x
+                        if (minDelta !== Infinity && minDelta > 0) {
+                            const containerW = wrapperRef.current.offsetWidth || 1000;
+                            // Target 160px visual separation between conflicting nodes
+                            const idealZoom = (160 * timeRange) / (minDelta * containerW);
+                            setZoomLevel(prev => {
+                                 const newZoom = Math.min(Math.max(1, idealZoom), 60);
                                  return Math.abs(prev - newZoom) > 0.5 ? newZoom : prev;
-                             });
+                            });
+                        } else {
+                            setZoomLevel(1); // Isolated node
                         }
                     }
 
@@ -576,7 +600,7 @@
                 }
             }, [activeIndex, data]);
 
-            // Drag Controls
+            // 3. Drag Controls
             const onMouseDown = (e) => { dragRef.current = { isDragging: true, startX: e.pageX - wrapperRef.current.offsetLeft, scrollLeft: wrapperRef.current.scrollLeft }; wrapperRef.current.classList.add('is-dragging'); };
             const onMouseUpLeave = () => { dragRef.current.isDragging = false; wrapperRef.current?.classList.remove('is-dragging'); };
             const onMouseMove = (e) => {
@@ -588,43 +612,36 @@
             const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
             if (validData.length === 0) return html`<div style="padding:1rem;">No valid temporal data.</div>`;
 
-            // Core Timeline Metrics
+            // Core Math
             const minTime = validData[0].startDate.getTime();
-            const maxTime = validData[validData.length - 1].startDate.getTime();
-            const timeRange = maxTime - minTime || 1; 
+            const timeRange = validData[validData.length - 1].startDate.getTime() - minTime || 1; 
             
-            // Dynamic Ruler Step Math (Adapts to Zoom Level & Dates/Times)
+            // Dynamic Density Math
             const visibleMs = timeRange / zoomLevel;
-            
-            const MINUTE = 60000;
-            const HOUR = 60 * MINUTE;
-            const DAY = 24 * HOUR;
-            const MONTH = 30 * DAY;
-            const YEAR = 365.25 * DAY;
+            const containerW = wrapperRef.current ? wrapperRef.current.offsetWidth : 1000;
+            const targetMsPerTick = (150 / (containerW || 1000)) * visibleMs;
 
-            let stepMs;
-            let formatType; 
+            const MINUTE = 60000; const HOUR = 60 * MINUTE; const DAY = 24 * HOUR; const MONTH = 30 * DAY; const YEAR = 365.25 * DAY;
+            const steps = [ 100 * YEAR, 50 * YEAR, 20 * YEAR, 10 * YEAR, 5 * YEAR, YEAR, 6 * MONTH, 3 * MONTH, MONTH, 14 * DAY, 7 * DAY, DAY, 12 * HOUR, 6 * HOUR, 2 * HOUR, HOUR, 30 * MINUTE ];
             
-            if (visibleMs > 500 * YEAR) { stepMs = 100 * YEAR; formatType = 'year'; }
-            else if (visibleMs > 100 * YEAR) { stepMs = 10 * YEAR; formatType = 'year'; }
-            else if (visibleMs > 10 * YEAR) { stepMs = YEAR; formatType = 'year'; }
-            else if (visibleMs > 2 * YEAR) { stepMs = MONTH; formatType = 'month'; }
-            else if (visibleMs > 2 * MONTH) { stepMs = DAY; formatType = 'day'; }
-            else if (visibleMs > 2 * DAY) { stepMs = 4 * HOUR; formatType = 'time'; }
-            else { stepMs = HOUR; formatType = 'time'; }
+            let stepMs = steps[0];
+            for (let s of steps) { if (targetMsPerTick <= s) stepMs = s; }
 
-            // Ruler Ticks Generation
+            let formatType = 'year';
+            if (stepMs < YEAR) formatType = 'month';
+            if (stepMs < MONTH) formatType = 'day';
+            if (stepMs < DAY) formatType = 'time';
+
+            // Axis Generation
             const rulerTicks = [];
             let currentD = new Date(minTime);
-            
-            // Snap to round numbers based on format
             if (formatType === 'year') currentD.setMonth(0, 1);
             if (formatType === 'month') currentD.setDate(1);
             if (formatType === 'day') currentD.setHours(0,0,0,0);
             if (formatType === 'time') currentD.setMinutes(0,0,0);
 
             let iterTime = currentD.getTime();
-            while (iterTime <= maxTime) {
+            while (iterTime <= validData[validData.length - 1].startDate.getTime()) {
                 if (iterTime >= minTime) {
                     const d = new Date(iterTime);
                     let label = '';
@@ -636,63 +653,67 @@
                     const pctLeft = ((iterTime - minTime) / timeRange) * 100;
                     rulerTicks.push(html`
                         <div class="timeline-ruler-tick" style="left: ${pctLeft}%; position: absolute; bottom: 0; display: flex; flex-direction: column; align-items: center; z-index: 5;">
-                            <div style="width: 1px; height: 25px; background: rgba(0,0,0,0.15);"></div>
-                            <div style="font-size: 0.7rem; color: #777; font-weight: normal; margin-top: 2px; white-space: nowrap;">${label}</div>
+                            <div style="width: 1px; height: 30px; background: rgba(0,0,0,0.15);"></div>
+                            <div style="font-size: 0.7rem; color: #555; margin-top: -30px; font-weight: bold; white-space: nowrap; background: #ececec; padding: 0 4px;">${label}</div>
                         </div>
                     `);
                 }
-                
-                // Increment Date
                 const tempD = new Date(iterTime);
-                if (stepMs === 100 * YEAR) tempD.setFullYear(tempD.getFullYear() + 100);
-                else if (stepMs === 10 * YEAR) tempD.setFullYear(tempD.getFullYear() + 10);
-                else if (stepMs === YEAR) tempD.setFullYear(tempD.getFullYear() + 1);
-                else if (stepMs === MONTH) tempD.setMonth(tempD.getMonth() + 1);
+                if (stepMs >= YEAR) tempD.setFullYear(tempD.getFullYear() + (stepMs/YEAR));
+                else if (stepMs >= MONTH) tempD.setMonth(tempD.getMonth() + Math.round(stepMs/MONTH));
                 else iterTime += stepMs; 
-                
                 if (stepMs >= MONTH) iterTime = tempD.getTime();
             }
 
-            // Pin Generation (Staggered Heights upwards from bottom axis)
-            const heightLevels = [20, 50, 80, 110]; // 4-tier collision avoidance
-            
+            // Event Plotting
             const markers = data.map((item, index) => {
                 if (!item.startDate || isNaN(item.startDate.getTime())) return null;
                 const pct = ((item.startDate.getTime() - minTime) / timeRange) * 100;
                 const isActive = index === activeIndex;
                 
-                const level = heightLevels[index % heightLevels.length];
-                const bottomPos = 25 + level; // Axis is at bottom: 25px
+                const activeTags = item.tags && item.tags.length > 0 ? item.tags : ['Untagged'];
+                const tagIndices = activeTags.map(t => orderedTags.indexOf(t));
+                const minIdx = Math.min(...tagIndices);
+                const maxIdx = Math.max(...tagIndices);
+                
+                const topPos = minIdx * laneHeight;
+                const blockHeight = (maxIdx - minIdx + 1) * laneHeight - 10; 
 
                 return html`
-                    <div id="timeline-marker-${index}" class="timeline-marker ${isActive ? 'active' : ''}" 
-                         style="left: ${pct}%; bottom: ${bottomPos}px; transform: translateX(-50%); background: ${isActive ? '#007acc' : '#666'};" 
-                         onClick=${() => setActiveIndex(index)}>
-                        
-                        <div class="timeline-label" style="bottom: 18px; color: ${isActive ? '#007acc' : '#333'}; font-weight: ${isActive ? 'bold' : 'normal'};">
+                    <div id="timeline-marker-${index}" class="event-group ${isActive ? 'active' : ''}" style="left: ${pct}%;" onClick=${() => setActiveIndex(index)}>
+                        <div class="event-stem" style="top: ${topPos + 5}px; bottom: 15px; background: ${isActive ? '#007acc' : '#bbb'}; opacity: ${isActive ? 1 : 0.4};"></div>
+                        <div class="event-block" style="top: ${topPos + 5}px; height: ${blockHeight}px; background: ${isActive ? '#007acc' : 'rgba(230,230,230,0.9)'}; color: ${isActive ? '#fff' : '#222'};">
                             ${stripHTML(item.title)}
                         </div>
-                        
-                        <div class="timeline-marker-stem" style="bottom: -${level}px; height: ${level}px; background: ${isActive ? '#007acc' : '#ccc'}; opacity: ${isActive ? '1' : '0.5'};"></div>
+                        <div class="event-dot" style="background: ${isActive ? '#007acc' : '#888'};"></div>
                     </div>
                 `;
             });
 
             return html`
-                <div class="timeline-controls" style="bottom: auto; top: 10px;">
+                <div class="timeline-controls">
                     <button class="timeline-btn" onClick=${() => setZoomLevel(p => Math.max(p - 0.5, 0.5))}>-</button>
-                    <button class="timeline-btn" onClick=${() => setZoomLevel(p => Math.min(p + 0.5, 40))}>+</button>
+                    <button class="timeline-btn" onClick=${() => setZoomLevel(p => Math.min(p + 0.5, 60))}>+</button>
                 </div>
-                <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onMouseDown} onMouseLeave=${onMouseUpLeave} onMouseUp=${onMouseUpLeave} onMouseMove=${onMouseMove} onWheel=${(e) => { e.preventDefault(); setZoomLevel(p => e.deltaY < 0 ? Math.min(p + 0.5, 40) : Math.max(p - 0.5, 0.5)); }}>
-                    <div class="timeline-track-container" style="min-width: ${Math.max(100, data.length * 8) * zoomLevel}%; padding: 0 10%; height: 100%;">
-                        <div class="timeline-axis"></div>
-                        ${rulerTicks}
+                <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onMouseDown} onMouseLeave=${onMouseUpLeave} onMouseUp=${onMouseUpLeave} onMouseMove=${onMouseMove} onWheel=${(e) => { e.preventDefault(); setZoomLevel(p => e.deltaY < 0 ? Math.min(p + 0.5, 60) : Math.max(p - 0.5, 0.5)); }}>
+                    <div class="timeline-track-container" style="min-width: ${Math.max(100, data.length * 8) * zoomLevel}%; height: ${totalLanesHeight + 30}px;">
+                        
+                        ${orderedTags.map((tag, i) => html`
+                            <div class="tag-lane" style="top: ${i * laneHeight}px; height: ${laneHeight}px;">
+                                <div class="tag-lane-label">${tag}</div>
+                            </div>
+                        `)}
+
+                        <div class="timeline-axis">
+                            ${rulerTicks}
+                        </div>
+                        
                         ${markers}
                     </div>
                 </div>
             `;
         };
-        // === [ END TIMELINE SCRUBBER v2.1.0 ] ===
+        // === [ END TIMELINE SCRUBBER v3.0.0 ] ===
         
         // === [ APP ORCHESTRATOR v1.5.0 ] ===
         const App = () => {
