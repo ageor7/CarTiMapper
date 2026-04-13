@@ -810,7 +810,7 @@
         };
         MODULE_VERSIONS['TimelineScrubber'] = 'v14.0.0';
         
-        // === [ APP ORCHESTRATOR v1.11.0 ] ===
+        // === [ APP ORCHESTRATOR v1.11.1 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [data, setData] = useState([]);
@@ -894,10 +894,12 @@
 
             useEffect(() => {
                 document.documentElement.style.setProperty('--paneBg', TM_CONFIG.paneBackground);
+                
                 addLog(`CarTiMapper Engine ${APP_VERSION} Boot Sequence Initiated.`, 'info');
                 const manifestStr = Object.entries(MODULE_VERSIONS).map(([k, v]) => `${k} ${v}`).join(' | ');
                 addLog(`📦 Modules: ${manifestStr}`, 'success');
                 
+                // CRITICAL FIX: Restored URLSearchParams
                 const params = new URLSearchParams(window.location.search);
                 const gid = params.get('gid') || '0'; 
                 let fetchUrl = params.get('source');
@@ -999,201 +1001,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.11.0';
-        
-        render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
-        // === [ END APP ORCHESTRATOR ] ===
-        // === [ APP ORCHESTRATOR v1.10.0 ] ===
-        const App = () => {
-            const [logs, setLogs] = useState([]);
-            const [data, setData] = useState([]);
-            const [aboutData, setAboutData] = useState(null); 
-            const [status, setStatus] = useState('Idle');
-            const [activeIndex, setActiveIndex] = useState(0); 
-            const [isMonitorOpen, setIsMonitorOpen] = useState(true);
-            const [isAboutOpen, setIsAboutOpen] = useState(false);
-            const appRef = useRef(null);
-
-            const addLog = (msg, type = 'info') => setLogs(p => [...p, { time: new Date().toLocaleTimeString('en-US', { hour12: false }), msg, type }]);
-
-            const startMapResize = (e) => {
-                e.preventDefault();
-                const startX = e.touches ? e.touches[0].clientX : e.clientX;
-                const mapNode = appRef.current.querySelector('.map-pane');
-                const startWidth = mapNode.offsetWidth;
-                const containerWidth = appRef.current.querySelector('.top-row').offsetWidth;
-                
-                const onMove = (e2) => {
-                    const currentX = e2.touches ? e2.touches[0].clientX : e2.clientX;
-                    let newWidth = startWidth + (currentX - startX);
-                    let pct = (newWidth / containerWidth) * 100;
-                    if (pct < 10) pct = 10; if (pct > 90) pct = 90;
-                    appRef.current.style.setProperty('--map-width', `${pct}%`);
-                };
-                const onUp = () => { 
-                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
-                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); 
-                    window.dispatchEvent(new Event('resize')); 
-                };
-                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
-                document.addEventListener('touchmove', onMove); document.addEventListener('touchend', onUp);
-            };
-
-            const startTopResize = (e) => {
-                e.preventDefault();
-                const startY = e.touches ? e.touches[0].clientY : e.clientY;
-                const topNode = appRef.current.querySelector('.top-row');
-                const startHeight = topNode.offsetHeight;
-                const containerHeight = appRef.current.offsetHeight;
-                
-                const onMove = (e2) => {
-                    const currentY = e2.touches ? e2.touches[0].clientY : e2.clientY;
-                    let newHeight = startHeight + (currentY - startY);
-                    let pct = (newHeight / containerHeight) * 100;
-                    if (pct < 10) pct = 10; if (pct > 80) pct = 80;
-                    appRef.current.style.setProperty('--top-height', `${pct}%`);
-                };
-                const onUp = () => { 
-                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
-                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); 
-                    window.dispatchEvent(new Event('resize')); 
-                };
-                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
-                document.addEventListener('touchmove', onMove); document.addEventListener('touchend', onUp);
-            };
-
-            const startTimelineResize = (e) => {
-                e.preventDefault();
-                const startY = e.touches ? e.touches[0].clientY : e.clientY;
-                const tlNode = appRef.current.querySelector('.timeline-pane');
-                const startHeight = tlNode.offsetHeight;
-                const containerHeight = appRef.current.offsetHeight;
-                
-                const onMove = (e2) => {
-                    const currentY = e2.touches ? e2.touches[0].clientY : e2.clientY;
-                    let newHeight = startHeight - (currentY - startY); 
-                    let pct = (newHeight / containerHeight) * 100;
-                    if (pct < 10) pct = 10; if (pct > 80) pct = 80;
-                    appRef.current.style.setProperty('--timeline-height', `${pct}%`);
-                };
-                const onUp = () => { 
-                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
-                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); 
-                    window.dispatchEvent(new Event('resize')); 
-                };
-                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
-                document.addEventListener('touchmove', onMove); document.addEventListener('touchend', onUp);
-            };
-
-            useEffect(() => {
-                document.documentElement.style.setProperty('--paneBg', TM_CONFIG.paneBackground);
-                
-                addLog(`CarTiMapper Engine ${APP_VERSION} Boot Sequence Initiated.`, 'info');
-                const manifestStr = Object.entries(MODULE_VERSIONS).map(([k, v]) => `${k} ${v}`).join(' | ');
-                addLog(`📦 Modules: ${manifestStr}`, 'success');
-                
-                const params = new URLSearchParams(window.location.search);
-                const gid = params.get('gid') || '0'; 
-                let fetchUrl = params.get('source');
-                if (!fetchUrl) return setStatus('Awaiting Source');
-
-                if (fetchUrl.includes('http')) {
-                    if (fetchUrl.includes('/e/2PACX')) fetchUrl = fetchUrl.split('/pub')[0] + '/pub?output=csv';
-                    else if (fetchUrl.includes('/d/')) fetchUrl = `https://docs.google.com/spreadsheets/d/${fetchUrl.match(/\/d\/([a-zA-Z0-9-_]+)/)[1]}/gviz/tq?tqx=out:csv&gid=${gid}`;
-                } else {
-                    fetchUrl = fetchUrl.startsWith('2PACX') ? `https://docs.google.com/spreadsheets/d/e/${fetchUrl}/pub?output=csv&gid=${gid}` : `https://docs.google.com/spreadsheets/d/${fetchUrl}/gviz/tq?tqx=out:csv&gid=${gid}`;
-                }
-
-                setStatus('Fetching Data');
-                fetch(fetchUrl).then(res => {
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    return res.text();
-                }).then(csvText => {
-                    Papa.parse(csvText, {
-                        header: true, skipEmptyLines: true,
-                        complete: (results) => {
-                            if (results.data.length === 0) return setStatus('Empty Dataset');
-                            
-                            const fuzzy = (r, names) => { 
-                                const keys = Object.keys(r);
-                                for (let name of names) {
-                                    for (let k of keys) {
-                                        if (k.trim().toLowerCase() === name && r[k]) return String(r[k]).trim();
-                                    }
-                                }
-                                return ''; 
-                            };
-                            
-                            setAboutData({ title: fuzzy(results.data[0], ['title', 'headline', 'name']) || 'About', description: fuzzy(results.data[0], ['description', 'text', 'content']) });
-
-                            const cleaned = results.data.slice(1).map((row, index) => {
-                                const s = fuzzy(row, ['start', 'start date', 'startdate', 'date']);
-                                const e = fuzzy(row, ['end', 'end date', 'enddate']);
-                                
-                                const parseDate = (str) => {
-                                    if (!str) return null;
-                                    if (/^\d+\.?\d*$/.test(str) && parseFloat(str) > 10000) return new Date((parseFloat(str) - 25569) * 86400 * 1000);
-                                    if (/^-?\d{1,4}$/.test(str)) { let d = new Date(0); d.setFullYear(parseInt(str), 0, 1); return d; }
-                                    let iso = str.replace(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/, (m, d, mo, y) => `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`);
-                                    let d = new Date(iso); if (!isNaN(d.getTime())) return d;
-                                    d = new Date(str); if (!isNaN(d.getTime())) return d;
-                                    return null;
-                                };
-                                let pS = parseDate(s), pE = parseDate(e);
-                                
-                                return {
-                                    id: index, title: fuzzy(row, ['title', 'headline', 'name']) || `Event ${index + 1}`,
-                                    startDate: (pS && !isNaN(pS.getTime())) ? pS : null, endDate: (pE && !isNaN(pE.getTime())) ? pE : null,
-                                    description: fuzzy(row, ['description', 'text', 'content']), location: fuzzy(row, ['location', 'latlon', 'coordinates']),
-                                    media: fuzzy(row, ['media', 'image', 'photo', 'url']) ? fuzzy(row, ['media', 'image', 'photo', 'url']).split(',').map(x=>x.trim()) : [],
-                                    mediaCaption: fuzzy(row, ['media caption', 'caption']), mediaCredit: fuzzy(row, ['media credit', 'credit']),
-                                    tags: fuzzy(row, ['tags', 'category', 'type', 'group']) ? fuzzy(row, ['tags', 'category', 'type', 'group']).split(',').map(t=>t.trim()).filter(t=>t) : []
-                                };
-                            });
-                            
-                            const valid = cleaned.filter(r => r.startDate).sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
-                            setData([...valid, ...cleaned.filter(r => !r.startDate)]);
-                            setActiveIndex(0); 
-                            setStatus('Active');
-                        },
-                        error: (err) => { addLog(`Parse Error: ${err.message}`, 'error'); setStatus('Parse Failed'); }
-                    });
-                }).catch(err => { addLog(`Fetch failed: ${err.message}`, 'error'); setStatus('Fetch Failed'); });
-            }, []);
-
-            const activeSlide = data[activeIndex];
-            const hasMedia = activeSlide?.media?.length > 0;
-
-            return html`
-                <div id="tm-root">
-                    ${aboutData ? html`<div id="about-modal" class=${isAboutOpen ? 'open' : ''}><button class="about-close" onClick=${() => setIsAboutOpen(false)}>×</button><h2 dangerouslySetInnerHTML=${{__html: aboutData.title}}></h2><div style="line-height: 1.6;" dangerouslySetInnerHTML=${{__html: aboutData.description}}></div></div>` : ''}
-
-                    <div id="app-layout" ref=${appRef}>
-                        <div class="top-row">
-                            <div class="map-pane ${!hasMedia ? 'no-media' : ''}">
-                                <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} addLog=${addLog} />
-                                <${VibeMonitor} logs=${logs} status=${status} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} />
-                            </div>
-                            ${hasMedia ? html`<div class="resizer-h" onMouseDown=${startMapResize} onTouchStart=${startMapResize}></div>` : ''}
-                            <div class="media-pane" style="display: ${hasMedia ? 'flex' : 'none'};">
-                                <${MediaViewer} activeSlide=${activeSlide} />
-                            </div>
-                        </div>
-
-                        <div class="resizer-v" onMouseDown=${startTopResize} onTouchStart=${startTopResize}></div>
-                        
-                        <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} aboutData=${aboutData} setIsAboutOpen=${setIsAboutOpen} />
-                        
-                        <div class="resizer-v" onMouseDown=${startTimelineResize} onTouchStart=${startTimelineResize}></div>
-
-                        <div class="timeline-pane">
-                            <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} />
-                        </div>
-                    </div>
-                </div>
-            `;
-        };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.10.0';
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.11.1';
         
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
         // === [ END APP ORCHESTRATOR ] ===
