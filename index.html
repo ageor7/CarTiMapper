@@ -9,19 +9,13 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
     <style>
-        /* === [ GLOBAL STYLES v2.6.0 ] === */
+        /* === [ GLOBAL STYLES v2.7.0 ] === */
         :root { --bg: #121212; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; }
         body { margin: 0; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
         
         #tm-root { position: fixed; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; display: flex; flex-direction: column; }
         #app-layout { --top-height: 35%; --map-width: 50%; --timeline-height: 15%; display: flex; flex-direction: column; flex: 1; width: 100vw; height: 100%; }
         
-        /**
-         * REQUIREMENT: Strict boundary protocol (The "Iron Box"). 
-         * Flex panes must NEVER grow based on internal text volume or lazy-loaded maps.
-         * METHODOLOGY: Use `flex: 0 0 var(--height)` combined with explicit `max-height`.
-         * This mathematically castrates the browser's default behavior to stretch flex containers around large content.
-         */
         .top-row { flex: 0 0 var(--top-height); height: var(--top-height); max-height: var(--top-height); display: flex; background: #fff; overflow: hidden; min-height: 0; min-width: 0; }
         .map-pane { width: var(--map-width); flex-shrink: 0; background: #e0e0e0; position: relative; min-height: 0; min-width: 0; }
         .map-pane.no-media { width: 100% !important; }
@@ -32,10 +26,7 @@
         .resizer-h:hover, .resizer-h:active { background: #007acc; }
 
         .media-pane { flex: 1; position: relative; padding: 0; overflow: hidden; background: #111; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
-        
-        /* The middle pane takes up exactly the remaining vertical space */
         .content-pane-wrapper { flex: 1 1 0%; position: relative; display: flex; flex-direction: column; background: var(--paneBg); overflow: hidden; min-height: 0; min-width: 0; }
-        
         .timeline-pane { flex: 0 0 var(--timeline-height); height: var(--timeline-height); max-height: var(--timeline-height); padding: 0; background: #ececec; display: flex; flex-direction: column; position: relative; overflow: hidden; min-width: 0; min-height: 0;}
 
         #map-container { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; }
@@ -88,17 +79,11 @@
         .event-group { position: absolute; z-index: 10; transition: z-index 0.2s; display: flex; align-items: flex-start; }
         .event-group.active { z-index: 30; }
         
-        .event-duration-bar { position: absolute; height: 12px; border-radius: 6px; box-shadow: inset 0 0 2px rgba(0,0,0,0.2); z-index: 1; top: 50%; transform: translateY(-50%); }
-        
         .event-block { 
             position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
             text-align: left; font-size: 0.75rem; cursor: pointer; transition: all 0.2s ease;
-            box-sizing: border-box; width: max-content; 
-            max-width: min(400px, 50vw); 
-            
-            --diag-w: 10px;
-            min-height: var(--lane-h);
-            padding: 2px 8px 2px calc(var(--diag-w) + 6px); 
+            box-sizing: border-box; width: max-content; max-width: min(400px, 50vw); 
+            --diag-w: 10px; min-height: var(--lane-h); padding: 2px 8px 2px calc(var(--diag-w) + 6px); 
             clip-path: polygon( 0 calc(50% - (var(--lane-h) / 2) + 0.5px), var(--diag-w) 0, 100% 0, 100% 100%, var(--diag-w) 100%, 0 calc(50% + (var(--lane-h) / 2) - 0.5px) );
         }
         .event-block:hover { filter: brightness(1.05); z-index: 40; }
@@ -122,7 +107,7 @@
         .log-error { color: #ff5555; font-weight: bold; }
         .log-time { color: #6272a4; margin-right: 5px; }
         #vibe-toggle { position: absolute; bottom: 10px; left: 0; background: #222; color: #50fa7b; border: 1px solid #444; border-left: none; padding: 8px 12px; border-radius: 0 8px 8px 0; cursor: pointer; z-index: 9998; font-family: 'Courier New', monospace; font-weight: bold; box-shadow: 2px 0 10px rgba(0,0,0,0.5); }
-        /* === [ END GLOBAL STYLES v2.6.0 ] === */
+        /* === [ END GLOBAL STYLES v2.7.0 ] === */
     </style>
     
     <script type="importmap">
@@ -140,7 +125,7 @@
     <div id="root"></div>
 
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.19 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.20 ] ===
         import { h, render, Component } from 'preact';
         import { useState, useEffect, useRef } from 'preact/hooks';
         import htm from 'htm';
@@ -149,11 +134,11 @@
         const html = htm.bind(h);
         
         // Automated Global Registry
-        const APP_VERSION = 'v5.7.0';
+        const APP_VERSION = 'v5.8.0';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v2.6.0', Globals: 'v1.9.0' }; 
+        const MODULE_VERSIONS = { Styles: 'v2.7.0', Globals: 'v1.10.0' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
-        // === [ END GLOBAL VARIABLES v1.0.19 ] ===
+        // === [ END GLOBAL VARIABLES v1.0.20 ] ===
         
         // === [ UTILITIES ] ===
         const stripHTML = (htmlStr) => {
@@ -509,7 +494,17 @@
         MODULE_VERSIONS['ContentSlider'] = 'v1.0.0';
         // === [ END CONTENT SLIDER ] ===
 
-        // === [ TIMELINE SCRUBBER v11.0.0 ] ===
+        // === [ TIMELINE SCRUBBER v12.0.0 ] ===
+        /**
+         * REQUIREMENT:
+         * 1. Cinematic Zoom: Changing events must smoothly interpolate track widths rather than snapping instantly.
+         * 2. Trailing-Edge Collision Math: Auto-zoom must guarantee exactly 10px clearance between the END of an active event and the START of the next.
+         * 3. Midnight Boundary Rule: Deep hour/minute zoom levels must print full DD/MM/YYYY dates when crossing midnight or starting the axis.
+         * 4. Scaled Duration Triangles: The active anchor base must perfectly match the X-axis time span.
+         * * METHODOLOGY:
+         * 1. Auto-Zoom finds the closest neighbor by computing actual time-gaps (`d.startDate - eT` and `sT - d.endDate`).
+         * 2. The active marker anchor triangle applies `width: 100%;` because its parent `.event-group` already explicitly spans the correct percentage.
+         */
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -553,7 +548,7 @@
             const availableLanesHeight = Math.max(containerHeight - 28, 50);
             const laneHeight = Math.max(24, availableLanesHeight / (orderedTags.length || 1));
 
-            // Heuristic Collision Physics
+            // Trailing-Edge Collision Physics
             useEffect(() => {
                 const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
                 if (validData.length > 1 && wrapperRef.current && !dragRef.current.isDragging) {
@@ -570,7 +565,7 @@
                             const item = validData[activeDataIndex];
                             const sT = item.startDate.getTime();
                             const eT = (item.endDate && !isNaN(item.endDate.getTime())) ? item.endDate.getTime() : sT;
-                            const durationMs = eT - sT;
+                            
                             const activeTags = item.tags && item.tags.length > 0 ? item.tags : ['Untagged'];
                             
                             const titleStr = stripHTML(item.title);
@@ -578,37 +573,37 @@
                             const containerW = wrapperRef.current.offsetWidth || 1000;
                             const actualWidth = Math.min(estWidth, 400, containerW * 0.5);
                             
-                            let minDelta = Infinity;
+                            let minTimeGap = Infinity;
+                            
+                            // Measure physical time gaps between Trailing Edge and Leading Edge
                             validData.forEach((d, idx) => {
                                 if (idx === activeDataIndex) return;
                                 const dTags = d.tags && d.tags.length > 0 ? d.tags : ['Untagged'];
                                 if (dTags.some(t => activeTags.includes(t))) {
                                     const dSt = d.startDate.getTime();
                                     const dEt = (d.endDate && !isNaN(d.endDate.getTime())) ? d.endDate.getTime() : dSt;
-                                    let dist = 0;
-                                    if (dEt < sT) dist = sT - dEt;
-                                    else if (dSt > eT) dist = dSt - eT;
-                                    if (dist < minDelta) minDelta = dist;
+                                    
+                                    if (dSt >= eT) { 
+                                        const gap = dSt - eT;
+                                        if (gap >= 0 && gap < minTimeGap) minTimeGap = gap;
+                                    } else if (dEt <= sT) { 
+                                        const gap = sT - dEt;
+                                        if (gap >= 0 && gap < minTimeGap) minTimeGap = gap;
+                                    }
                                 }
                             });
 
                             let idealZoom = 1;
 
-                            if (minDelta !== Infinity && minDelta > 0) {
-                                const trackWidthForNeighbor = (timeRange / minDelta) * (actualWidth + 10);
-                                const trackWidthForDuration = durationMs > 0 ? (timeRange / durationMs) * (containerW * 0.5) : 0; 
-                                const idealTrackWidth = Math.max(containerW, trackWidthForNeighbor, trackWidthForDuration);
-                                idealZoom = idealTrackWidth / containerW;
+                            if (minTimeGap !== Infinity && minTimeGap > 0) {
+                                // We mathematically demand the physical gap equals the actual box width + 10px clearance
+                                idealZoom = ((actualWidth + 10) * timeRange) / (minTimeGap * containerW);
                             } else {
                                 const fiveYearsMs = 5 * 365.25 * 24 * 60 * 60 * 1000;
                                 idealZoom = timeRange / fiveYearsMs;
                             }
 
-                            setZoomLevel(prev => {
-                                 const target = Math.min(Math.max(1, idealZoom), 150); 
-                                 const smoothed = prev + (target - prev) * 0.5; 
-                                 return Math.abs(prev - smoothed) > 0.1 ? smoothed : prev;
-                            });
+                            setZoomLevel(Math.min(Math.max(1, idealZoom), 150)); // Target applied instantly; CSS handles the cinematic glide
                         }
                     }
                 }
@@ -636,11 +631,10 @@
                             const scrollPos = (pct * trackW) - (wrapperRef.current.offsetWidth / 2);
                             wrapperRef.current.scrollTo({ left: scrollPos, behavior: 'smooth' });
                         }
-                    }, 20); 
+                    }, 50); // slight delay ensures CSS width transition has begun
                 }
             }, [activeIndex, zoomLevel, data]);
 
-            // Unified Mouse & Multi-Touch Drag/Zoom
             const onDown = (e) => { 
                 if (e.touches && e.touches.length === 2) {
                     const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
@@ -674,7 +668,6 @@
             validData.forEach(d => { if (d.endDate && !isNaN(d.endDate.getTime()) && d.endDate.getTime() > maxTime) maxTime = d.endDate.getTime(); });
             const timeRange = maxTime - minTime || 1; 
             
-            // EXPLICIT PIXEL TRACK WIDTH
             const containerW = wrapperRef.current ? wrapperRef.current.offsetWidth : 1000;
             const trackWidthPx = Math.max(containerW, containerW * zoomLevel);
             const visibleMs = timeRange / zoomLevel;
@@ -688,7 +681,6 @@
             let majorStepMs = majorSteps[0];
             for (let s of majorSteps) { if (targetMsPerMajorTick <= s) majorStepMs = s; }
 
-            // Refined Smart Ticks specifically for weeks/hours
             let formatType = 'year'; let minorStepMs = MONTH;
             if (majorStepMs <= YEAR) { formatType = 'month'; minorStepMs = 7 * DAY; }
             if (majorStepMs <= MONTH) { formatType = 'day'; minorStepMs = DAY; }
@@ -698,23 +690,28 @@
             if (majorStepMs <= 6 * HOUR) { formatType = 'time'; minorStepMs = HOUR; }
 
             const rulerTicks = [];
-            let currentD = new Date(minTime);
-            if (formatType === 'year') currentD.setMonth(0, 1);
-            if (formatType === 'month') currentD.setDate(1);
-            if (formatType === 'day') currentD.setHours(0,0,0,0);
-            if (formatType === 'time') currentD.setMinutes(0,0,0);
-
-            let iterTime = currentD.getTime();
+            let startTickTime = minTime;
+            if (formatType === 'year') startTickTime = new Date(new Date(minTime).getFullYear(), 0, 1).getTime();
+            if (formatType === 'month') startTickTime = new Date(new Date(minTime).getFullYear(), new Date(minTime).getMonth(), 1).getTime();
+            
+            let iterTime = startTickTime;
             let safety = 0;
             while (iterTime <= maxTime && safety < 1000) {
                 safety++;
                 if (iterTime >= minTime) {
                     const d = new Date(iterTime);
                     let label = '';
+                    
+                    // Midnight Boundary Rule: Show full date context if zoomed into times
                     if (formatType === 'year') label = d.getFullYear();
                     else if (formatType === 'month') label = d.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
                     else if (formatType === 'day') label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short' });
-                    else if (formatType === 'time') label = d.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                    else if (formatType === 'time') {
+                        const isMidnight = (d.getHours() === 0 && d.getMinutes() === 0);
+                        const isFirstTick = (iterTime === startTickTime);
+                        if (isMidnight || isFirstTick) label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                        else label = d.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                    }
 
                     const pctLeft = ((iterTime - minTime) / timeRange) * 100;
                     rulerTicks.push(html`
@@ -756,18 +753,15 @@
                 const topPos = minIdx * laneHeight;
                 const blockHeight = (maxIdx - minIdx + 1) * laneHeight; 
 
-                const durationBar = hasDuration ? html`
-                    <div class="event-duration-bar" style="left: 0; width: ${(endPct - startPct) / (endPct > startPct ? (endPct - startPct) : 1) * 100}%; background: ${isActive ? 'rgba(0,122,204,0.6)' : 'rgba(211,47,47,0.3)'}; z-index: 1;"></div>
-                ` : '';
-
+                // Absolute Anchor Math (Duration Ribbon removed entirely)
                 let activeAnchor = '';
                 if (isActive) {
                     const distanceToAxis = availableLanesHeight - topPos - blockHeight;
-                    const triangleWidth = hasDuration ? (endPct - startPct) : ((10 / trackWidthPx) * 100); 
+                    const triangleStyles = hasDuration ? `left: 0; width: 100%;` : `left: 0; transform: translateX(-50%); width: 12px;`;
                     
                     activeAnchor = html`
-                        <div style="position: absolute; left: 0; top: ${blockHeight}px; height: ${distanceToAxis}px; width: 1px; background: #007acc; z-index: 20;"></div>
-                        <div style="position: absolute; left: 0; top: ${blockHeight + distanceToAxis}px; width: ${triangleWidth}%; height: 28px; background: rgba(0,122,204,0.25); border-top: 1px solid #007acc; clip-path: polygon(0 0, 100% 100%, 0 100%); z-index: 15;"></div>
+                        <div style="position: absolute; left: 0; top: ${blockHeight}px; height: ${distanceToAxis}px; width: 2px; background: #007acc; z-index: 999;"></div>
+                        <div style="position: absolute; top: ${blockHeight + distanceToAxis}px; ${triangleStyles} height: 28px; background: rgba(0,122,204,0.3); border-top: 2px solid #007acc; clip-path: polygon(0 0, 100% 100%, 0 100%); z-index: 998;"></div>
                     `;
                 }
 
@@ -775,7 +769,6 @@
 
                 return html`
                     <div id="timeline-marker-${index}" class="event-group ${isActive ? 'active' : ''}" style="left: ${startPct}%; top: ${topPos}px; height: ${blockHeight}px; ${groupWidth}" onClick=${() => setActiveIndex(index)}>
-                        ${durationBar}
                         ${activeAnchor}
                         <div class="event-block" style="--lane-h: ${laneHeight}px; background: ${isActive ? '#007acc' : '#e0e0e0'}; color: ${isActive ? '#fff' : '#222'}; font-weight: ${isActive ? 'bold' : 'normal'}; z-index: 5;">
                             <span class="event-text">${stripHTML(item.title)}</span>
@@ -784,7 +777,7 @@
                 `;
             });
 
-            // CRITICAL: flex-shrink: 0 ensures the physical width expands for zoom without being squished!
+            // Cinematic Camera Transition via CSS `transition: width`
             return html`
                 <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;">
                     <div class="timeline-controls">
@@ -792,13 +785,15 @@
                         <button class="timeline-btn" onClick=${() => setZoomLevel(p => Math.min(p + 0.5, 150))}>+</button>
                     </div>
                     <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${(e) => { e.preventDefault(); setZoomLevel(p => e.deltaY < 0 ? Math.min(p + 0.5, 150) : Math.max(p - 0.5, 0.5)); }}>
-                        <div class="timeline-track-container" style="width: ${trackWidthPx}px; flex-shrink: 0; min-width: 100%; height: 100%;">
+                        <div class="timeline-track-container" style="width: ${trackWidthPx}px; flex-shrink: 0; min-width: 100%; height: 100%; transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1);">
                             
-                            ${orderedTags.map((tag, i) => html`
-                                <div class="tag-lane" style="top: ${i * laneHeight}px; height: ${laneHeight}px; background: ${i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent'};">
-                                    <div class="tag-lane-label" style="background: ${i % 2 === 0 ? '#f4f4f4' : '#fcfcfc'};">${tag}</div>
-                                </div>
-                            `)}
+                            <div style="position: absolute; top: 0; left: 0; right: 0; height: calc(100% - 28px); overflow: hidden; pointer-events: none;">
+                                ${orderedTags.map((tag, i) => html`
+                                    <div class="tag-lane" style="top: ${i * laneHeight}px; height: ${laneHeight}px; background: ${i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent'};">
+                                        <div class="tag-lane-label" style="background: ${i % 2 === 0 ? '#f4f4f4' : '#fcfcfc'}; pointer-events: auto;">${tag}</div>
+                                    </div>
+                                `)}
+                            </div>
 
                             <div class="timeline-axis">
                                 ${rulerTicks}
@@ -810,10 +805,10 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v11.0.0';
-        // === [ END TIMELINE SCRUBBER v11.0.0 ] ===
+        MODULE_VERSIONS['TimelineScrubber'] = 'v12.0.0';
+        // === [ END TIMELINE SCRUBBER ] ===
 
-        // === [ APP ORCHESTRATOR v1.9.0 ] ===
+        // === [ APP ORCHESTRATOR v1.10.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [data, setData] = useState([]);
@@ -1003,10 +998,10 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.9.0';
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.10.0';
         
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
-        // === [ END APP ORCHESTRATOR v1.9.0 ] ===
+        // === [ END APP ORCHESTRATOR ] ===
     </script>
 </body>
 </html>
