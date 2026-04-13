@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CarTiMapper</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+    <style>
+        /* === [ GLOBAL STYLES v1.9.0 ] === */
+        :root { --bg: #121212; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; }
+        body { margin: 0; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
+        
+        #tm-root { width: 100vw; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        
+        #app-layout { --top-height: 35%; --map-width: 50%; --timeline-height: 15%; display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+        
+        .top-row { height: var(--top-height); display: flex; flex-shrink: 0; background: #fff; overflow: hidden; }
+        .map-pane { width: var(--map-width); flex-shrink: 0; background: #e0e0e0; position: relative; }
+        .map-pane.no-media { width: 100% !important; }
+        
+        .resizer-v { height: 6px; background: #999; cursor: row-resize; flex-shrink: 0; z-index: 100; transition: background 0.2s; }
+        .resizer-v:hover, .resizer-v:active { background: #007acc; }
+        .resizer-h { width: 6px; background: #999; cursor: col-resize; flex-shrink: 0; z-index: 100; transition: background 0.2s; }
+        .resizer-h:hover, .resizer-h:active { background: #007acc; }
+
+        .media-pane { flex: 1; position: relative; padding: 0; overflow: hidden; background: #111; display: flex; flex-direction: column; }
+        .content-pane-wrapper { flex: 1; position: relative; display: flex; flex-direction: column; background: var(--paneBg); overflow: hidden; }
+        .timeline-pane { height: var(--timeline-height); min-height: 150px; flex-shrink: 0; padding: 0; background: #ececec; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+
+        #map-container { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; }
+        .leaflet-tooltip { white-space: normal !important; word-wrap: break-word !important; width: max-content !important; max-width: 350px !important; text-align: center; font-size: 0.85rem; font-weight: normal !important; line-height: 1.4; padding: 6px 10px !important; }
+
+        .custom-map-pin { display: flex; align-items: flex-end; justify-content: center; width: 24px; height: 34px; margin-left: -12px; margin-top: -34px; }
+        .pin-head { width: 14px; height: 14px; border-radius: 50%; background: #d32f2f; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.4); position: absolute; top: 0; transition: all 0.2s ease; }
+        .pin-stem { width: 2px; height: 20px; background: #333; position: absolute; bottom: 0; }
+        .custom-map-pin.active .pin-head { background: #007acc; transform: scale(1.3); z-index: 1000; }
+        .custom-map-pin.active .pin-stem { background: #007acc; width: 3px; }
+
+        .media-carousel { flex: 1; display: flex; width: 100%; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scroll-behavior: smooth; }
+        .media-item { width: 100%; height: 100%; flex-shrink: 0; scroll-snap-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+        .media-content-wrapper { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .media-item img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .media-item iframe { width: 100%; height: 100%; border: none; }
+        .media-meta-box { width: 100%; background: #222; color: #eee; padding: 8px 15px; box-sizing: border-box; font-size: 0.8rem; border-top: 1px solid #444; }
+        .media-caption { font-style: italic; margin-bottom: 4px; }
+        .media-credit { color: #aaa; font-size: 0.7rem; }
+        .media-counter { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; pointer-events: none; }
+
+        .content-scroll-area { flex: 1; overflow-y: auto; padding: 1rem 3rem; display: flex; flex-direction: column; }
+        .slide-container { width: 100%; max-width: 1200px; margin: 0 auto; flex: 1; box-sizing: border-box; }
+        .slide-header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
+        .slide-date { color: var(--accent); font-weight: bold; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px; }
+        .tags-container { display: flex; gap: 6px; flex-wrap: wrap; max-width: 40%; justify-content: flex-end; }
+        .tag-badge { background: #e0e0e0; color: #444; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; white-space: nowrap; border: 1px solid #ccc; }
+        .slide-title { margin: 0 0 1rem 0; font-size: 2.2rem; color: #111; font-weight: normal; }
+        .slide-desc { line-height: 1.6; font-size: 1.1rem; color: #333; width: 100%; }
+        
+        .nav-btn-side { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0, 0, 0, 0.05); color: #333; border: none; width: 30px; height: 80px; font-size: 1.2rem; cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: background 0.2s; z-index: 50; }
+        .nav-btn-side:hover { background: rgba(0, 0, 0, 0.15); }
+        .nav-btn-side:disabled { opacity: 0.1; cursor: not-allowed; }
+        .nav-left { left: 10px; }
+        .nav-right { right: 10px; }
+        .slide-counter { position: absolute; bottom: 10px; right: 15px; font-size: 0.8rem; color: #888; font-weight: bold; user-select: none; z-index: 50; }
+        
+        #about-toggle { position: absolute; bottom: 10px; left: 15px; z-index: 50; background: #222; color: #fff; border: 1px solid #555; border-radius: 20px; padding: 4px 12px; cursor: pointer; font-size: 0.8rem; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        #about-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; max-width: 800px; max-height: 80vh; overflow-y: auto; background: #fff; z-index: 9999; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); padding: 2rem; display: none; border: 1px solid #ccc; color: #222; }
+        #about-modal.open { display: block; }
+        .about-close { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+
+        /* TIMELINE SWIMLANES v5.0 */
+        .timeline-scroll-wrapper { width: 100%; height: 100%; overflow: hidden; position: relative; display: flex; align-items: flex-start; cursor: grab; }
+        .timeline-scroll-wrapper.is-dragging { cursor: grabbing; }
+        .timeline-track-container { position: relative; height: 100%; }
+        
+        .tag-lane { border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; box-sizing: border-box; width: 100%; position: absolute; left: 0; right: 0; }
+        .tag-lane-label { position: sticky; left: 0; z-index: 40; padding: 0 8px; font-size: 0.75rem; font-weight: bold; color: #888; display: flex; align-items: center; white-space: nowrap; }
+        
+        .event-group { position: absolute; z-index: 10; transition: z-index 0.2s; }
+        .event-group.active { z-index: 30; }
+        
+        .event-duration-bar { position: absolute; height: 12px; border-radius: 6px; top: 50%; transform: translateY(-50%); box-shadow: inset 0 0 2px rgba(0,0,0,0.2); }
+        
+        /* The Hexagon Shape */
+        .event-block { 
+            position: absolute; left: 0; display: flex; align-items: center; justify-content: flex-start;
+            text-align: left; font-size: 0.75rem; cursor: pointer; transition: all 0.2s ease;
+            word-wrap: break-word; box-sizing: border-box; 
+            width: max-content; max-width: 280px; 
+            
+            --diag-w: 12px;
+            min-height: var(--lane-h);
+            padding: 4px 10px 4px calc(var(--diag-w) + 6px); 
+            
+            /* Left side perfectly flat matching lane height, diagonals expand to fit text */
+            clip-path: polygon(
+                0 calc(50% - (var(--lane-h) / 2) + 1px), 
+                var(--diag-w) 0, 
+                100% 0, 
+                100% 100%, 
+                var(--diag-w) 100%, 
+                0 calc(50% + (var(--lane-h) / 2) - 1px)
+            );
+        }
+        .event-block:hover { filter: brightness(1.05); z-index: 40; }
+        
+        /* 10px Minor Ticks via repeating gradient */
+        .timeline-axis { 
+            position: absolute; bottom: 0; left: 0; right: 0; height: 25px; background: #e0e0e0; border-top: 2px solid #999; z-index: 5; 
+            background-image: repeating-linear-gradient(to right, transparent, transparent 9px, #999 9px, #999 10px);
+        }
+        .timeline-ruler-tick { position: absolute; bottom: 0; display: flex; flex-direction: column; align-items: center; z-index: 5; }
+
+        .timeline-controls { position: sticky; top: 10px; left: 10px; display: flex; gap: 5px; z-index: 50; width: fit-content; float: right; margin-right: 20px;}
+        .timeline-btn { background: #fff; border: 1px solid #ccc; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; font-weight: bold; color: #333; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .timeline-btn:hover { background: #eee; }
+
+        #vibe-monitor { position: absolute; bottom: 10px; left: 10px; width: 400px; height: 300px; background: rgba(10, 10, 15, 0.95); border: 1px solid #444; border-radius: 8px; display: flex; flex-direction: column; z-index: 9999; color: #eee; box-shadow: 0 8px 32px rgba(0,0,0,0.9); resize: both; overflow: hidden; font-family: 'Courier New', monospace; }
+        #vibe-header { background: #222; padding: 8px; cursor: move; font-weight: bold; border-bottom: 1px solid #444; display: flex; justify-content: space-between; align-items: center; user-select: none; }
+        .vibe-close-btn { background: #ff5555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; padding: 2px 6px; }
+        #vibe-logs { flex: 1; overflow-y: auto; padding: 10px; font-size: 12px; line-height: 1.4; word-wrap: break-word; }
+        .log-info { color: #8be9fd; }
+        .log-success { color: #50fa7b; }
+        .log-warn { color: #ffb86c; }
+        .log-error { color: #ff5555; font-weight: bold; }
+        .log-time { color: #6272a4; margin-right: 5px; }
+        #vibe-toggle { position: absolute; bottom: 10px; left: 0; background: #222; color: #50fa7b; border: 1px solid #444; border-left: none; padding: 8px 12px; border-radius: 0 8px 8px 0; cursor: pointer; z-index: 9998; font-family: 'Courier New', monospace; font-weight: bold; box-shadow: 2px 0 10px rgba(0,0,0,0.5); }
+        /* === [ END GLOBAL STYLES v1.9.0 ] === */
+    </style>
+    
+    <script type="importmap">
+    {
+        "imports": {
+            "preact": "https://esm.sh/preact@10.19.3",
+            "preact/hooks": "https://esm.sh/preact@10.19.3/hooks",
+            "htm": "https://esm.sh/htm@3.1.1",
+            "papaparse": "https://esm.sh/papaparse@5.4.1"
+        }
+    }
+    </script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="module">
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.13 ] ===
+        import { h, render, Component } from 'preact';
+        import { useState, useEffect, useRef } from 'preact/hooks';
+        import htm from 'htm';
+        import Papa from 'papaparse';
+
+        const html = htm.bind(h);
+        const APP_VERSION = 'v5.0.0';
+        const MODULE_VERSIONS = {
+            Styles: 'v1.9.0',
+            Utils: 'v1.0.0',
+            ErrorBoundary: 'v1.0.0',
+            VibeMonitor: 'v1.0.0',
+            MapViewer: 'v1.8.0',
+            MediaViewer: 'v1.0.0',
+            ContentSlider: 'v1.0.0',
+            TimelineScrubber: 'v5.0.0',
+            AppOrchestrator: 'v1.5.0'
+        };
+        const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
+        // === [ END GLOBAL VARIABLES v1.0.13 ] ===
+        
+        // === [ UTILITIES v1.0.0 ] ===
+        const stripHTML = (htmlStr) => {
+            if(!htmlStr) return "";
+            const tmp = document.createElement("DIV");
+            tmp.innerHTML = String(htmlStr);
+            return tmp.textContent || tmp.innerText || "";
+        };
+
+        const formatDateStr = (dateObj) => {
+            if (!dateObj || isNaN(dateObj.getTime())) return null;
+            if (dateObj.getHours() === 0 && dateObj.getMinutes() === 0 && dateObj.getDate() === 1 && dateObj.getMonth() === 0) return dateObj.getFullYear().toString();
+            const dd = dateObj.getDate().toString().padStart(2, '0');
+            const mm = (dateObj.getMonth() + 1).toString().padStart(2, '0'); 
+            const yyyy = dateObj.getFullYear();
+            const HH = dateObj.getHours().toString().padStart(2, '0');
+            const min = dateObj.getMinutes().toString().padStart(2, '0');
+            let timeStr = (HH === '00' && min === '00') ? '' : ` ${HH}:${min}`;
+            return `${dd}/${mm}/${yyyy}${timeStr}`;
+        };
+        // === [ END UTILITIES v1.0.0 ] ===
+
+        // === [ ERROR BOUNDARY v1.0.0 ] ===
+        class ErrorBoundary extends Component {
+            constructor() { super(); this.state = { error: null }; }
+            componentDidCatch(error) { this.setState({ error }); }
+            render() {
+                if (this.state.error) return html`<div style="padding: 2rem; background: #222; color: #ff5555; height: 100vh; overflow: auto; font-family: monospace;"><h1>⚠️ Fatal UI Crash Prevented</h1><pre>${this.state.error.stack}</pre></div>`;
+                return this.props.children;
+            }
+        }
+        // === [ END ERROR BOUNDARY v1.0.0 ] ===
+
+        // === [ VIBE MONITOR v1.0.0 ] ===
+        const VibeMonitor = ({ logs, status, isOpen, setIsOpen }) => {
+            const logEndRef = useRef(null);
+            const dragRef = useRef({ isDragging: false, startX: 0, startY: 0 });
+
+            useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [logs]);
+
+            const onMouseDown = (e) => {
+                dragRef.current = { isDragging: true, startX: e.clientX, startY: e.clientY };
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            };
+            const onMouseMove = (e) => {
+                if (!dragRef.current.isDragging) return;
+                const monitor = document.getElementById('vibe-monitor');
+                if(!monitor) return;
+                const dx = e.clientX - dragRef.current.startX;
+                const dy = e.clientY - dragRef.current.startY;
+                const rect = monitor.getBoundingClientRect();
+                monitor.style.left = `${rect.left + dx}px`;
+                monitor.style.top = `${rect.top + dy}px`;
+                monitor.style.bottom = 'auto';
+                dragRef.current.startX = e.clientX;
+                dragRef.current.startY = e.clientY;
+            };
+            const onMouseUp = () => {
+                dragRef.current.isDragging = false;
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            };
+
+            if (!isOpen) return html`<button id="vibe-toggle" onClick=${() => setIsOpen(true)}>🟢 Monitor</button>`;
+
+            return html`
+                <div id="vibe-monitor">
+                    <div id="vibe-header" onMouseDown=${onMouseDown}>
+                        <span>🟢 Vibe-Monitor ${APP_VERSION}</span>
+                        <div><span style="color: #bd93f9; margin-right: 10px;">[${status}]</span><button class="vibe-close-btn" onClick=${() => setIsOpen(false)}>X</button></div>
+                    </div>
+                    <div id="vibe-logs">
+                        ${logs.map((l, i) => html`<div key=${i} class="log-${l.type}"><span class="log-time">[${l.time}]</span> ${l.msg}</div>`)}
+                        <div ref=${logEndRef}></div>
+                    </div>
+                </div>
+            `;
+        };
+        // === [ END VIBE MONITOR v1.0.0 ] ===
+
+        // === [ MAP VIEWER v1.8.0 ] ===
+        const MapViewer = ({ data, activeIndex, setActiveIndex, addLog }) => {
+            const mapDomRef = useRef(null);
+            const mapInstance = useRef(null);
+            const markerLayer = useRef(null);
+            const markersRef = useRef({}); 
+            const hasFitBounds = useRef(false);
+
+            const createPinHtml = (isActive) => `<div class="custom-map-pin ${isActive ? 'active' : ''}"><div class="pin-head"></div><div class="pin-stem"></div></div>`;
+            
+            const createArrowIcon = (angle, isActive) => L.divIcon({
+                className: 'geo-arrow',
+                html: `<div style="transform: rotate(${angle}deg); font-size: 16px; color: ${isActive ? '#007acc' : '#d32f2f'}; margin-top: -8px; margin-left: -8px; text-shadow: 0 0 2px #fff;">▲</div>`,
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            });
+
+            const defaultPinIcon = L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false), iconSize: [24, 34], iconAnchor: [12, 34] });
+            const activePinIcon = L.divIcon({ className: 'custom-div-icon', html: createPinHtml(true), iconSize: [24, 34], iconAnchor: [12, 34] });
+
+            // 1. Safe Leaflet Boot
+            useEffect(() => {
+                try {
+                    if (mapDomRef.current && !mapInstance.current && window.L) {
+                        const map = L.map(mapDomRef.current, { zoomControl: false }).setView([20, 0], 2);
+                        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM' }).addTo(map);
+                        L.control.zoom({ position: 'topright' }).addTo(map);
+                        
+                        markerLayer.current = L.featureGroup().addTo(map);
+                        mapInstance.current = map;
+                        
+                        if (window.ResizeObserver) {
+                            const ro = new ResizeObserver(() => {
+                                setTimeout(() => { if (mapInstance.current) mapInstance.current.invalidateSize(); }, 50);
+                            });
+                            ro.observe(mapDomRef.current.parentElement);
+                        }
+                    }
+                } catch(e) { console.error("Map Boot Error:", e); }
+
+                return () => {
+                    if (mapInstance.current) {
+                        mapInstance.current.remove();
+                        mapInstance.current = null;
+                    }
+                };
+            }, []);
+
+            // 2. Data Population
+            useEffect(() => {
+                const map = mapInstance.current;
+                const layer = markerLayer.current;
+                if (!map || !layer || data.length === 0) return;
+
+                layer.clearLayers();
+                markersRef.current = {};
+                let validMarkers = 0;
+
+                data.forEach((item, idx) => {
+                    const locStr = String(item.location || '').trim();
+                    if (!locStr) return;
+
+                    const recordGroup = L.featureGroup();
+
+                    try {
+                        if (locStr.startsWith('{') && locStr.includes('"type"')) {
+                            const geoData = JSON.parse(locStr);
+                            const geoLayer = L.geoJSON(geoData, {
+                                pointToLayer: (feature, latlng) => L.marker(latlng, { icon: defaultPinIcon }),
+                                style: { color: '#d32f2f', weight: 4 },
+                                onEachFeature: (feature, l) => {
+                                    if (feature.geometry?.type === "LineString" || feature.geometry?.type === "MultiLineString") {
+                                        try {
+                                            const latlngs = l.getLatLngs();
+                                            let pts = feature.geometry.type === "MultiLineString" ? latlngs[latlngs.length - 1] : latlngs;
+                                            if (pts && pts.length > 1) {
+                                                const p1 = pts[pts.length - 2];
+                                                const p2 = pts[pts.length - 1];
+                                                
+                                                const dx = p2.lng - p1.lng;
+                                                const dy = p2.lat - p1.lat; 
+                                                const angle = 90 - (Math.atan2(dy, dx) * (180 / Math.PI));
+                                                
+                                                const arrow = L.marker(p2, { icon: createArrowIcon(angle, false) });
+                                                arrow.isArrow = true;
+                                                arrow.arrowAngle = angle;
+                                                arrow.addTo(recordGroup);
+                                            }
+                                        } catch(e) {}
+                                    }
+                                }
+                            });
+                            geoLayer.addTo(recordGroup);
+                        } 
+                        else {
+                            const coordMatch = locStr.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
+                            if (coordMatch) {
+                                const lat = parseFloat(coordMatch[1]);
+                                const lon = parseFloat(coordMatch[2]);
+                                if (!isNaN(lat) && !isNaN(lon)) {
+                                    L.marker([lat, lon], { icon: defaultPinIcon }).addTo(recordGroup);
+                                }
+                            }
+                        }
+
+                        if (recordGroup.getLayers().length > 0) {
+                            recordGroup.bindTooltip(`${stripHTML(item.title)}`, { direction: 'top', offset: [0, -35] });
+                            recordGroup.on('click', () => setActiveIndex(idx));
+                            recordGroup.addTo(layer);
+                            markersRef.current[idx] = recordGroup; 
+                            validMarkers++;
+                        }
+                    } catch(e) {}
+                });
+
+                setTimeout(() => {
+                    try {
+                        if (mapInstance.current) {
+                            mapInstance.current.invalidateSize(); 
+                            if (validMarkers > 0 && !hasFitBounds.current) {
+                                const bounds = layer.getBounds();
+                                if (bounds.isValid()) {
+                                    mapInstance.current.fitBounds(bounds, { padding: [30, 30], maxZoom: 6 });
+                                    hasFitBounds.current = true;
+                                }
+                            }
+                        }
+                    } catch(err) { console.warn("Leaflet fitBounds aborted:", err); }
+                }, 150);
+
+            }, [data]);
+
+            // 3. Active Marker Sync & Camera Physics
+            useEffect(() => {
+                const map = mapInstance.current;
+                const markers = markersRef.current;
+                if (!map || Object.keys(markers).length === 0) return;
+
+                const resetLayer = (layer) => {
+                    if (layer.setStyle) layer.setStyle({ color: '#d32f2f', weight: 4 });
+                    if (layer.setIcon) {
+                        if (layer.isArrow) layer.setIcon(createArrowIcon(layer.arrowAngle, false));
+                        else layer.setIcon(defaultPinIcon);
+                        if (layer.setZIndexOffset) layer.setZIndexOffset(0);
+                    }
+                    if (layer.eachLayer) layer.eachLayer(resetLayer);
+                };
+
+                const highlightLayer = (layer) => {
+                    if (layer.setStyle) layer.setStyle({ color: '#007acc', weight: 5 });
+                    if (layer.setIcon) {
+                        if (layer.isArrow) layer.setIcon(createArrowIcon(layer.arrowAngle, true));
+                        else layer.setIcon(activePinIcon);
+                        if (layer.setZIndexOffset) layer.setZIndexOffset(1000);
+                    }
+                    if (layer.eachLayer) layer.eachLayer(highlightLayer);
+                };
+
+                Object.values(markers).forEach(resetLayer);
+
+                const activeFeatureGroup = markers[activeIndex];
+                if (activeFeatureGroup) {
+                    highlightLayer(activeFeatureGroup);
+
+                    setTimeout(() => {
+                        try {
+                            const bounds = activeFeatureGroup.getBounds();
+                            if (bounds.isValid()) {
+                                const ne = bounds.getNorthEast();
+                                const sw = bounds.getSouthWest();
+                                const isSinglePoint = (ne.lat === sw.lat && ne.lng === sw.lng);
+                                const center = bounds.getCenter();
+                                
+                                let isCrowded = false;
+
+                                // If it's a single pin, measure distance to ALL other pins
+                                if (isSinglePoint) {
+                                    Object.entries(markers).forEach(([idx, mLayer]) => {
+                                        if (String(idx) === String(activeIndex)) return;
+                                        const otherBounds = mLayer.getBounds();
+                                        if (otherBounds.isValid()) {
+                                            const otherCenter = otherBounds.getCenter();
+                                            // If another pin is within 1km (1000m), it's crowded
+                                            if (map.distance(center, otherCenter) <= 1000) {
+                                                isCrowded = true;
+                                            }
+                                        }
+                                    });
+                                }
+
+                                // Cinematic Fly Options (2.5 seconds)
+                                const flyOptions = { animate: true, duration: 2.5 };
+
+                                if (isSinglePoint && !isCrowded) {
+                                    map.flyTo(center, 6, flyOptions);
+                                } else if (isSinglePoint && isCrowded) {
+                                    map.flyTo(center, 11, flyOptions);
+                                } else {
+                                    map.flyToBounds(bounds, { ...flyOptions, maxZoom: 11 });
+                                }
+                            }
+                            if(activeFeatureGroup.openTooltip) activeFeatureGroup.openTooltip();
+                        } catch(err) { console.warn("Leaflet flyTo aborted:", err); }
+                    }, 100);
+                }
+            }, [activeIndex, data]);
+
+            return html`<div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>`;
+        };
+        // === [ END MAP VIEWER v1.8.0 ] ===
+        
+        // === [ MEDIA VIEWER v1.0.0 ] ===
+        const MediaViewer = ({ activeSlide }) => {
+            if (!activeSlide || !activeSlide.media || activeSlide.media.length === 0) return html`
+                <div style="color:#666; text-align:center; padding: 2rem; margin: auto;"><i>No media attached.</i></div>
+            `;
+            return html`
+                <div class="media-carousel">
+                    ${activeSlide.media.map((url, i) => {
+                        const isYouTube = url.includes('youtube.com/watch?v=') || url.includes('youtu.be/');
+                        let content = isYouTube 
+                            ? html`<iframe src="https://www.youtube.com/embed/${url.split('v=')[1]?.split('&')[0] || url.split('youtu.be/')[1]?.split('?')[0]}" allowfullscreen></iframe>`
+                            : html`<img src="${url}" alt="Media" loading="lazy" />`;
+                        return html`
+                            <div class="media-item">
+                                <div class="media-content-wrapper">${content}</div>
+                                ${(activeSlide.mediaCaption || activeSlide.mediaCredit) ? html`
+                                    <div class="media-meta-box">
+                                        ${activeSlide.mediaCaption ? html`<div class="media-caption">${activeSlide.mediaCaption}</div>` : ''}
+                                        ${activeSlide.mediaCredit ? html`<div class="media-credit">${activeSlide.mediaCredit}</div>` : ''}
+                                    </div>
+                                ` : ''}
+                                ${activeSlide.media.length > 1 ? html`<div class="media-counter">${i + 1} / ${activeSlide.media.length}</div>` : ''}
+                            </div>
+                        `;
+                    })}
+                </div>
+            `;
+        };
+        // === [ END MEDIA VIEWER v1.0.0 ] ===
+
+        // === [ CONTENT SLIDER v1.0.0 ] ===
+        const ContentSlider = ({ data, activeIndex, setActiveIndex, aboutData, setIsAboutOpen }) => {
+            if (data.length === 0) return html`<p style="text-align:center; padding: 2rem;">Loading...</p>`;
+            
+            const activeSlide = data[activeIndex];
+            const nextSlide = () => setActiveIndex(prev => Math.min(prev + 1, data.length - 1));
+            const prevSlide = () => setActiveIndex(prev => Math.max(prev - 1, 0));
+
+            const sStr = formatDateStr(activeSlide?.startDate);
+            const eStr = formatDateStr(activeSlide?.endDate);
+            const dateDisplay = (!sStr) ? 'Unknown Date' : (!eStr ? sStr : `${sStr} - ${eStr}`);
+
+            return html`
+                <div class="content-pane-wrapper">
+                    <button class="nav-btn-side nav-left" onClick=${prevSlide} disabled=${activeIndex === 0}>◀</button>
+                    <button class="nav-btn-side nav-right" onClick=${nextSlide} disabled=${activeIndex === data.length - 1}>▶</button>
+                    <div class="content-scroll-area">
+                        <div class="slide-container" id="slide-${activeSlide?.id || 0}">
+                            <div class="slide-header-row">
+                                <div class="slide-date">${dateDisplay}</div>
+                                <div class="tags-container">${activeSlide?.tags?.map(t => html`<span class="tag-badge">${t}</span>`)}</div>
+                            </div>
+                            <h2 class="slide-title" dangerouslySetInnerHTML=${{__html: activeSlide?.title || 'No Title'}}></h2>
+                            <div class="slide-desc" dangerouslySetInnerHTML=${{__html: activeSlide?.description || ''}}></div>
+                        </div>
+                    </div>
+                    ${aboutData ? html`<button id="about-toggle" onClick=${() => setIsAboutOpen(true)}>ℹ️ About</button>` : ''}
+                    <div class="slide-counter">Slide ${activeIndex + 1} of ${data.length}</div>
+                </div>
+            `;
+        };
+        // === [ END CONTENT SLIDER v1.0.0 ] ===
+
+        // === [ TIMELINE SCRUBBER v5.0.0 ] ===
+        const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
+            const wrapperRef = useRef(null);
+            const [zoomLevel, setZoomLevel] = useState(1);
+            const dragRef = useRef({ isDragging: false, startX: 0, scrollLeft: 0 });
+            const [containerHeight, setContainerHeight] = useState(200);
+
+            useEffect(() => {
+                const measure = () => { if (wrapperRef.current) setContainerHeight(wrapperRef.current.offsetHeight); };
+                measure();
+                window.addEventListener('resize', measure);
+                return () => window.removeEventListener('resize', measure);
+            }, []);
+
+            const tagsMap = new Set();
+            const tagPairs = [];
+            data.forEach(d => {
+                if(!d.startDate || isNaN(d.startDate.getTime())) return;
+                const t = d.tags && d.tags.length > 0 ? d.tags : ['Untagged'];
+                t.forEach(tag => tagsMap.add(tag));
+                for(let i=0; i<t.length-1; i++) tagPairs.push([t[i], t[i+1]]);
+            });
+
+            let orderedTags = [];
+            const remaining = Array.from(tagsMap);
+            if (remaining.length > 0) orderedTags.push(remaining.shift());
+            
+            while(remaining.length > 0) {
+                let placed = false;
+                for (let i = 0; i < remaining.length; i++) {
+                    const r = remaining[i];
+                    const pairedWithFirst = tagPairs.some(p => (p[0]===r && p[1]===orderedTags[0]) || (p[1]===r && p[0]===orderedTags[0]));
+                    const pairedWithLast = tagPairs.some(p => (p[0]===r && p[1]===orderedTags[orderedTags.length-1]) || (p[1]===r && p[0]===orderedTags[orderedTags.length-1]));
+                    if (pairedWithLast) { orderedTags.push(r); remaining.splice(i, 1); placed = true; break; }
+                    if (pairedWithFirst) { orderedTags.unshift(r); remaining.splice(i, 1); placed = true; break; }
+                }
+                if (!placed) orderedTags.push(remaining.shift());
+            }
+
+            const availableLanesHeight = Math.max(containerHeight - 25, 50);
+            const laneHeight = Math.max(24, availableLanesHeight / (orderedTags.length || 1));
+
+            // Smart Auto-Zoom
+            useEffect(() => {
+                const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
+                if (validData.length > 1 && wrapperRef.current && !dragRef.current.isDragging) {
+                    const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
+                    
+                    if (activeDataIndex >= 0) {
+                        const minTime = validData[0].startDate.getTime();
+                        let maxTime = validData[validData.length - 1].startDate.getTime();
+                        validData.forEach(d => { if (d.endDate && !isNaN(d.endDate.getTime()) && d.endDate.getTime() > maxTime) maxTime = d.endDate.getTime(); });
+                        const timeRange = maxTime - minTime || 1;
+                        
+                        const item = validData[activeDataIndex];
+                        const sT = item.startDate.getTime();
+                        const eT = (item.endDate && !isNaN(item.endDate.getTime())) ? item.endDate.getTime() : sT;
+                        const durationMs = eT - sT;
+                        
+                        const activeTags = item.tags && item.tags.length > 0 ? item.tags : ['Untagged'];
+                        
+                        let minDelta = Infinity;
+                        validData.forEach((d, idx) => {
+                            if (idx === activeDataIndex) return;
+                            const dTags = d.tags && d.tags.length > 0 ? d.tags : ['Untagged'];
+                            if (dTags.some(t => activeTags.includes(t))) {
+                                const dSt = d.startDate.getTime();
+                                const dEt = (d.endDate && !isNaN(d.endDate.getTime())) ? d.endDate.getTime() : dSt;
+                                let dist = 0;
+                                if (dEt < sT) dist = sT - dEt;
+                                else if (dSt > eT) dist = dSt - eT;
+                                if (dist < minDelta) minDelta = dist;
+                            }
+                        });
+
+                        const containerW = wrapperRef.current.offsetWidth || 1000;
+                        
+                        // Calculate zoom needed to separate neighbors by 250px, AND ensure duration fits on screen
+                        const trackWidthForNeighbor = minDelta > 0 ? (timeRange / minDelta) * 250 : 0;
+                        const trackWidthForDuration = durationMs > 0 ? (timeRange / durationMs) * (containerW * 0.7) : 0; // Duration takes max 70% of screen
+                        
+                        const idealTrackWidth = Math.max(containerW, trackWidthForNeighbor, trackWidthForDuration);
+                        const idealZoom = idealTrackWidth / containerW;
+
+                        setZoomLevel(prev => {
+                             const target = Math.min(Math.max(1, idealZoom), 100); 
+                             const smoothed = prev + (target - prev) * 0.5; 
+                             return Math.abs(prev - smoothed) > 0.1 ? smoothed : prev;
+                        });
+                    }
+                }
+            }, [activeIndex, data, containerHeight]);
+
+            // Focus-Lock Scroll Centering
+            useEffect(() => {
+                const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
+                const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
+                if (activeDataIndex >= 0 && wrapperRef.current && !dragRef.current.isDragging) {
+                    const minTime = validData[0].startDate.getTime();
+                    let maxTime = validData[validData.length - 1].startDate.getTime();
+                    validData.forEach(d => { if (d.endDate && !isNaN(d.endDate.getTime()) && d.endDate.getTime() > maxTime) maxTime = d.endDate.getTime(); });
+                    const timeRange = maxTime - minTime || 1;
+                    
+                    const item = validData[activeDataIndex];
+                    const sT = item.startDate.getTime();
+                    const eT = (item.endDate && !isNaN(item.endDate.getTime())) ? item.endDate.getTime() : sT;
+                    const midpointTime = (sT + eT) / 2;
+                    const pct = (midpointTime - minTime) / timeRange;
+
+                    setTimeout(() => {
+                        if (wrapperRef.current) {
+                            const trackW = wrapperRef.current.querySelector('.timeline-track-container').offsetWidth;
+                            const scrollPos = (pct * trackW) - (wrapperRef.current.offsetWidth / 2);
+                            wrapperRef.current.scrollTo({ left: scrollPos, behavior: 'smooth' });
+                        }
+                    }, 20); // Small DOM delay ensures zoom is applied first
+                }
+            }, [activeIndex, zoomLevel, data]);
+
+            const onMouseDown = (e) => { dragRef.current = { isDragging: true, startX: e.pageX - wrapperRef.current.offsetLeft, scrollLeft: wrapperRef.current.scrollLeft }; wrapperRef.current.classList.add('is-dragging'); };
+            const onMouseUpLeave = () => { dragRef.current.isDragging = false; wrapperRef.current?.classList.remove('is-dragging'); };
+            const onMouseMove = (e) => {
+                if (!dragRef.current.isDragging) return;
+                e.preventDefault();
+                wrapperRef.current.scrollLeft = dragRef.current.scrollLeft - ((e.pageX - wrapperRef.current.offsetLeft - dragRef.current.startX) * 2);
+            };
+
+            const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
+            if (validData.length === 0) return html`<div style="padding:1rem;">No valid temporal data.</div>`;
+
+            const minTime = validData[0].startDate.getTime();
+            let maxTime = validData[validData.length - 1].startDate.getTime();
+            validData.forEach(d => { if (d.endDate && !isNaN(d.endDate.getTime()) && d.endDate.getTime() > maxTime) maxTime = d.endDate.getTime(); });
+            const timeRange = maxTime - minTime || 1; 
+            
+            // Physical Pixel Math for Major Ticks (100px)
+            const trackWidthStr = Math.max(100, data.length * 8) * zoomLevel;
+            const msPerPixel = timeRange / ((trackWidthStr / 100) * (wrapperRef.current ? wrapperRef.current.offsetWidth : 1000));
+            const msPer100px = msPerPixel * 100;
+
+            const MINUTE = 60000; const HOUR = 60 * MINUTE; const DAY = 24 * HOUR; const MONTH = 30 * DAY; const YEAR = 365.25 * DAY;
+            
+            let formatType = 'year';
+            if (msPer100px < YEAR) formatType = 'month';
+            if (msPer100px < MONTH) formatType = 'day';
+            if (msPer100px < DAY) formatType = 'time';
+
+            const rulerTicks = [];
+            // We draw a major tick exactly every 100 physical pixels
+            const totalPixels = (trackWidthStr / 100) * (wrapperRef.current ? wrapperRef.current.offsetWidth : 1000);
+            for (let px = 0; px <= totalPixels; px += 100) {
+                const tickTime = minTime + (px * msPerPixel);
+                if (tickTime <= maxTime) {
+                    const d = new Date(tickTime);
+                    let label = '';
+                    if (formatType === 'year') label = d.getFullYear();
+                    else if (formatType === 'month') label = d.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
+                    else if (formatType === 'day') label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short' });
+                    else if (formatType === 'time') label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+                    const pctLeft = ((tickTime - minTime) / timeRange) * 100;
+                    rulerTicks.push(html`
+                        <div class="timeline-ruler-tick" style="left: ${pctLeft}%; position: absolute; bottom: 0; display: flex; flex-direction: column; align-items: center; z-index: 5;">
+                            <div style="width: 2px; height: 10px; background: #666;"></div>
+                            <div style="font-size: 0.7rem; color: #555; font-weight: bold; margin-top: 2px; white-space: nowrap;">${label}</div>
+                        </div>
+                    `);
+                }
+            }
+
+            const markers = data.map((item, index) => {
+                if (!item.startDate || isNaN(item.startDate.getTime())) return null;
+                const startPct = ((item.startDate.getTime() - minTime) / timeRange) * 100;
+                let endPct = startPct;
+                if (item.endDate && !isNaN(item.endDate.getTime()) && item.endDate.getTime() > item.startDate.getTime()) {
+                    endPct = ((item.endDate.getTime() - minTime) / timeRange) * 100;
+                }
+                const hasDuration = endPct > startPct;
+                
+                const isActive = index === activeIndex;
+                const activeTags = item.tags && item.tags.length > 0 ? item.tags : ['Untagged'];
+                const tagIndices = activeTags.map(t => orderedTags.indexOf(t));
+                const minIdx = Math.min(...tagIndices);
+                const maxIdx = Math.max(...tagIndices);
+                
+                const topPos = minIdx * laneHeight;
+                const blockHeight = (maxIdx - minIdx + 1) * laneHeight; 
+
+                // The Duration Bar rendered behind the label
+                const durationBar = hasDuration ? html`
+                    <div class="event-duration-bar" style="left: ${startPct}%; width: ${endPct - startPct}%; background: ${isActive ? 'rgba(0,122,204,0.6)' : 'rgba(211,47,47,0.3)'};"></div>
+                ` : '';
+
+                return html`
+                    <div id="timeline-marker-${index}" class="event-group ${isActive ? 'active' : ''}" style="left: 0; right: 0; top: ${topPos}px; height: ${blockHeight}px;" onClick=${() => setActiveIndex(index)}>
+                        ${durationBar}
+                        <div class="event-block" style="left: ${startPct}%; --lane-h: ${laneHeight}px; background: ${isActive ? '#007acc' : '#e0e0e0'}; color: ${isActive ? '#fff' : '#222'}; font-weight: ${isActive ? 'bold' : 'normal'};">
+                            ${stripHTML(item.title)}
+                        </div>
+                    </div>
+                `;
+            });
+
+            return html`
+                <div class="timeline-controls">
+                    <button class="timeline-btn" onClick=${() => setZoomLevel(p => Math.max(p - 0.5, 0.5))}>-</button>
+                    <button class="timeline-btn" onClick=${() => setZoomLevel(p => Math.min(p + 0.5, 100))}>+</button>
+                </div>
+                <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onMouseDown} onMouseLeave=${onMouseUpLeave} onMouseUp=${onMouseUpLeave} onMouseMove=${onMouseMove} onWheel=${(e) => { e.preventDefault(); setZoomLevel(p => e.deltaY < 0 ? Math.min(p + 0.5, 100) : Math.max(p - 0.5, 0.5)); }}>
+                    <div class="timeline-track-container" style="width: ${trackWidthStr}%; min-width: 100%; height: 100%;">
+                        
+                        ${orderedTags.map((tag, i) => html`
+                            <div class="tag-lane" style="top: ${i * laneHeight}px; height: ${laneHeight}px;">
+                                <div class="tag-lane-label">${tag}</div>
+                            </div>
+                        `)}
+
+                        <div class="timeline-axis">
+                            ${rulerTicks}
+                        </div>
+                        
+                        ${markers}
+                    </div>
+                </div>
+            `;
+        };
+        // === [ END TIMELINE SCRUBBER v5.0.0 ] ===
+        
+        // === [ APP ORCHESTRATOR v1.5.0 ] ===
+        const App = () => {
+            const [logs, setLogs] = useState([]);
+            const [data, setData] = useState([]);
+            const [aboutData, setAboutData] = useState(null); 
+            const [status, setStatus] = useState('Idle');
+            const [activeIndex, setActiveIndex] = useState(0); 
+            const [isMonitorOpen, setIsMonitorOpen] = useState(true);
+            const [isAboutOpen, setIsAboutOpen] = useState(false);
+            const appRef = useRef(null);
+
+            const addLog = (msg, type = 'info') => setLogs(p => [...p, { time: new Date().toLocaleTimeString('en-US', { hour12: false }), msg, type }]);
+
+            // Custom JS Splitter Logic (Push/Pull Neighbors)
+            const startMapResize = (e) => {
+                e.preventDefault();
+                const startX = e.clientX;
+                const mapNode = appRef.current.querySelector('.map-pane');
+                const startWidth = mapNode.offsetWidth;
+                const containerWidth = appRef.current.querySelector('.top-row').offsetWidth;
+                
+                const onMove = (e2) => {
+                    let newWidth = startWidth + (e2.clientX - startX);
+                    let pct = (newWidth / containerWidth) * 100;
+                    if (pct < 10) pct = 10; if (pct > 90) pct = 90;
+                    appRef.current.style.setProperty('--map-width', `${pct}%`);
+                };
+                const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); window.dispatchEvent(new Event('resize')); };
+                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+            };
+
+            const startTopResize = (e) => {
+                e.preventDefault();
+                const startY = e.clientY;
+                const topNode = appRef.current.querySelector('.top-row');
+                const startHeight = topNode.offsetHeight;
+                const containerHeight = appRef.current.offsetHeight;
+                
+                const onMove = (e2) => {
+                    let newHeight = startHeight + (e2.clientY - startY);
+                    let pct = (newHeight / containerHeight) * 100;
+                    if (pct < 10) pct = 10; if (pct > 80) pct = 80;
+                    appRef.current.style.setProperty('--top-height', `${pct}%`);
+                };
+                const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); window.dispatchEvent(new Event('resize')); };
+                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+            };
+
+            const startTimelineResize = (e) => {
+                e.preventDefault();
+                const startY = e.clientY;
+                const tlNode = appRef.current.querySelector('.timeline-pane');
+                const startHeight = tlNode.offsetHeight;
+                const containerHeight = appRef.current.offsetHeight;
+                
+                const onMove = (e2) => {
+                    let newHeight = startHeight - (e2.clientY - startY); // Dragging UP increases height of bottom pane
+                    let pct = (newHeight / containerHeight) * 100;
+                    if (pct < 10) pct = 10; if (pct > 80) pct = 80;
+                    appRef.current.style.setProperty('--timeline-height', `${pct}%`);
+                };
+                const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); window.dispatchEvent(new Event('resize')); };
+                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+            };
+
+            useEffect(() => {
+                document.documentElement.style.setProperty('--paneBg', TM_CONFIG.paneBackground);
+                
+                addLog(`Engine ${APP_VERSION} Boot Sequence Initiated.`, 'info');
+                const manifestStr = Object.entries(MODULE_VERSIONS).map(([k, v]) => `${k} ${v}`).join(' | ');
+                addLog(`📦 Modules: ${manifestStr}`, 'success');
+                
+                const params = new URLSearchParams(window.location.search);
+                const gid = params.get('gid') || '0'; 
+                let fetchUrl = params.get('source');
+                if (!fetchUrl) return setStatus('Awaiting Source');
+
+                if (fetchUrl.includes('http')) {
+                    if (fetchUrl.includes('/e/2PACX')) fetchUrl = fetchUrl.split('/pub')[0] + '/pub?output=csv';
+                    else if (fetchUrl.includes('/d/')) fetchUrl = `https://docs.google.com/spreadsheets/d/${fetchUrl.match(/\/d\/([a-zA-Z0-9-_]+)/)[1]}/gviz/tq?tqx=out:csv&gid=${gid}`;
+                } else {
+                    fetchUrl = fetchUrl.startsWith('2PACX') ? `https://docs.google.com/spreadsheets/d/e/${fetchUrl}/pub?output=csv&gid=${gid}` : `https://docs.google.com/spreadsheets/d/${fetchUrl}/gviz/tq?tqx=out:csv&gid=${gid}`;
+                }
+
+                setStatus('Fetching Data');
+                fetch(fetchUrl).then(res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.text();
+                }).then(csvText => {
+                    Papa.parse(csvText, {
+                        header: true, skipEmptyLines: true,
+                        complete: (results) => {
+                            if (results.data.length === 0) return setStatus('Empty Dataset');
+                            
+                            const fuzzy = (r, names) => { 
+                                const keys = Object.keys(r);
+                                for (let name of names) {
+                                    for (let k of keys) {
+                                        if (k.trim().toLowerCase() === name && r[k]) return String(r[k]).trim();
+                                    }
+                                }
+                                return ''; 
+                            };
+                            
+                            setAboutData({ title: fuzzy(results.data[0], ['title', 'headline', 'name']) || 'About', description: fuzzy(results.data[0], ['description', 'text', 'content']) });
+
+                            const cleaned = results.data.slice(1).map((row, index) => {
+                                const s = fuzzy(row, ['start', 'start date', 'startdate', 'date']);
+                                const e = fuzzy(row, ['end', 'end date', 'enddate']);
+                                
+                                const parseDate = (str) => {
+                                    if (!str) return null;
+                                    if (/^\d+\.?\d*$/.test(str) && parseFloat(str) > 10000) return new Date((parseFloat(str) - 25569) * 86400 * 1000);
+                                    if (/^-?\d{1,4}$/.test(str)) { let d = new Date(0); d.setFullYear(parseInt(str), 0, 1); return d; }
+                                    let iso = str.replace(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/, (m, d, mo, y) => `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`);
+                                    let d = new Date(iso); if (!isNaN(d.getTime())) return d;
+                                    d = new Date(str); if (!isNaN(d.getTime())) return d;
+                                    return null;
+                                };
+                                let pS = parseDate(s), pE = parseDate(e);
+                                
+                                return {
+                                    id: index, title: fuzzy(row, ['title', 'headline', 'name']) || `Event ${index + 1}`,
+                                    startDate: (pS && !isNaN(pS.getTime())) ? pS : null, endDate: (pE && !isNaN(pE.getTime())) ? pE : null,
+                                    description: fuzzy(row, ['description', 'text', 'content']), location: fuzzy(row, ['location', 'latlon', 'coordinates']),
+                                    media: fuzzy(row, ['media', 'image', 'photo', 'url']) ? fuzzy(row, ['media', 'image', 'photo', 'url']).split(',').map(x=>x.trim()) : [],
+                                    mediaCaption: fuzzy(row, ['media caption', 'caption']), mediaCredit: fuzzy(row, ['media credit', 'credit']),
+                                    tags: fuzzy(row, ['tags', 'category', 'type', 'group']) ? fuzzy(row, ['tags', 'category', 'type', 'group']).split(',').map(t=>t.trim()).filter(t=>t) : []
+                                };
+                            });
+                            
+                            const valid = cleaned.filter(r => r.startDate).sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+                            setData([...valid, ...cleaned.filter(r => !r.startDate)]);
+                            setActiveIndex(0); 
+                            setStatus('Active');
+                        },
+                        error: (err) => { addLog(`Parse Error: ${err.message}`, 'error'); setStatus('Parse Failed'); }
+                    });
+                }).catch(err => { addLog(`Fetch failed: ${err.message}`, 'error'); setStatus('Fetch Failed'); });
+            }, []);
+
+            const activeSlide = data[activeIndex];
+            const hasMedia = activeSlide?.media?.length > 0;
+
+            return html`
+                <div id="tm-root">
+                    ${aboutData ? html`<div id="about-modal" class=${isAboutOpen ? 'open' : ''}><button class="about-close" onClick=${() => setIsAboutOpen(false)}>×</button><h2 dangerouslySetInnerHTML=${{__html: aboutData.title}}></h2><div style="line-height: 1.6;" dangerouslySetInnerHTML=${{__html: aboutData.description}}></div></div>` : ''}
+
+                    <div id="app-layout" ref=${appRef}>
+                        <div class="top-row">
+                            <div class="map-pane ${!hasMedia ? 'no-media' : ''}">
+                                <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} addLog=${addLog} />
+                                <${VibeMonitor} logs=${logs} status=${status} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} />
+                            </div>
+                            ${hasMedia ? html`<div class="resizer-h" onMouseDown=${startMapResize}></div>` : ''}
+                            <div class="media-pane" style="display: ${hasMedia ? 'flex' : 'none'};">
+                                <${MediaViewer} activeSlide=${activeSlide} />
+                            </div>
+                        </div>
+
+                        <div class="resizer-v" onMouseDown=${startTopResize}></div>
+                        
+                        <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} aboutData=${aboutData} setIsAboutOpen=${setIsAboutOpen} />
+                        
+                        <div class="resizer-v" onMouseDown=${startTimelineResize}></div>
+
+                        <div class="timeline-pane">
+                            <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} />
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+        render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
+        // === [ END APP ORCHESTRATOR v1.5.0 ] ===
+    </script>
+</body>
+</html>
