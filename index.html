@@ -9,17 +9,17 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
     <style>
-        /* === [ GLOBAL STYLES v2.3.0 ] === */
-        :root { --bg: #121212; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; }
-        body { margin: 0; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
+        /* === [ GLOBAL STYLES v2.4.0 ] === */
         
         /**
          * REQUIREMENT: Prevent Android soft-buttons and browser bars from hiding app content.
-         * METHODOLOGY: `position: fixed` with explicit `0` constraints strictly locks the canvas 
-         * inside the browser's dynamically calculated "Safe Area" without needing buggy `100vh` math.
+         * METHODOLOGY: `position: fixed` with explicit `0` constraints strictly locks the canvas inside safe-areas.
+         * IMPLEMENTATION: Set absolute 0 coordinates on #tm-root.
          */
-        #tm-root { position: fixed; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; display: flex; flex-direction: column; }
+        :root { --bg: #121212; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; }
+        body { margin: 0; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
         
+        #tm-root { position: fixed; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; display: flex; flex-direction: column; }
         #app-layout { --top-height: 35%; --map-width: 50%; --timeline-height: 15%; display: flex; flex-direction: column; flex: 1; width: 100vw; }
         
         .top-row { height: var(--top-height); display: flex; flex-shrink: 0; background: #fff; overflow: hidden; }
@@ -76,36 +76,43 @@
         .about-close { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5rem; cursor: pointer; }
 
         /**
-         * REQUIREMENT: Enable native hardware scrolling on mobile while allowing desktop mouse dragging.
-         * METHODOLOGY: Use `overflow-x: auto` and `touch-action: pan-x`.
+         * TIMELINE SWIMLANES v8.0
+         * REQUIREMENT: Fluid width limits and precise 4-line text clamping.
+         * METHODOLOGY: `max-width: min(400px, 50vw)` acts as an algorithmic clamp to protect mobile viewports.
+         * IMPLEMENTATION: Use `-webkit-line-clamp: 4` on the nested text container to elegantly truncate overflow.
          */
         .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-y: hidden; overflow-x: auto; position: relative; display: flex; align-items: flex-start; cursor: grab; touch-action: pan-x; -webkit-overflow-scrolling: touch; }
         .timeline-scroll-wrapper.is-dragging { cursor: grabbing; }
         .timeline-track-container { position: relative; height: 100%; }
         
-        /* Alternating Two-Tone Swimlanes implemented dynamically in JS */
         .tag-lane { border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; box-sizing: border-box; width: 100%; position: absolute; left: 0; right: 0; }
         .tag-lane-label { position: sticky; left: 0; z-index: 100; padding: 0 10px; font-size: 0.75rem; font-weight: bold; color: #555; display: flex; align-items: center; white-space: nowrap; box-shadow: 2px 0 4px rgba(0,0,0,0.05); border-right: 1px solid #ccc; }
         
-        .event-group { position: absolute; z-index: 10; transition: z-index 0.2s; display: flex; align-items: center; }
+        .event-group { position: absolute; z-index: 10; transition: z-index 0.2s; display: flex; align-items: flex-start; }
         .event-group.active { z-index: 30; }
         
-        .event-duration-bar { position: absolute; height: 12px; border-radius: 6px; box-shadow: inset 0 0 2px rgba(0,0,0,0.2); z-index: 1; }
+        .event-duration-bar { position: absolute; height: 12px; border-radius: 6px; box-shadow: inset 0 0 2px rgba(0,0,0,0.2); z-index: 1; top: 50%; transform: translateY(-50%); }
         
-        /* Event Blocks: widened to 260px (~4 lines) with text-wrap balance */
+        /* The Label Container */
         .event-block { 
-            position: relative; display: flex; align-items: center; justify-content: flex-start;
+            position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
             text-align: left; font-size: 0.75rem; cursor: pointer; transition: all 0.2s ease;
-            box-sizing: border-box; width: max-content; max-width: 260px; 
-            text-wrap: balance; 
+            box-sizing: border-box; width: max-content; 
+            /* Capped to 400px, but mathematically prevented from exceeding half the viewport */
+            max-width: min(400px, 50vw); 
             
             --diag-w: 10px;
             min-height: var(--lane-h);
             padding: 2px 8px 2px calc(var(--diag-w) + 6px); 
-            
             clip-path: polygon( 0 calc(50% - (var(--lane-h) / 2) + 0.5px), var(--diag-w) 0, 100% 0, 100% 100%, var(--diag-w) 100%, 0 calc(50% + (var(--lane-h) / 2) - 0.5px) );
         }
         .event-block:hover { filter: brightness(1.05); z-index: 40; }
+        
+        /* The Truncated Text Node */
+        .event-text {
+            display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical;
+            overflow: hidden; text-wrap: balance; line-height: 1.3;
+        }
         
         .timeline-axis { position: absolute; bottom: 0; left: 0; right: 0; height: 28px; background: #e0e0e0; border-top: 2px solid #999; z-index: 5; }
         .timeline-ruler-tick { position: absolute; bottom: 3px; display: flex; flex-direction: column; align-items: center; z-index: 5; transform: translateX(-50%); }
@@ -124,7 +131,7 @@
         .log-error { color: #ff5555; font-weight: bold; }
         .log-time { color: #6272a4; margin-right: 5px; }
         #vibe-toggle { position: absolute; bottom: 10px; left: 0; background: #222; color: #50fa7b; border: 1px solid #444; border-left: none; padding: 8px 12px; border-radius: 0 8px 8px 0; cursor: pointer; z-index: 9998; font-family: 'Courier New', monospace; font-weight: bold; box-shadow: 2px 0 10px rgba(0,0,0,0.5); }
-        /* === [ END GLOBAL STYLES v2.3.0 ] === */
+        /* === [ END GLOBAL STYLES v2.4.0 ] === */
     </style>
     
     <script type="importmap">
@@ -142,7 +149,7 @@
     <div id="root"></div>
 
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.16 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.17 ] ===
         import { h, render, Component } from 'preact';
         import { useState, useEffect, useRef } from 'preact/hooks';
         import htm from 'htm';
@@ -151,11 +158,11 @@
         const html = htm.bind(h);
         
         // Automated Global Registry
-        const APP_VERSION = 'v5.5.0';
+        const APP_VERSION = 'v5.6.0';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v2.3.0', Globals: 'v1.6.0' }; 
+        const MODULE_VERSIONS = { Styles: 'v2.4.0', Globals: 'v1.7.0' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
-        // === [ END GLOBAL VARIABLES v1.0.16 ] ===
+        // === [ END GLOBAL VARIABLES v1.0.17 ] ===
         
         // === [ UTILITIES ] ===
         const stripHTML = (htmlStr) => {
@@ -511,18 +518,19 @@
         MODULE_VERSIONS['ContentSlider'] = 'v1.0.0';
         // === [ END CONTENT SLIDER ] ===
 
-        // === [ TIMELINE SCRUBBER v8.1.0 ] ===
+        // === [ TIMELINE SCRUBBER v9.0.0 ] ===
         /**
          * REQUIREMENT:
-         * 1. "Smart Ticks": Major ticks show values (with 3px bottom margin). Minor ticks dynamically generate
-         * based on the time scale (e.g. Hours within Days, Days within Months) without overcrowding.
-         * 2. "Active Anchor": Provide a vertical line dropping from the active event to a shallow triangle base
-         * that physically spans the start and end period on the X-axis.
+         * 1. Auto-Zoom must guarantee a minimum of 10 pixels edge-to-edge clearance between events.
+         * 2. Active Anchor lines must perfectly flush with the X-Axis, spanning the duration.
          * * METHODOLOGY:
-         * 1. Smart Ticks: Run a primary loop for Major labels. Inside, run a nested secondary loop generating
-         * purely visual minor ticks if the pixel distance between them is greater than 5px.
-         * 2. Triangle Base: Use CSS `clip-path: polygon(0 0, 100% 100%, 0 100%)`. This anchors the top point
-         * at the Start line, and the bottom base stretches precisely from Start to End duration.
+         * 1. Pre-calculate the physical width of the active event's text label using a heuristic (7px per char).
+         * Solve the timeline scale formula so that `minDelta` equates to `actualWidth + 10px`.
+         * 2. Calculate `distanceToAxis` to draw the vertical line exactly from the bottom of the active block
+         * down to the top of the X-axis container.
+         * * IMPLEMENTATION:
+         * Inside the `useEffect`, `idealZoom` dynamically reacts to the character length of the active event.
+         * Inside the render map, `activeAnchor` calculates `availableLanesHeight - topPos - blockHeight` to draw.
          */
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
             const wrapperRef = useRef(null);
@@ -566,7 +574,7 @@
             const availableLanesHeight = Math.max(containerHeight - 28, 50);
             const laneHeight = Math.max(24, availableLanesHeight / (orderedTags.length || 1));
 
-            // Smart Auto-Zoom
+            // Heuristic Collision Physics (10px Edge-to-Edge Clearance)
             useEffect(() => {
                 const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
                 if (validData.length > 1 && wrapperRef.current && !dragRef.current.isDragging) {
@@ -586,6 +594,13 @@
                             const durationMs = eT - sT;
                             const activeTags = item.tags && item.tags.length > 0 ? item.tags : ['Untagged'];
                             
+                            // Heuristically predict the rendered pixel width of the active event's text
+                            const titleStr = stripHTML(item.title);
+                            const estWidth = (titleStr.length * 7) + 30; 
+                            const containerW = wrapperRef.current.offsetWidth || 1000;
+                            // Clamp prediction against CSS constraints
+                            const actualWidth = Math.min(estWidth, 400, containerW * 0.5);
+                            
                             let minDelta = Infinity;
                             validData.forEach((d, idx) => {
                                 if (idx === activeDataIndex) return;
@@ -600,12 +615,12 @@
                                 }
                             });
 
-                            const containerW = wrapperRef.current.offsetWidth || 1000;
                             let idealZoom = 1;
 
                             if (minDelta !== Infinity && minDelta > 0) {
-                                const trackWidthForNeighbor = (timeRange / minDelta) * 200;
-                                const trackWidthForDuration = durationMs > 0 ? (timeRange / durationMs) * (containerW * 0.7) : 0; 
+                                // We mathematically demand the physical gap equals the text box width + 10px clearance
+                                const trackWidthForNeighbor = (timeRange / minDelta) * (actualWidth + 10);
+                                const trackWidthForDuration = durationMs > 0 ? (timeRange / durationMs) * (containerW * 0.5) : 0; 
                                 const idealTrackWidth = Math.max(containerW, trackWidthForNeighbor, trackWidthForDuration);
                                 idealZoom = idealTrackWidth / containerW;
                             } else {
@@ -623,7 +638,7 @@
                 }
             }, [activeIndex, data]); 
 
-            // Focus-Lock
+            // Focus-Lock Scroll Centering
             useEffect(() => {
                 const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
                 const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
@@ -636,7 +651,8 @@
                     const item = validData[activeDataIndex];
                     const sT = item.startDate.getTime();
                     const eT = (item.endDate && !isNaN(item.endDate.getTime())) ? item.endDate.getTime() : sT;
-                    const pct = ((sT + eT) / 2 - minTime) / timeRange;
+                    const midpointTime = (sT + eT) / 2;
+                    const pct = (midpointTime - minTime) / timeRange;
 
                     setTimeout(() => {
                         if (wrapperRef.current) {
@@ -648,7 +664,6 @@
                 }
             }, [activeIndex, zoomLevel, data]);
 
-            // Unified Touch & Mouse Drag
             const onDown = (e) => { 
                 const x = e.touches ? e.touches[0].clientX : e.clientX;
                 dragRef.current = { isDragging: true, startX: x - wrapperRef.current.offsetLeft, scrollLeft: wrapperRef.current.scrollLeft }; 
@@ -658,7 +673,7 @@
             const onMove = (e) => {
                 if (!dragRef.current.isDragging) return;
                 const x = e.touches ? e.touches[0].clientX : e.clientX;
-                if (!e.touches) e.preventDefault(); // Don't block native touch scrolling, only mouse
+                if (!e.touches) e.preventDefault(); 
                 wrapperRef.current.scrollLeft = dragRef.current.scrollLeft - ((x - wrapperRef.current.offsetLeft - dragRef.current.startX) * 2);
             };
 
@@ -675,9 +690,9 @@
             const visibleMs = timeRange / zoomLevel;
             const msPerPixel = visibleMs / containerW;
             
-            // Smart Ticks Math
-            const MINUTE = 60000; const HOUR = 60 * MINUTE; const DAY = 24 * HOUR; const MONTH = 30 * DAY; const YEAR = 365.25 * DAY;
             const targetMsPerMajorTick = (200 / (containerW || 1000)) * visibleMs; 
+
+            const MINUTE = 60000; const HOUR = 60 * MINUTE; const DAY = 24 * HOUR; const MONTH = 30 * DAY; const YEAR = 365.25 * DAY;
             const majorSteps = [ 100 * YEAR, 50 * YEAR, 10 * YEAR, YEAR, 6 * MONTH, MONTH, 7 * DAY, DAY, 12 * HOUR, 6 * HOUR, HOUR ];
             
             let majorStepMs = majorSteps[0];
@@ -716,12 +731,11 @@
                         </div>
                     `);
 
-                    // Minor Ticks Loop
                     let minorIter = iterTime + minorStepMs;
                     let minorCount = 0;
                     while (minorIter < iterTime + majorStepMs && minorCount < 30) {
                         minorCount++;
-                        if ((minorStepMs / msPerPixel) > 15) { // Only draw minor tick if it's visually spaced > 15px
+                        if ((minorStepMs / msPerPixel) > 15) { 
                             const mPctLeft = ((minorIter - minTime) / timeRange) * 100;
                             rulerTicks.push(html`<div style="position: absolute; left: ${mPctLeft}%; bottom: 28px; width: 1px; height: 5px; background: #999; z-index: 4;"></div>`);
                         }
@@ -750,16 +764,18 @@
                 const blockHeight = (maxIdx - minIdx + 1) * laneHeight; 
 
                 const durationBar = hasDuration ? html`
-                    <div class="event-duration-bar" style="left: 0; width: ${(endPct - startPct) / (endPct > startPct ? (endPct - startPct) : 1) * 100}%; background: ${isActive ? 'rgba(0,122,204,0.6)' : 'rgba(211,47,47,0.3)'}; z-index: 1;"></div>
+                    <div class="event-duration-bar" style="left: 0; width: 100%; background: ${isActive ? 'rgba(0,122,204,0.6)' : 'rgba(211,47,47,0.3)'}; z-index: 1;"></div>
                 ` : '';
 
-                // Active Anchor Line & Triangle
+                // Absolute Anchor Math to perfectly bridge the gap to the X-Axis
                 let activeAnchor = '';
                 if (isActive) {
-                    const triangleWidth = hasDuration ? (endPct - startPct) : ((10 / containerW) * 100); // physical duration or fixed 10px
+                    const distanceToAxis = availableLanesHeight - topPos - blockHeight;
+                    const triangleWidth = hasDuration ? (endPct - startPct) : ((10 / containerW) * 100); 
+                    
                     activeAnchor = html`
-                        <div style="position: absolute; left: 0; top: ${blockHeight}px; bottom: -28px; width: 1px; background: #007acc; z-index: 20;"></div>
-                        <div style="position: absolute; left: 0; bottom: -28px; width: ${triangleWidth}%; height: 28px; background: rgba(0,122,204,0.25); border-top: 1px solid #007acc; clip-path: polygon(0 0, 100% 100%, 0 100%); z-index: 15;"></div>
+                        <div style="position: absolute; left: 0; top: ${blockHeight}px; height: ${distanceToAxis}px; width: 1px; background: #007acc; z-index: 20;"></div>
+                        <div style="position: absolute; left: 0; top: ${blockHeight + distanceToAxis}px; width: ${triangleWidth}%; height: 28px; background: rgba(0,122,204,0.25); border-top: 1px solid #007acc; clip-path: polygon(0 0, 100% 100%, 0 100%); z-index: 15;"></div>
                     `;
                 }
 
@@ -770,7 +786,7 @@
                         ${durationBar}
                         ${activeAnchor}
                         <div class="event-block" style="--lane-h: ${laneHeight}px; background: ${isActive ? '#007acc' : '#e0e0e0'}; color: ${isActive ? '#fff' : '#222'}; font-weight: ${isActive ? 'bold' : 'normal'}; z-index: 5;">
-                            ${stripHTML(item.title)}
+                            <span class="event-text">${stripHTML(item.title)}</span>
                         </div>
                     </div>
                 `;
@@ -801,8 +817,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v8.1.0';
-        // === [ END TIMELINE SCRUBBER ] ===
+        MODULE_VERSIONS['TimelineScrubber'] = 'v9.0.0';
+        // === [ END TIMELINE SCRUBBER v9.0.0 ] ===
 
         // === [ APP ORCHESTRATOR v1.7.0 ] ===
         /**
