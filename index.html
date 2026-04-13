@@ -9,21 +9,16 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
     <style>
-        /* === [ GLOBAL STYLES v2.2.0 ] === */
-        
-        /**
-         * REQUIREMENT: Create a fluid, full-screen layout that respects mobile device boundaries (Safe Areas)
-         * while allowing manual resizing of internal panes.
-         * * METHODOLOGY: 
-         * 1. Pin `#tm-root` to absolute 0 on all sides. This forces the browser to calculate height 
-         * *inside* the software UI bars (Android buttons / Safari URL bars), preventing overflow.
-         * 2. Use CSS Variables (`--top-height`, `--map-width`) initialized on the `#app-layout` wrapper.
-         * JavaScript mouse events update these variables, achieving 60fps dragging without React re-renders.
-         */
+        /* === [ GLOBAL STYLES v2.3.0 ] === */
         :root { --bg: #121212; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; }
         body { margin: 0; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
         
-        #tm-root { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; display: flex; flex-direction: column; }
+        /**
+         * REQUIREMENT: Prevent Android soft-buttons and browser bars from hiding app content.
+         * METHODOLOGY: `position: fixed` with explicit `0` constraints strictly locks the canvas 
+         * inside the browser's dynamically calculated "Safe Area" without needing buggy `100vh` math.
+         */
+        #tm-root { position: fixed; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; display: flex; flex-direction: column; }
         
         #app-layout { --top-height: 35%; --map-width: 50%; --timeline-height: 15%; display: flex; flex-direction: column; flex: 1; width: 100vw; }
         
@@ -40,18 +35,8 @@
         .content-pane-wrapper { flex: 1; position: relative; display: flex; flex-direction: column; background: var(--paneBg); overflow: hidden; }
         .timeline-pane { height: var(--timeline-height); min-height: 160px; flex-shrink: 0; padding: 0; background: #ececec; display: flex; flex-direction: column; position: relative; overflow: hidden; }
 
-        /**
-         * REQUIREMENT: Map tooltips must be readable, text-balanced, and aesthetically identical to the timeline.
-         * METHODOLOGY: Override Leaflet's aggressive `white-space: nowrap` using `!important`. 
-         * Apply `text-wrap: balance` to algorithmically calculate near-equal line breaks, preventing jagged paragraphs.
-         */
         #map-container { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; }
-        .leaflet-tooltip { 
-            white-space: normal !important; word-wrap: break-word !important; 
-            width: max-content !important; max-width: 300px !important; 
-            text-align: left !important; font-size: 0.85rem; font-weight: normal !important; 
-            line-height: 1.4; padding: 6px 10px !important; text-wrap: balance !important; 
-        }
+        .leaflet-tooltip { white-space: normal !important; word-wrap: break-word !important; width: max-content !important; max-width: 300px !important; text-align: left !important; font-size: 0.85rem; font-weight: normal !important; line-height: 1.4; padding: 6px 10px !important; text-wrap: balance !important; }
 
         .custom-map-pin { display: flex; align-items: flex-end; justify-content: center; width: 24px; height: 34px; margin-left: -12px; margin-top: -34px; }
         .pin-head { width: 14px; height: 14px; border-radius: 50%; background: #d32f2f; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.4); position: absolute; top: 0; transition: all 0.2s ease; }
@@ -91,28 +76,33 @@
         .about-close { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5rem; cursor: pointer; }
 
         /**
-         * REQUIREMENT: Timeline markers must be visually distinct, wrap elegantly, and not block Tag lane labels.
-         * METHODOLOGY: 
-         * 1. Use `.tag-lane-label` with `position: sticky` and a solid background to float ABOVE the markers.
-         * 2. Use `clip-path: polygon` to slice a hexagonal shape out of the event blocks.
+         * REQUIREMENT: Enable native hardware scrolling on mobile while allowing desktop mouse dragging.
+         * METHODOLOGY: Use `overflow-x: auto` and `touch-action: pan-x`.
          */
-        .timeline-scroll-wrapper { width: 100%; height: 100%; overflow: hidden; position: relative; display: flex; align-items: flex-start; cursor: grab; }
+        .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-y: hidden; overflow-x: auto; position: relative; display: flex; align-items: flex-start; cursor: grab; touch-action: pan-x; -webkit-overflow-scrolling: touch; }
         .timeline-scroll-wrapper.is-dragging { cursor: grabbing; }
         .timeline-track-container { position: relative; height: 100%; }
         
+        /* Alternating Two-Tone Swimlanes implemented dynamically in JS */
         .tag-lane { border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; box-sizing: border-box; width: 100%; position: absolute; left: 0; right: 0; }
-        .tag-lane-label { position: sticky; left: 0; z-index: 100; padding: 0 10px; font-size: 0.75rem; font-weight: bold; color: #555; display: flex; align-items: center; white-space: nowrap; background: #ececec; box-shadow: 2px 0 4px rgba(0,0,0,0.05); border-right: 1px solid #ccc; }
+        .tag-lane-label { position: sticky; left: 0; z-index: 100; padding: 0 10px; font-size: 0.75rem; font-weight: bold; color: #555; display: flex; align-items: center; white-space: nowrap; box-shadow: 2px 0 4px rgba(0,0,0,0.05); border-right: 1px solid #ccc; }
         
         .event-group { position: absolute; z-index: 10; transition: z-index 0.2s; display: flex; align-items: center; }
         .event-group.active { z-index: 30; }
-        .event-duration-bar { position: absolute; height: 12px; border-radius: 6px; box-shadow: inset 0 0 2px rgba(0,0,0,0.2); }
         
+        .event-duration-bar { position: absolute; height: 12px; border-radius: 6px; box-shadow: inset 0 0 2px rgba(0,0,0,0.2); z-index: 1; }
+        
+        /* Event Blocks: widened to 260px (~4 lines) with text-wrap balance */
         .event-block { 
             position: relative; display: flex; align-items: center; justify-content: flex-start;
             text-align: left; font-size: 0.75rem; cursor: pointer; transition: all 0.2s ease;
-            box-sizing: border-box; width: max-content; max-width: 180px; 
+            box-sizing: border-box; width: max-content; max-width: 260px; 
             text-wrap: balance; 
-            --diag-w: 10px; min-height: var(--lane-h); padding: 2px 8px 2px calc(var(--diag-w) + 6px); 
+            
+            --diag-w: 10px;
+            min-height: var(--lane-h);
+            padding: 2px 8px 2px calc(var(--diag-w) + 6px); 
+            
             clip-path: polygon( 0 calc(50% - (var(--lane-h) / 2) + 0.5px), var(--diag-w) 0, 100% 0, 100% 100%, var(--diag-w) 100%, 0 calc(50% + (var(--lane-h) / 2) - 0.5px) );
         }
         .event-block:hover { filter: brightness(1.05); z-index: 40; }
@@ -134,7 +124,7 @@
         .log-error { color: #ff5555; font-weight: bold; }
         .log-time { color: #6272a4; margin-right: 5px; }
         #vibe-toggle { position: absolute; bottom: 10px; left: 0; background: #222; color: #50fa7b; border: 1px solid #444; border-left: none; padding: 8px 12px; border-radius: 0 8px 8px 0; cursor: pointer; z-index: 9998; font-family: 'Courier New', monospace; font-weight: bold; box-shadow: 2px 0 10px rgba(0,0,0,0.5); }
-        /* === [ END GLOBAL STYLES v2.2.0 ] === */
+        /* === [ END GLOBAL STYLES v2.3.0 ] === */
     </style>
     
     <script type="importmap">
@@ -152,7 +142,7 @@
     <div id="root"></div>
 
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.15 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.16 ] ===
         import { h, render, Component } from 'preact';
         import { useState, useEffect, useRef } from 'preact/hooks';
         import htm from 'htm';
@@ -161,11 +151,11 @@
         const html = htm.bind(h);
         
         // Automated Global Registry
-        const APP_VERSION = 'v5.4.0';
+        const APP_VERSION = 'v5.5.0';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v2.2.0', Globals: 'v1.5.0' }; 
+        const MODULE_VERSIONS = { Styles: 'v2.3.0', Globals: 'v1.6.0' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
-        // === [ END GLOBAL VARIABLES v1.0.15 ] ===
+        // === [ END GLOBAL VARIABLES v1.0.16 ] ===
         
         // === [ UTILITIES ] ===
         const stripHTML = (htmlStr) => {
@@ -521,27 +511,24 @@
         MODULE_VERSIONS['ContentSlider'] = 'v1.0.0';
         // === [ END CONTENT SLIDER ] ===
 
-        // === [ TIMELINE SCRUBBER v8.0.0 ] ===
+        // === [ TIMELINE SCRUBBER v8.1.0 ] ===
         /**
-         * REQUIREMENT: 
-         * Render an interactive, draggable timeline that groups events into categorical "Swimlanes" (Tags).
-         * It must feature intelligent Collision-Avoidance Auto-Zoom to ensure text labels never overlap,
-         * while allowing the user to manually override the zoom via buttons or mouse-wheel.
+         * REQUIREMENT:
+         * 1. "Smart Ticks": Major ticks show values (with 3px bottom margin). Minor ticks dynamically generate
+         * based on the time scale (e.g. Hours within Days, Days within Months) without overcrowding.
+         * 2. "Active Anchor": Provide a vertical line dropping from the active event to a shallow triangle base
+         * that physically spans the start and end period on the X-axis.
          * * METHODOLOGY:
-         * 1. Extract and sort unique tags from the dataset to build horizontal lanes.
-         * 2. Track container dimensions via ResizeObserver to dynamically divide available height among the lanes.
-         * 3. Intercept `activeIndex` changes to calculate the physical pixel proximity of neighboring events.
-         * Solve for the exact `zoomLevel` required to push conflicting events exactly 200px apart.
-         * 4. Wrap the returned DOM in a singular `<div style="position: relative; width: 100%; height: 100%;">` 
-         * to satisfy Virtual DOM (HTM) strict node requirements and prevent fatal parsing crashes.
+         * 1. Smart Ticks: Run a primary loop for Major labels. Inside, run a nested secondary loop generating
+         * purely visual minor ticks if the pixel distance between them is greater than 5px.
+         * 2. Triangle Base: Use CSS `clip-path: polygon(0 0, 100% 100%, 0 100%)`. This anchors the top point
+         * at the Start line, and the bottom base stretches precisely from Start to End duration.
          */
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
             const dragRef = useRef({ isDragging: false, startX: 0, scrollLeft: 0 });
             const [containerHeight, setContainerHeight] = useState(200);
-            
-            // Interceptor Ref: Prevents auto-zoom logic from continuously overwriting manual user zoom.
             const prevActiveIndexRef = useRef(-1);
 
             useEffect(() => {
@@ -551,7 +538,6 @@
                 return () => window.removeEventListener('resize', measure);
             }, []);
 
-            // Extrapolate and organize unique tags
             const tagsMap = new Set();
             const tagPairs = [];
             data.forEach(d => {
@@ -577,26 +563,17 @@
                 if (!placed) orderedTags.push(remaining.shift());
             }
 
-            // Reserve 28px for the bottom X-Axis. Divide remaining height evenly among Tag Lanes.
             const availableLanesHeight = Math.max(containerHeight - 28, 50);
             const laneHeight = Math.max(24, availableLanesHeight / (orderedTags.length || 1));
 
-            /**
-             * Auto-Zoom Collision Physics
-             * Computes distance to closest neighbor on the SAME lane.
-             * Formula: zoomRequired = (200px * totalTimeRange) / (deltaTime * containerWidth)
-             */
+            // Smart Auto-Zoom
             useEffect(() => {
                 const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
-                
                 if (validData.length > 1 && wrapperRef.current && !dragRef.current.isDragging) {
-                    
-                    // Only trigger mathematical zoom calculations if the Active Slide actually changed.
                     if (activeIndex !== prevActiveIndexRef.current) {
                         prevActiveIndexRef.current = activeIndex;
 
                         const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
-                        
                         if (activeDataIndex >= 0) {
                             const minTime = validData[0].startDate.getTime();
                             let maxTime = validData[validData.length - 1].startDate.getTime();
@@ -607,15 +584,12 @@
                             const sT = item.startDate.getTime();
                             const eT = (item.endDate && !isNaN(item.endDate.getTime())) ? item.endDate.getTime() : sT;
                             const durationMs = eT - sT;
-                            
                             const activeTags = item.tags && item.tags.length > 0 ? item.tags : ['Untagged'];
                             
                             let minDelta = Infinity;
                             validData.forEach((d, idx) => {
                                 if (idx === activeDataIndex) return;
                                 const dTags = d.tags && d.tags.length > 0 ? d.tags : ['Untagged'];
-                                
-                                // Only calculate collision if the events share a physical swimlane
                                 if (dTags.some(t => activeTags.includes(t))) {
                                     const dSt = d.startDate.getTime();
                                     const dEt = (d.endDate && !isNaN(d.endDate.getTime())) ? d.endDate.getTime() : dSt;
@@ -630,20 +604,18 @@
                             let idealZoom = 1;
 
                             if (minDelta !== Infinity && minDelta > 0) {
-                                // Target 200px of physical pixel separation between conflicting text blocks
                                 const trackWidthForNeighbor = (timeRange / minDelta) * 200;
                                 const trackWidthForDuration = durationMs > 0 ? (timeRange / durationMs) * (containerW * 0.7) : 0; 
                                 const idealTrackWidth = Math.max(containerW, trackWidthForNeighbor, trackWidthForDuration);
                                 idealZoom = idealTrackWidth / containerW;
                             } else {
-                                // Isolated Event Default: Scale the timeline to show exactly 10 years across the screen
-                                const tenYearsMs = 10 * 365.25 * 24 * 60 * 60 * 1000;
-                                idealZoom = timeRange / tenYearsMs;
+                                const fiveYearsMs = 5 * 365.25 * 24 * 60 * 60 * 1000;
+                                idealZoom = timeRange / fiveYearsMs;
                             }
 
                             setZoomLevel(prev => {
-                                 const target = Math.min(Math.max(1, idealZoom), 100); 
-                                 const smoothed = prev + (target - prev) * 0.5; // Smooth visual interpolation
+                                 const target = Math.min(Math.max(1, idealZoom), 150); 
+                                 const smoothed = prev + (target - prev) * 0.5; 
                                  return Math.abs(prev - smoothed) > 0.1 ? smoothed : prev;
                             });
                         }
@@ -651,7 +623,7 @@
                 }
             }, [activeIndex, data]); 
 
-            // Focus-Lock Scroll Centering
+            // Focus-Lock
             useEffect(() => {
                 const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
                 const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
@@ -664,8 +636,7 @@
                     const item = validData[activeDataIndex];
                     const sT = item.startDate.getTime();
                     const eT = (item.endDate && !isNaN(item.endDate.getTime())) ? item.endDate.getTime() : sT;
-                    const midpointTime = (sT + eT) / 2;
-                    const pct = (midpointTime - minTime) / timeRange;
+                    const pct = ((sT + eT) / 2 - minTime) / timeRange;
 
                     setTimeout(() => {
                         if (wrapperRef.current) {
@@ -677,13 +648,18 @@
                 }
             }, [activeIndex, zoomLevel, data]);
 
-            // Drag State Listeners
-            const onMouseDown = (e) => { dragRef.current = { isDragging: true, startX: e.pageX - wrapperRef.current.offsetLeft, scrollLeft: wrapperRef.current.scrollLeft }; wrapperRef.current.classList.add('is-dragging'); };
-            const onMouseUpLeave = () => { dragRef.current.isDragging = false; wrapperRef.current?.classList.remove('is-dragging'); };
-            const onMouseMove = (e) => {
+            // Unified Touch & Mouse Drag
+            const onDown = (e) => { 
+                const x = e.touches ? e.touches[0].clientX : e.clientX;
+                dragRef.current = { isDragging: true, startX: x - wrapperRef.current.offsetLeft, scrollLeft: wrapperRef.current.scrollLeft }; 
+                wrapperRef.current.classList.add('is-dragging'); 
+            };
+            const onUp = () => { dragRef.current.isDragging = false; wrapperRef.current?.classList.remove('is-dragging'); };
+            const onMove = (e) => {
                 if (!dragRef.current.isDragging) return;
-                e.preventDefault();
-                wrapperRef.current.scrollLeft = dragRef.current.scrollLeft - ((e.pageX - wrapperRef.current.offsetLeft - dragRef.current.startX) * 2);
+                const x = e.touches ? e.touches[0].clientX : e.clientX;
+                if (!e.touches) e.preventDefault(); // Don't block native touch scrolling, only mouse
+                wrapperRef.current.scrollLeft = dragRef.current.scrollLeft - ((x - wrapperRef.current.offsetLeft - dragRef.current.startX) * 2);
             };
 
             const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
@@ -697,27 +673,30 @@
             const trackWidthStr = Math.max(100, data.length * 8) * zoomLevel;
             const containerW = wrapperRef.current ? wrapperRef.current.offsetWidth : 1000;
             const visibleMs = timeRange / zoomLevel;
+            const msPerPixel = visibleMs / containerW;
             
-            // X-Axis Configuration: Target one logical tick mark every ~150px
-            const targetMsPerTick = (150 / (containerW || 1000)) * visibleMs; 
-
+            // Smart Ticks Math
             const MINUTE = 60000; const HOUR = 60 * MINUTE; const DAY = 24 * HOUR; const MONTH = 30 * DAY; const YEAR = 365.25 * DAY;
-            const steps = [ 500 * YEAR, 100 * YEAR, 50 * YEAR, 20 * YEAR, 10 * YEAR, 5 * YEAR, YEAR, 6 * MONTH, 3 * MONTH, MONTH, 14 * DAY, 7 * DAY, DAY, 12 * HOUR, 6 * HOUR, 2 * HOUR, HOUR, 30 * MINUTE ];
+            const targetMsPerMajorTick = (200 / (containerW || 1000)) * visibleMs; 
+            const majorSteps = [ 100 * YEAR, 50 * YEAR, 10 * YEAR, YEAR, 6 * MONTH, MONTH, 7 * DAY, DAY, 12 * HOUR, 6 * HOUR, HOUR ];
             
-            let stepMs = steps[0];
-            for (let s of steps) { if (targetMsPerTick <= s) stepMs = s; }
+            let majorStepMs = majorSteps[0];
+            for (let s of majorSteps) { if (targetMsPerMajorTick <= s) majorStepMs = s; }
 
-            let formatType = 'year';
-            if (stepMs < YEAR) formatType = 'month';
-            if (stepMs < MONTH) formatType = 'day';
-            if (stepMs < DAY) formatType = 'time';
+            let formatType = 'year'; let minorStepMs = MONTH;
+            if (majorStepMs <= YEAR) { formatType = 'month'; minorStepMs = 7 * DAY; }
+            if (majorStepMs <= MONTH) { formatType = 'day'; minorStepMs = DAY; }
+            if (majorStepMs <= DAY) { formatType = 'time'; minorStepMs = 4 * HOUR; }
+            if (majorStepMs <= 12 * HOUR) { formatType = 'time'; minorStepMs = HOUR; }
 
             const rulerTicks = [];
-            let startTickTime = minTime;
-            if (formatType === 'year') startTickTime = new Date(new Date(minTime).getFullYear(), 0, 1).getTime();
-            if (formatType === 'month') startTickTime = new Date(new Date(minTime).getFullYear(), new Date(minTime).getMonth(), 1).getTime();
-            
-            let iterTime = startTickTime;
+            let currentD = new Date(minTime);
+            if (formatType === 'year') currentD.setMonth(0, 1);
+            if (formatType === 'month') currentD.setDate(1);
+            if (formatType === 'day') currentD.setHours(0,0,0,0);
+            if (formatType === 'time') currentD.setMinutes(0,0,0);
+
+            let iterTime = currentD.getTime();
             let safety = 0;
             while (iterTime <= maxTime && safety < 1000) {
                 safety++;
@@ -727,31 +706,29 @@
                     if (formatType === 'year') label = d.getFullYear();
                     else if (formatType === 'month') label = d.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
                     else if (formatType === 'day') label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short' });
-                    else if (formatType === 'time') label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                    else if (formatType === 'time') label = d.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
                     const pctLeft = ((iterTime - minTime) / timeRange) * 100;
                     rulerTicks.push(html`
                         <div class="timeline-ruler-tick" style="left: ${pctLeft}%; position: absolute; bottom: 3px; display: flex; flex-direction: column; align-items: center; z-index: 5;">
-                            <div style="width: 2px; height: 8px; background: #999; margin-bottom: 2px;"></div>
+                            <div style="width: 2px; height: 10px; background: #666; margin-bottom: 2px;"></div>
                             <div style="font-size: 0.75rem; color: #444; font-weight: bold; white-space: nowrap;">${label}</div>
                         </div>
                     `);
+
+                    // Minor Ticks Loop
+                    let minorIter = iterTime + minorStepMs;
+                    let minorCount = 0;
+                    while (minorIter < iterTime + majorStepMs && minorCount < 30) {
+                        minorCount++;
+                        if ((minorStepMs / msPerPixel) > 15) { // Only draw minor tick if it's visually spaced > 15px
+                            const mPctLeft = ((minorIter - minTime) / timeRange) * 100;
+                            rulerTicks.push(html`<div style="position: absolute; left: ${mPctLeft}%; bottom: 28px; width: 1px; height: 5px; background: #999; z-index: 4;"></div>`);
+                        }
+                        minorIter += minorStepMs;
+                    }
                 }
-                
-                const tempD = new Date(iterTime);
-                if (stepMs === 500 * YEAR) tempD.setFullYear(tempD.getFullYear() + 500);
-                else if (stepMs === 100 * YEAR) tempD.setFullYear(tempD.getFullYear() + 100);
-                else if (stepMs === 50 * YEAR) tempD.setFullYear(tempD.getFullYear() + 50);
-                else if (stepMs === 20 * YEAR) tempD.setFullYear(tempD.getFullYear() + 20);
-                else if (stepMs === 10 * YEAR) tempD.setFullYear(tempD.getFullYear() + 10);
-                else if (stepMs === 5 * YEAR) tempD.setFullYear(tempD.getFullYear() + 5);
-                else if (stepMs === YEAR) tempD.setFullYear(tempD.getFullYear() + 1);
-                else if (stepMs === 6 * MONTH) tempD.setMonth(tempD.getMonth() + 6);
-                else if (stepMs === 3 * MONTH) tempD.setMonth(tempD.getMonth() + 3);
-                else if (stepMs === MONTH) tempD.setMonth(tempD.getMonth() + 1);
-                else iterTime += stepMs; 
-                
-                if (stepMs >= MONTH) iterTime = tempD.getTime();
+                iterTime += majorStepMs; 
             }
 
             const markers = data.map((item, index) => {
@@ -773,14 +750,25 @@
                 const blockHeight = (maxIdx - minIdx + 1) * laneHeight; 
 
                 const durationBar = hasDuration ? html`
-                    <div class="event-duration-bar" style="left: 0; width: 100%; background: ${isActive ? 'rgba(0,122,204,0.6)' : 'rgba(211,47,47,0.3)'}; z-index: 1;"></div>
+                    <div class="event-duration-bar" style="left: 0; width: ${(endPct - startPct) / (endPct > startPct ? (endPct - startPct) : 1) * 100}%; background: ${isActive ? 'rgba(0,122,204,0.6)' : 'rgba(211,47,47,0.3)'}; z-index: 1;"></div>
                 ` : '';
+
+                // Active Anchor Line & Triangle
+                let activeAnchor = '';
+                if (isActive) {
+                    const triangleWidth = hasDuration ? (endPct - startPct) : ((10 / containerW) * 100); // physical duration or fixed 10px
+                    activeAnchor = html`
+                        <div style="position: absolute; left: 0; top: ${blockHeight}px; bottom: -28px; width: 1px; background: #007acc; z-index: 20;"></div>
+                        <div style="position: absolute; left: 0; bottom: -28px; width: ${triangleWidth}%; height: 28px; background: rgba(0,122,204,0.25); border-top: 1px solid #007acc; clip-path: polygon(0 0, 100% 100%, 0 100%); z-index: 15;"></div>
+                    `;
+                }
 
                 const groupWidth = hasDuration ? `width: ${endPct - startPct}%; min-width: 4px;` : `width: max-content;`;
 
                 return html`
                     <div id="timeline-marker-${index}" class="event-group ${isActive ? 'active' : ''}" style="left: ${startPct}%; top: ${topPos}px; height: ${blockHeight}px; ${groupWidth}" onClick=${() => setActiveIndex(index)}>
                         ${durationBar}
+                        ${activeAnchor}
                         <div class="event-block" style="--lane-h: ${laneHeight}px; background: ${isActive ? '#007acc' : '#e0e0e0'}; color: ${isActive ? '#fff' : '#222'}; font-weight: ${isActive ? 'bold' : 'normal'}; z-index: 5;">
                             ${stripHTML(item.title)}
                         </div>
@@ -788,19 +776,18 @@
                 `;
             });
 
-            // CRITICAL FIX: The entire output is wrapped in a singular root <div style="..."> to prevent HTM parse crashes.
             return html`
                 <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;">
                     <div class="timeline-controls">
                         <button class="timeline-btn" onClick=${() => setZoomLevel(p => Math.max(p - 0.5, 0.5))}>-</button>
-                        <button class="timeline-btn" onClick=${() => setZoomLevel(p => Math.min(p + 0.5, 100))}>+</button>
+                        <button class="timeline-btn" onClick=${() => setZoomLevel(p => Math.min(p + 0.5, 150))}>+</button>
                     </div>
-                    <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onMouseDown} onMouseLeave=${onMouseUpLeave} onMouseUp=${onMouseUpLeave} onMouseMove=${onMouseMove} onWheel=${(e) => { e.preventDefault(); setZoomLevel(p => e.deltaY < 0 ? Math.min(p + 0.5, 100) : Math.max(p - 0.5, 0.5)); }}>
+                    <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${(e) => { e.preventDefault(); setZoomLevel(p => e.deltaY < 0 ? Math.min(p + 0.5, 150) : Math.max(p - 0.5, 0.5)); }}>
                         <div class="timeline-track-container" style="width: ${trackWidthStr}%; min-width: 100%; height: 100%;">
                             
                             ${orderedTags.map((tag, i) => html`
-                                <div class="tag-lane" style="top: ${i * laneHeight}px; height: ${laneHeight}px;">
-                                    <div class="tag-lane-label">${tag}</div>
+                                <div class="tag-lane" style="top: ${i * laneHeight}px; height: ${laneHeight}px; background: ${i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent'};">
+                                    <div class="tag-lane-label" style="background: ${i % 2 === 0 ? '#f4f4f4' : '#fcfcfc'};">${tag}</div>
                                 </div>
                             `)}
 
@@ -814,10 +801,14 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v8.0.0';
-        // === [ END TIMELINE SCRUBBER v8.0.0 ] ===
+        MODULE_VERSIONS['TimelineScrubber'] = 'v8.1.0';
+        // === [ END TIMELINE SCRUBBER ] ===
 
-        // === [ APP ORCHESTRATOR ] ===
+        // === [ APP ORCHESTRATOR v1.7.0 ] ===
+        /**
+         * REQUIREMENT: Enable fluid resizing of layout panes on both Desktop (Mouse) and Mobile (Touch).
+         * METHODOLOGY: Event listeners detect `e.touches` to support multi-touch screens natively.
+         */
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [data, setData] = useState([]);
@@ -830,55 +821,74 @@
 
             const addLog = (msg, type = 'info') => setLogs(p => [...p, { time: new Date().toLocaleTimeString('en-US', { hour12: false }), msg, type }]);
 
+            // Unified Touch & Mouse Resize Physics
             const startMapResize = (e) => {
                 e.preventDefault();
-                const startX = e.clientX;
+                const startX = e.touches ? e.touches[0].clientX : e.clientX;
                 const mapNode = appRef.current.querySelector('.map-pane');
                 const startWidth = mapNode.offsetWidth;
                 const containerWidth = appRef.current.querySelector('.top-row').offsetWidth;
                 
                 const onMove = (e2) => {
-                    let newWidth = startWidth + (e2.clientX - startX);
+                    const currentX = e2.touches ? e2.touches[0].clientX : e2.clientX;
+                    let newWidth = startWidth + (currentX - startX);
                     let pct = (newWidth / containerWidth) * 100;
                     if (pct < 10) pct = 10; if (pct > 90) pct = 90;
                     appRef.current.style.setProperty('--map-width', `${pct}%`);
                 };
-                const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); window.dispatchEvent(new Event('resize')); };
+                const onUp = () => { 
+                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
+                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); 
+                    window.dispatchEvent(new Event('resize')); 
+                };
                 document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+                document.addEventListener('touchmove', onMove); document.addEventListener('touchend', onUp);
             };
 
             const startTopResize = (e) => {
                 e.preventDefault();
-                const startY = e.clientY;
+                const startY = e.touches ? e.touches[0].clientY : e.clientY;
                 const topNode = appRef.current.querySelector('.top-row');
                 const startHeight = topNode.offsetHeight;
                 const containerHeight = appRef.current.offsetHeight;
                 
                 const onMove = (e2) => {
-                    let newHeight = startHeight + (e2.clientY - startY);
+                    const currentY = e2.touches ? e2.touches[0].clientY : e2.clientY;
+                    let newHeight = startHeight + (currentY - startY);
                     let pct = (newHeight / containerHeight) * 100;
                     if (pct < 10) pct = 10; if (pct > 80) pct = 80;
                     appRef.current.style.setProperty('--top-height', `${pct}%`);
                 };
-                const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); window.dispatchEvent(new Event('resize')); };
+                const onUp = () => { 
+                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
+                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); 
+                    window.dispatchEvent(new Event('resize')); 
+                };
                 document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+                document.addEventListener('touchmove', onMove); document.addEventListener('touchend', onUp);
             };
 
             const startTimelineResize = (e) => {
                 e.preventDefault();
-                const startY = e.clientY;
+                const startY = e.touches ? e.touches[0].clientY : e.clientY;
                 const tlNode = appRef.current.querySelector('.timeline-pane');
                 const startHeight = tlNode.offsetHeight;
                 const containerHeight = appRef.current.offsetHeight;
                 
                 const onMove = (e2) => {
-                    let newHeight = startHeight - (e2.clientY - startY); 
+                    const currentY = e2.touches ? e2.touches[0].clientY : e2.clientY;
+                    let newHeight = startHeight - (currentY - startY); 
                     let pct = (newHeight / containerHeight) * 100;
                     if (pct < 10) pct = 10; if (pct > 80) pct = 80;
                     appRef.current.style.setProperty('--timeline-height', `${pct}%`);
                 };
-                const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); window.dispatchEvent(new Event('resize')); };
+                const onUp = () => { 
+                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
+                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); 
+                    window.dispatchEvent(new Event('resize')); 
+                };
                 document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+                document.addEventListener('touchmove', onMove); document.addEventListener('touchend', onUp);
             };
 
             useEffect(() => {
@@ -970,17 +980,17 @@
                                 <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} addLog=${addLog} />
                                 <${VibeMonitor} logs=${logs} status=${status} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} />
                             </div>
-                            ${hasMedia ? html`<div class="resizer-h" onMouseDown=${startMapResize}></div>` : ''}
+                            ${hasMedia ? html`<div class="resizer-h" onMouseDown=${startMapResize} onTouchStart=${startMapResize}></div>` : ''}
                             <div class="media-pane" style="display: ${hasMedia ? 'flex' : 'none'};">
                                 <${MediaViewer} activeSlide=${activeSlide} />
                             </div>
                         </div>
 
-                        <div class="resizer-v" onMouseDown=${startTopResize}></div>
+                        <div class="resizer-v" onMouseDown=${startTopResize} onTouchStart=${startTopResize}></div>
                         
                         <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} aboutData=${aboutData} setIsAboutOpen=${setIsAboutOpen} />
                         
-                        <div class="resizer-v" onMouseDown=${startTimelineResize}></div>
+                        <div class="resizer-v" onMouseDown=${startTimelineResize} onTouchStart=${startTimelineResize}></div>
 
                         <div class="timeline-pane">
                             <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} />
@@ -989,10 +999,10 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.6.0';
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.7.0';
         
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
-        // === [ END APP ORCHESTRATOR ] ===
+        // === [ END APP ORCHESTRATOR v1.7.0 ] ===
     </script>
 </body>
 </html>
