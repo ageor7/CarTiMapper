@@ -572,7 +572,7 @@
         MODULE_VERSIONS['ContentSlider'] = 'v3.2.0';
         // === [ END CONTENT SLIDER ] ===
 
-        // === [ TIMELINE SCRUBBER v17.0.0 ] ===
+        // === [ TIMELINE SCRUBBER v18.0.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -628,32 +628,67 @@
             const renderMaxTime = maxTimeRaw + padMs;
             const renderTimeRange = renderMaxTime - renderMinTime;
 
-            // NEW PHYSICS: Hard JS Typography Algorithm
-            const formatLabel = (titleStr) => {
-                const maxChars = 52; // Mathematically equates to ~360px + padding = ~395px total width
+            // NEW PHYSICS: Native Canvas Typography Engine
+            const measureTextWidth = (text) => {
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                // 0.75rem equals exactly 12px in standard browsers. We use this to measure the exact footprint.
+                context.font = '400 12px "Noto Sans", sans-serif'; 
+                return context.measureText(text).width;
+            };
+
+            const formatLabelSmart = (titleStr) => {
+                const maxPx = 350; // The hard width limit for text before it wraps
                 const words = titleStr.split(' ');
-                let lines = [];
+                
+                // Fast-pass: Does it fit perfectly on 1 line?
+                const totalWidth = measureTextWidth(titleStr);
+                if (totalWidth <= maxPx) return { lines: [titleStr], pxWidth: Math.max(60, totalWidth + 35) };
+
+                // Build initial lines
+                let rawLines = [];
                 let current = '';
                 for (let w of words) {
-                    if ((current + w).length > maxChars) {
-                        if (current) lines.push(current.trim());
-                        current = w + ' ';
+                    let test = current ? current + ' ' + w : w;
+                    if (measureTextWidth(test) > maxPx) {
+                        if (current) rawLines.push(current);
+                        current = w;
                     } else {
-                        current += w + ' ';
+                        current = test;
                     }
                 }
-                if (current) lines.push(current.trim());
-                
-                if (lines.length > 3) {
-                    lines = lines.slice(0, 3);
-                    if (lines[2].length > maxChars - 3) lines[2] = lines[2].slice(0, maxChars - 3);
-                    lines[2] += '...';
+                if (current) rawLines.push(current);
+
+                // The Balancing Engine: If it's a 2-liner, test all splits to find the most visually equal lines
+                if (rawLines.length === 2) {
+                    let bestDiff = Infinity;
+                    let bestSplit = 1;
+                    for (let i = 1; i < words.length; i++) {
+                        let l1 = words.slice(0, i).join(' ');
+                        let l2 = words.slice(i).join(' ');
+                        let w1 = measureTextWidth(l1);
+                        let w2 = measureTextWidth(l2);
+                        if (w1 <= maxPx && w2 <= maxPx) {
+                            let diff = Math.abs(w1 - w2);
+                            if (diff < bestDiff) { bestDiff = diff; bestSplit = i; }
+                        }
+                    }
+                    rawLines = [words.slice(0, bestSplit).join(' '), words.slice(bestSplit).join(' ')];
                 }
-                
-                const maxLen = Math.max(...lines.map(l => l.length));
-                // Width = (Longest Line * ~6.5px per char) + 35px for Diagonal Cut and Padding
-                const pxWidth = Math.max(60, (maxLen * 6.5) + 35); 
-                return { lines, pxWidth };
+
+                // Truncation: Hard clamp at 3 lines
+                if (rawLines.length > 3) {
+                    rawLines = rawLines.slice(0, 3);
+                    let last = rawLines[2];
+                    while (measureTextWidth(last + '...') > maxPx && last.length > 0) {
+                        last = last.slice(0, -1);
+                    }
+                    rawLines[2] = last.trim() + '...';
+                }
+
+                const maxLineW = Math.max(...rawLines.map(l => measureTextWidth(l)));
+                // Return exact absolute pixel dimensions (Adding 35px for the diagonal polygon and inner padding)
+                return { lines: rawLines, pxWidth: Math.max(60, maxLineW + 35) };
             };
 
             useEffect(() => {
@@ -670,8 +705,7 @@
                             
                             const activeTags = item.tags && item.tags.length > 0 ? item.tags : ['Untagged'];
                             
-                            // Share the exact JS algorithm width with the Auto-Zoom Engine
-                            const { pxWidth } = formatLabel(stripHTML(item.title));
+                            const { pxWidth } = formatLabelSmart(stripHTML(item.title));
                             const containerW = wrapperRef.current.offsetWidth || 1000;
                             const actualWidth = pxWidth;
                             
@@ -728,8 +762,7 @@
                     const sT = item.startDate.getTime();
                     const eT = (item.endDate && !isNaN(item.endDate.getTime())) ? item.endDate.getTime() : sT;
                     
-                    // Share exact width with the Camerea Centering Engine
-                    const { pxWidth } = formatLabel(stripHTML(item.title));
+                    const { pxWidth } = formatLabelSmart(stripHTML(item.title));
                     const containerW = wrapperRef.current.offsetWidth || 1000;
                     const targetTrackW = Math.max(containerW, containerW * zoomLevel);
                     
@@ -891,8 +924,8 @@
                     `;
                 }
 
-                // Render the absolute pixel dimensions into the inline styles
-                const { lines, pxWidth } = formatLabel(stripHTML(item.title));
+                // Render the SMART absolute pixel dimensions into the inline styles
+                const { lines, pxWidth } = formatLabelSmart(stripHTML(item.title));
                 const groupWidth = hasDuration ? `width: ${endPct - startPct}%; min-width: 4px;` : `width: ${pxWidth}px;`;
 
                 return html`
@@ -937,7 +970,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v17.0.0';
+        MODULE_VERSIONS['TimelineScrubber'] = 'v18.0.0';
         // === [ END TIMELINE SCRUBBER ] ===
 
         // === [ APP ORCHESTRATOR v1.17.0 ] ===
