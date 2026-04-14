@@ -9,7 +9,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
     <style>
-        /* === [ GLOBAL STYLES v4.0.0 ] === */
+        /* === [ GLOBAL STYLES v4.1.0 ] === */
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
         :root { --bg: #121212; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; }
@@ -97,7 +97,6 @@
         .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-y: hidden; overflow-x: auto; position: relative; display: flex; align-items: flex-start; cursor: grab; touch-action: pan-x; -webkit-overflow-scrolling: touch; }
         .timeline-scroll-wrapper.is-dragging { cursor: grabbing; }
         
-        /* RESTORED CINEMATIC SMOOTHNESS: 0.6s Track CSS Transition */
         .timeline-track-container { position: relative; height: 100%; transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1); }
         
         .tag-lane { border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; box-sizing: border-box; width: 100%; position: absolute; left: 0; right: 0; }
@@ -106,12 +105,12 @@
         .event-group { position: absolute; z-index: 10; transition: z-index 0.2s; display: flex; align-items: flex-start; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.15)); }
         .event-group.active { z-index: 30; filter: drop-shadow(0 4px 6px rgba(0,122,204,0.4)); }
         
-        /* VERTICAL CENTERING FIX: height: 100% ensures flex-center perfectly aligns multi-line text */
+        /* HEIGHT FIX: Removed height:100%. Hexagon now organically expands to fit 3-liners */
         .event-block { 
-            position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; height: 100%;
+            position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
             text-align: left; font-size: 0.75rem; cursor: pointer; transition: filter 0.2s ease;
             box-sizing: border-box;
-            --diag-w: 10px; min-height: var(--lane-h); padding: 4px 12px 4px calc(var(--diag-w) + 8px); 
+            --diag-w: 10px; min-height: var(--lane-h); padding: 6px 12px 6px calc(var(--diag-w) + 8px); 
             clip-path: polygon( 0 calc(50% - (var(--lane-h) / 2) + 0.5px), var(--diag-w) 0, 100% 0, 100% 100%, var(--diag-w) 100%, 0 calc(50% + (var(--lane-h) / 2) - 0.5px) );
         }
         .event-block:hover { filter: brightness(1.05); z-index: 40; }
@@ -134,13 +133,13 @@
         .log-warn { color: #ffb86c; }
         .log-error { color: #ff5555; }
         .log-time { color: #6272a4; margin-right: 5px; }
-        /* === [ END GLOBAL STYLES v4.0.0 ] === */
+        /* === [ END GLOBAL STYLES v4.1.0 ] === */
     </style>
 </head>
 <body>
     <div id="root"></div>
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.38 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.39 ] ===
         import { h, render, Component } from 'https://esm.sh/preact';
         import { useState, useEffect, useRef } from 'https://esm.sh/preact/hooks';
         import htm from 'https://esm.sh/htm';
@@ -148,9 +147,9 @@
 
         const html = htm.bind(h);
         
-        const APP_VERSION = 'v5.20.0';
+        const APP_VERSION = 'v5.21.0';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v4.0.0', Globals: 'v1.17.2' }; 
+        const MODULE_VERSIONS = { Styles: 'v4.1.0', Globals: 'v1.17.2' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
         // === [ END GLOBAL VARIABLES ] ===
         
@@ -573,7 +572,7 @@
         MODULE_VERSIONS['ContentSlider'] = 'v3.2.0';
         // === [ END CONTENT SLIDER ] ===
 
-        // === [ TIMELINE SCRUBBER v20.0.0 ] ===
+        // === [ TIMELINE SCRUBBER v21.0.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -636,12 +635,10 @@
                 return context.measureText(text).width;
             };
 
-            // NEW PHYSICS: Aggressive 2-Liner/3-Liner Balancer
             const formatLabelSmart = (titleStr) => {
                 const maxPx = 300; 
                 const words = titleStr.split(' ');
                 
-                // Force multi-line if there are words to save space
                 let targetLines = words.length > 1 ? (measureTextWidth(titleStr) > 280 ? 3 : 2) : 1;
                 if (targetLines === 1) return { lines: [titleStr], pxWidth: measureTextWidth(titleStr) + 35 };
 
@@ -745,7 +742,6 @@
                 }
             }, [activeIndex, data]); 
 
-            // CAMERA PHYSICS FIX: 60fps Interpolation Loop Syncing with CSS Track Width
             useEffect(() => {
                 const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
                 if (activeDataIndex >= 0 && wrapperRef.current && !dragRef.current.isDragging) {
@@ -765,13 +761,11 @@
                     const startScroll = wrapperRef.current.scrollLeft;
                     
                     let startTimestamp = null;
-                    const duration = 600; // Synced precisely to the CSS transition time
+                    const duration = 600; 
 
                     const scrollLoop = (timestamp) => {
                         if (!startTimestamp) startTimestamp = timestamp;
                         const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-                        
-                        // Cubic Ease-Out curve to match CSS transition
                         const easeOut = 1 - Math.pow(1 - progress, 3); 
                         
                         if (wrapperRef.current) {
@@ -853,6 +847,7 @@
             
             let iterTime = startTickTime;
             let safety = 0;
+            let drawnFirstVisible = false;
 
             while (iterTime <= renderMaxTime && safety < 1000) {
                 safety++;
@@ -861,13 +856,13 @@
                     let label = '';
                     const pctLeft = ((iterTime - renderMinTime) / renderTimeRange) * 100;
                     
-                    // CONTEXT FIX: Always print full date at Midnight or the absolute first tick
                     const isMidnight = (d.getHours() === 0 && d.getMinutes() === 0);
                     const isFirstTick = iterTime === startTickTime;
                     
                     if (formatType === 'year') label = d.getFullYear();
                     else if (formatType === 'month') label = d.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
-                    else if (formatType === 'day') label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short' });
+                    // TIME FIX: Day scale now prints full year context!
+                    else if (formatType === 'day') label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
                     else if (formatType === 'time') {
                         if (isMidnight || isFirstTick) label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
                         else label = d.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -915,14 +910,20 @@
 
                 let activeAnchor = '';
                 if (isActive) {
-                    // GEOMETRY FIX: Physically traverse the Z-axis distance from the Hexagon down to the Axis Ruler
                     const distanceToAxis = availableLanesHeight - topPos;
-                    const triangleStyles = hasDuration ? `left: 0; width: ${endPct - startPct}%; min-width: 2px;` : `left: 0; transform: translateX(-50%); width: 12px;`;
                     
-                    activeAnchor = html`
-                        <div style="position: absolute; left: 0; top: ${blockHeight / 2}px; height: ${distanceToAxis - (blockHeight / 2)}px; width: 2px; background: #007acc; z-index: 999;"></div>
-                        <div style="position: absolute; top: ${distanceToAxis - 16}px; ${triangleStyles} height: 16px; background: rgba(0,122,204,0.3); border-top: 2px solid #007acc; clip-path: polygon(0 0, 100% 100%, 0 100%); z-index: 998;"></div>
-                    `;
+                    // ANCHOR FIX: Split logic for Duration Spans vs Point-in-Time
+                    if (hasDuration) {
+                        activeAnchor = html`
+                            <div style="position: absolute; left: 0; top: 12px; height: ${distanceToAxis - 12}px; width: 2px; background: #007acc; z-index: 999;"></div>
+                            <div style="position: absolute; top: ${distanceToAxis - 16}px; left: 0; width: ${endPct - startPct}%; min-width: 2px; height: 16px; background: linear-gradient(90deg, rgba(0,122,204,0.4) 0%, rgba(0,122,204,0) 100%); border-top: 2px solid #007acc; z-index: 998;"></div>
+                        `;
+                    } else {
+                        activeAnchor = html`
+                            <div style="position: absolute; left: 0; top: 12px; height: ${distanceToAxis - 12}px; width: 2px; background: #007acc; z-index: 999;"></div>
+                            <div style="position: absolute; top: ${distanceToAxis - 4}px; left: -3px; width: 8px; height: 8px; border-radius: 50%; background: #007acc; border: 1px solid #fff; z-index: 998;"></div>
+                        `;
+                    }
                 }
 
                 const { lines, pxWidth } = formatLabelSmart(stripHTML(item.title));
@@ -970,7 +971,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v20.0.0';
+        MODULE_VERSIONS['TimelineScrubber'] = 'v21.0.0';
         // === [ END TIMELINE SCRUBBER ] ===
         
         // === [ APP ORCHESTRATOR v1.17.0 ] ===
