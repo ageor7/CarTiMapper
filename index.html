@@ -148,7 +148,7 @@
 
         const html = htm.bind(h);
         
-        const APP_VERSION = 'v5.22.0';
+        const APP_VERSION = 'v5.23.0';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.2.0', Globals: 'v1.17.2' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -573,7 +573,7 @@
         MODULE_VERSIONS['ContentSlider'] = 'v3.2.0';
         // === [ END CONTENT SLIDER ] ===
 
-        // === [ TIMELINE SCRUBBER v22.0.0 ] ===
+        // === [ TIMELINE SCRUBBER v23.0.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -685,6 +685,7 @@
                 return { lines, pxWidth: Math.max(60, finalMaxW + 35) };
             };
 
+            // CAMERA PHYSICS FIX: Overlapping Start-to-Start Absolute Density Math
             useEffect(() => {
                 if (validData.length > 1 && wrapperRef.current && !dragRef.current.isDragging) {
                     if (activeIndex !== prevActiveIndexRef.current) {
@@ -708,25 +709,29 @@
                                 if (idx === activeDataIndex) return;
                                 const dSt = d.startDate.getTime();
                                 const dEt = (d.endDate && !isNaN(d.endDate.getTime())) ? d.endDate.getTime() : dSt;
-                                let gap = Infinity;
-                                if (dSt >= eT) gap = dSt - eT;
-                                else if (dEt <= sT) gap = sT - dEt;
                                 
-                                if (gap >= 0 && gap < minTimeGapAnyLane) minTimeGapAnyLane = gap;
+                                // FORCE GAP RESOLUTION: Even if events overlap entirely, find their start-time difference. 
+                                // Fallback to 1 minute (60000ms) to ensure math never equals 0 or Infinity.
+                                let gap = Math.abs(dSt - sT);
+                                if (gap === 0) gap = Math.max(Math.abs(dEt - eT), 60000); 
+                                
+                                if (gap < minTimeGapAnyLane) minTimeGapAnyLane = gap;
+                                
                                 const dTags = d.tags && d.tags.length > 0 ? d.tags : ['Untagged'];
                                 if (dTags.some(t => activeTags.includes(t))) {
-                                    if (gap >= 0 && gap < minTimeGapSameLane) minTimeGapSameLane = gap;
+                                    if (gap < minTimeGapSameLane) minTimeGapSameLane = gap;
                                 }
                             });
 
                             let collisionZoom = 1;
-                            if (minTimeGapSameLane !== Infinity && minTimeGapSameLane > 0) {
-                                const requiredTrackW = ((pxWidth + 10) * renderTimeRange) / minTimeGapSameLane;
+                            if (minTimeGapSameLane !== Infinity) {
+                                // Add 20px buffer pad around the physical width requirement
+                                const requiredTrackW = ((pxWidth + 20) * renderTimeRange) / minTimeGapSameLane;
                                 collisionZoom = requiredTrackW / containerW;
                             }
 
                             let contextZoom = 1;
-                            if (minTimeGapAnyLane !== Infinity && minTimeGapAnyLane > 0) {
+                            if (minTimeGapAnyLane !== Infinity) {
                                 const requiredTrackW = (150 * renderTimeRange) / minTimeGapAnyLane;
                                 contextZoom = requiredTrackW / containerW;
                             }
@@ -743,7 +748,6 @@
                 }
             }, [activeIndex, data]); 
 
-            // CAMERA PHYSICS FIX: Option A (Instant Canvas, Smooth Scroll)
             useEffect(() => {
                 const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
                 if (activeDataIndex >= 0 && wrapperRef.current && !dragRef.current.isDragging) {
@@ -752,16 +756,12 @@
                     
                     const { pxWidth } = formatLabelSmart(stripHTML(item.title));
                     const containerW = wrapperRef.current.clientWidth || 1000;
-                    
-                    // We calculate target mathematically based on what the DOM WILL be in 1 frame
                     const targetTrackW = Math.max(containerW, containerW * zoomLevel);
                     const sPct = (sT - renderMinTime) / renderTimeRange;
                     
-                    // We center purely on the Hexagon block, not the duration
                     const visualCenterPx = (sPct * targetTrackW) + (pxWidth / 2);
                     const scrollPos = visualCenterPx - (containerW / 2);
                     
-                    // Wait 1 frame for CSS to instantly snap the width, then command smooth native scroll
                     requestAnimationFrame(() => {
                         setTimeout(() => {
                             if (wrapperRef.current) {
@@ -906,13 +906,13 @@
                     const distanceToAxis = availableLanesHeight - topPos;
                     
                     if (hasDuration) {
-                        // RESTORED: The Clip-Path Triangle. It perfectly scales inside its percentage-based parent container.
+                        // TRAPEZOID FIX: Orthogonal right trapezoid ending securely on the axis at 50% height, capped with a vertical strut.
                         activeAnchor = html`
                             <div style="position: absolute; left: 0; top: 50%; height: ${distanceToAxis - (blockHeight / 2)}px; width: 2px; background: #007acc; z-index: 999;"></div>
-                            <div style="position: absolute; top: ${distanceToAxis - 16}px; left: 0; width: 100%; min-width: 2px; height: 16px; background: rgba(0,122,204,0.3); border-top: 2px solid #007acc; clip-path: polygon(0 0, 100% 100%, 0 100%); z-index: 998;"></div>
+                            <div style="position: absolute; top: ${distanceToAxis - 16}px; left: 0; width: 100%; min-width: 2px; height: 16px; background: rgba(0,122,204,0.3); clip-path: polygon(0 0, 100% 50%, 100% 100%, 0 100%); z-index: 998;"></div>
+                            <div style="position: absolute; top: ${distanceToAxis - 8}px; right: 0; width: 2px; height: 8px; background: #007acc; z-index: 999;"></div>
                         `;
                     } else {
-                        // Point in time dot
                         activeAnchor = html`
                             <div style="position: absolute; left: 0; top: 50%; height: ${distanceToAxis - (blockHeight / 2)}px; width: 2px; background: #007acc; z-index: 999;"></div>
                             <div style="position: absolute; top: ${distanceToAxis - 4}px; left: -3px; width: 8px; height: 8px; border-radius: 50%; background: #007acc; border: 1px solid #fff; z-index: 998;"></div>
@@ -923,7 +923,6 @@
                 const { lines, pxWidth } = formatLabelSmart(stripHTML(item.title));
                 const groupWidth = hasDuration ? `width: ${endPct - startPct}%; min-width: 4px;` : `width: ${pxWidth}px;`;
 
-                // CENTER PIN FIX: The hexagon is positioned absolutely at top: 50% and translates upward by 50% of its own height.
                 return html`
                     <div id="timeline-marker-${globalIndex}" class="event-group ${isActive ? 'active' : ''}" style="left: ${startPct}%; top: ${topPos}px; height: ${blockHeight}px; ${groupWidth}" onClick=${() => setActiveIndex(globalIndex)}>
                         ${activeAnchor}
@@ -966,7 +965,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v22.0.0';
+        MODULE_VERSIONS['TimelineScrubber'] = 'v23.0.0';
         // === [ END TIMELINE SCRUBBER ] ===
         
         // === [ APP ORCHESTRATOR v1.17.0 ] ===
