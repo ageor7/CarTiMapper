@@ -9,7 +9,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
     <style>
-        /* === [ GLOBAL STYLES v3.9.0 ] === */
+        /* === [ GLOBAL STYLES v4.0.0 ] === */
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
         :root { --bg: #121212; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; }
@@ -97,8 +97,8 @@
         .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-y: hidden; overflow-x: auto; position: relative; display: flex; align-items: flex-start; cursor: grab; touch-action: pan-x; -webkit-overflow-scrolling: touch; }
         .timeline-scroll-wrapper.is-dragging { cursor: grabbing; }
         
-        /* ALIGNMENT FIX: Removed CSS width transition. Track expands instantly to prevent browser scroll clamping */
-        .timeline-track-container { position: relative; height: 100%; }
+        /* RESTORED CINEMATIC SMOOTHNESS: 0.6s Track CSS Transition */
+        .timeline-track-container { position: relative; height: 100%; transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1); }
         
         .tag-lane { border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; box-sizing: border-box; width: 100%; position: absolute; left: 0; right: 0; }
         .tag-lane-label { position: sticky; left: 0; z-index: 100; padding: 0 10px; font-size: 0.75rem; color: #555; display: flex; align-items: center; white-space: nowrap; box-shadow: 2px 0 4px rgba(0,0,0,0.05); border-right: 1px solid #ccc; font-weight: 400; }
@@ -106,8 +106,9 @@
         .event-group { position: absolute; z-index: 10; transition: z-index 0.2s; display: flex; align-items: flex-start; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.15)); }
         .event-group.active { z-index: 30; filter: drop-shadow(0 4px 6px rgba(0,122,204,0.4)); }
         
+        /* VERTICAL CENTERING FIX: height: 100% ensures flex-center perfectly aligns multi-line text */
         .event-block { 
-            position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+            position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; height: 100%;
             text-align: left; font-size: 0.75rem; cursor: pointer; transition: filter 0.2s ease;
             box-sizing: border-box;
             --diag-w: 10px; min-height: var(--lane-h); padding: 4px 12px 4px calc(var(--diag-w) + 8px); 
@@ -133,13 +134,13 @@
         .log-warn { color: #ffb86c; }
         .log-error { color: #ff5555; }
         .log-time { color: #6272a4; margin-right: 5px; }
-        /* === [ END GLOBAL STYLES v3.9.0 ] === */
+        /* === [ END GLOBAL STYLES v4.0.0 ] === */
     </style>
 </head>
 <body>
     <div id="root"></div>
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.37 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.38 ] ===
         import { h, render, Component } from 'https://esm.sh/preact';
         import { useState, useEffect, useRef } from 'https://esm.sh/preact/hooks';
         import htm from 'https://esm.sh/htm';
@@ -147,9 +148,9 @@
 
         const html = htm.bind(h);
         
-        const APP_VERSION = 'v5.19.0';
+        const APP_VERSION = 'v5.20.0';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v3.9.0', Globals: 'v1.17.2' }; 
+        const MODULE_VERSIONS = { Styles: 'v4.0.0', Globals: 'v1.17.2' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
         // === [ END GLOBAL VARIABLES ] ===
         
@@ -572,7 +573,7 @@
         MODULE_VERSIONS['ContentSlider'] = 'v3.2.0';
         // === [ END CONTENT SLIDER ] ===
 
-        // === [ TIMELINE SCRUBBER v19.0.0 ] ===
+        // === [ TIMELINE SCRUBBER v20.0.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -583,7 +584,6 @@
             const [containerHeight, setContainerHeight] = useState(200);
 
             useEffect(() => {
-                // ALIGNMENT FIX: Use clientHeight to ignore the horizontal scrollbar thickness
                 const measure = () => { if (wrapperRef.current) setContainerHeight(wrapperRef.current.clientHeight); };
                 measure();
                 window.addEventListener('resize', measure);
@@ -636,53 +636,55 @@
                 return context.measureText(text).width;
             };
 
+            // NEW PHYSICS: Aggressive 2-Liner/3-Liner Balancer
             const formatLabelSmart = (titleStr) => {
-                const maxPx = 350; 
+                const maxPx = 300; 
                 const words = titleStr.split(' ');
                 
-                const totalWidth = measureTextWidth(titleStr);
-                if (totalWidth <= maxPx) return { lines: [titleStr], pxWidth: Math.max(60, totalWidth + 35) };
+                // Force multi-line if there are words to save space
+                let targetLines = words.length > 1 ? (measureTextWidth(titleStr) > 280 ? 3 : 2) : 1;
+                if (targetLines === 1) return { lines: [titleStr], pxWidth: measureTextWidth(titleStr) + 35 };
 
-                let rawLines = [];
-                let current = '';
-                for (let w of words) {
-                    let test = current ? current + ' ' + w : w;
-                    if (measureTextWidth(test) > maxPx) {
-                        if (current) rawLines.push(current);
-                        current = w;
-                    } else {
-                        current = test;
-                    }
-                }
-                if (current) rawLines.push(current);
+                let bestSplit = [];
+                let bestScore = Infinity;
 
-                if (rawLines.length === 2) {
-                    let bestDiff = Infinity;
-                    let bestSplit = 1;
+                if (targetLines === 2) {
                     for (let i = 1; i < words.length; i++) {
-                        let l1 = words.slice(0, i).join(' ');
-                        let l2 = words.slice(i).join(' ');
-                        let w1 = measureTextWidth(l1);
-                        let w2 = measureTextWidth(l2);
-                        if (w1 <= maxPx && w2 <= maxPx) {
-                            let diff = Math.abs(w1 - w2);
-                            if (diff < bestDiff) { bestDiff = diff; bestSplit = i; }
+                        let l1 = words.slice(0, i).join(' '), l2 = words.slice(i).join(' ');
+                        let w1 = measureTextWidth(l1), w2 = measureTextWidth(l2);
+                        let score = Math.max(w1, w2) + Math.abs(w1 - w2) * 0.8; 
+                        if (score < bestScore) { bestScore = score; bestSplit = [l1, l2]; }
+                    }
+                } else {
+                    for (let i = 1; i < words.length - 1; i++) {
+                        for (let j = i + 1; j < words.length; j++) {
+                            let l1 = words.slice(0, i).join(' '), l2 = words.slice(i, j).join(' '), l3 = words.slice(j).join(' ');
+                            let w1 = measureTextWidth(l1), w2 = measureTextWidth(l2), w3 = measureTextWidth(l3);
+                            let maxW = Math.max(w1, w2, w3), minW = Math.min(w1, w2, w3);
+                            let score = maxW + (maxW - minW) * 0.8;
+                            if (score < bestScore) { bestScore = score; bestSplit = [l1, l2, l3]; }
                         }
                     }
-                    rawLines = [words.slice(0, bestSplit).join(' '), words.slice(bestSplit).join(' ')];
                 }
 
-                if (rawLines.length > 3) {
-                    rawLines = rawLines.slice(0, 3);
-                    let last = rawLines[2];
-                    while (measureTextWidth(last + '...') > maxPx && last.length > 0) {
-                        last = last.slice(0, -1);
-                    }
-                    rawLines[2] = last.trim() + '...';
+                let lines = bestSplit.length ? bestSplit : [titleStr];
+                
+                if (lines.length === 3) {
+                     let last = lines[2];
+                     if (measureTextWidth(last) > maxPx) {
+                         while(measureTextWidth(last + '...') > maxPx && last.length > 0) last = last.slice(0, -1);
+                         lines[2] = last.trim() + '...';
+                     }
+                } else if (lines.length === 2) {
+                     let last = lines[1];
+                     if (measureTextWidth(last) > maxPx * 1.3) { 
+                         while(measureTextWidth(last + '...') > maxPx * 1.3 && last.length > 0) last = last.slice(0, -1);
+                         lines[1] = last.trim() + '...';
+                     }
                 }
 
-                const maxLineW = Math.max(...rawLines.map(l => measureTextWidth(l)));
-                return { lines: rawLines, pxWidth: Math.max(60, maxLineW + 35) };
+                const finalMaxW = Math.max(...lines.map(l => measureTextWidth(l)));
+                return { lines, pxWidth: Math.max(60, finalMaxW + 35) };
             };
 
             useEffect(() => {
@@ -698,26 +700,21 @@
                             const eT = (item.endDate && !isNaN(item.endDate.getTime())) ? item.endDate.getTime() : sT;
                             
                             const activeTags = item.tags && item.tags.length > 0 ? item.tags : ['Untagged'];
-                            
                             const { pxWidth } = formatLabelSmart(stripHTML(item.title));
                             const containerW = wrapperRef.current.clientWidth || 1000;
-                            const actualWidth = pxWidth;
                             
                             let minTimeGapSameLane = Infinity;
                             let minTimeGapAnyLane = Infinity;
                             
                             validData.forEach((d, idx) => {
                                 if (idx === activeDataIndex) return;
-                                
                                 const dSt = d.startDate.getTime();
                                 const dEt = (d.endDate && !isNaN(d.endDate.getTime())) ? d.endDate.getTime() : dSt;
-                                
                                 let gap = Infinity;
                                 if (dSt >= eT) gap = dSt - eT;
                                 else if (dEt <= sT) gap = sT - dEt;
                                 
                                 if (gap >= 0 && gap < minTimeGapAnyLane) minTimeGapAnyLane = gap;
-
                                 const dTags = d.tags && d.tags.length > 0 ? d.tags : ['Untagged'];
                                 if (dTags.some(t => activeTags.includes(t))) {
                                     if (gap >= 0 && gap < minTimeGapSameLane) minTimeGapSameLane = gap;
@@ -726,7 +723,7 @@
 
                             let collisionZoom = 1;
                             if (minTimeGapSameLane !== Infinity && minTimeGapSameLane > 0) {
-                                const requiredTrackW = ((actualWidth + 10) * renderTimeRange) / minTimeGapSameLane;
+                                const requiredTrackW = ((pxWidth + 10) * renderTimeRange) / minTimeGapSameLane;
                                 collisionZoom = requiredTrackW / containerW;
                             }
 
@@ -737,7 +734,6 @@
                             }
 
                             const idealZoom = Math.max(collisionZoom, contextZoom * 1.3); 
-                            
                             setZoomLevel(prev => {
                                 const maxJump = prev * 0.5;
                                 if (idealZoom > prev + maxJump) return prev + maxJump;
@@ -749,7 +745,7 @@
                 }
             }, [activeIndex, data]); 
 
-            // CAMERA PHYSICS FIX: Robust Scroll Tracking
+            // CAMERA PHYSICS FIX: 60fps Interpolation Loop Syncing with CSS Track Width
             useEffect(() => {
                 const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
                 if (activeDataIndex >= 0 && wrapperRef.current && !dragRef.current.isDragging) {
@@ -760,24 +756,31 @@
                     const { pxWidth } = formatLabelSmart(stripHTML(item.title));
                     const containerW = wrapperRef.current.clientWidth || 1000;
                     const targetTrackW = Math.max(containerW, containerW * zoomLevel);
-                    
                     const sPct = (sT - renderMinTime) / renderTimeRange;
                     
                     let blockPixelWidth = pxWidth;
                     if (eT > sT) { blockPixelWidth = ((eT - sT) / renderTimeRange) * targetTrackW; }
                     
-                    const visualCenterPx = (sPct * targetTrackW) + (blockPixelWidth / 2);
-                    const scrollPos = visualCenterPx - (containerW / 2);
+                    const targetScrollPos = (sPct * targetTrackW) + (blockPixelWidth / 2) - (containerW / 2);
+                    const startScroll = wrapperRef.current.scrollLeft;
                     
-                    // We request an animation frame to guarantee the browser has applied the new track width 
-                    // before we issue the native scroll command.
-                    requestAnimationFrame(() => {
-                        setTimeout(() => {
-                            if (wrapperRef.current) {
-                                wrapperRef.current.scrollTo({ left: scrollPos, behavior: 'smooth' });
-                            }
-                        }, 20); 
-                    });
+                    let startTimestamp = null;
+                    const duration = 600; // Synced precisely to the CSS transition time
+
+                    const scrollLoop = (timestamp) => {
+                        if (!startTimestamp) startTimestamp = timestamp;
+                        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                        
+                        // Cubic Ease-Out curve to match CSS transition
+                        const easeOut = 1 - Math.pow(1 - progress, 3); 
+                        
+                        if (wrapperRef.current) {
+                            wrapperRef.current.scrollLeft = startScroll + (targetScrollPos - startScroll) * easeOut;
+                        }
+                        if (progress < 1) requestAnimationFrame(scrollLoop);
+                    };
+                    
+                    requestAnimationFrame(scrollLoop);
                 }
             }, [activeIndex, zoomLevel, data]);
 
@@ -850,7 +853,6 @@
             
             let iterTime = startTickTime;
             let safety = 0;
-            let drawnFirstVisible = false;
 
             while (iterTime <= renderMaxTime && safety < 1000) {
                 safety++;
@@ -859,16 +861,15 @@
                     let label = '';
                     const pctLeft = ((iterTime - renderMinTime) / renderTimeRange) * 100;
                     
-                    const isVisible = pctLeft >= 0 && pctLeft <= 100;
-                    const forceContext = isVisible && !drawnFirstVisible;
-                    if (isVisible) drawnFirstVisible = true;
+                    // CONTEXT FIX: Always print full date at Midnight or the absolute first tick
+                    const isMidnight = (d.getHours() === 0 && d.getMinutes() === 0);
+                    const isFirstTick = iterTime === startTickTime;
                     
                     if (formatType === 'year') label = d.getFullYear();
                     else if (formatType === 'month') label = d.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
                     else if (formatType === 'day') label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short' });
                     else if (formatType === 'time') {
-                        const isMidnight = (d.getHours() === 0 && d.getMinutes() === 0);
-                        if (isMidnight || forceContext) label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                        if (isMidnight || isFirstTick) label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
                         else label = d.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
                     }
 
@@ -914,12 +915,13 @@
 
                 let activeAnchor = '';
                 if (isActive) {
+                    // GEOMETRY FIX: Physically traverse the Z-axis distance from the Hexagon down to the Axis Ruler
                     const distanceToAxis = availableLanesHeight - topPos;
                     const triangleStyles = hasDuration ? `left: 0; width: ${endPct - startPct}%; min-width: 2px;` : `left: 0; transform: translateX(-50%); width: 12px;`;
                     
                     activeAnchor = html`
-                        <div style="position: absolute; left: 0; top: ${blockHeight}px; bottom: 0; width: 2px; background: #007acc; z-index: 999;"></div>
-                        <div style="position: absolute; bottom: 0; ${triangleStyles} height: 16px; background: rgba(0,122,204,0.3); border-top: 2px solid #007acc; clip-path: polygon(0 0, 100% 100%, 0 100%); z-index: 998;"></div>
+                        <div style="position: absolute; left: 0; top: ${blockHeight / 2}px; height: ${distanceToAxis - (blockHeight / 2)}px; width: 2px; background: #007acc; z-index: 999;"></div>
+                        <div style="position: absolute; top: ${distanceToAxis - 16}px; ${triangleStyles} height: 16px; background: rgba(0,122,204,0.3); border-top: 2px solid #007acc; clip-path: polygon(0 0, 100% 100%, 0 100%); z-index: 998;"></div>
                     `;
                 }
 
@@ -968,7 +970,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v19.0.0';
+        MODULE_VERSIONS['TimelineScrubber'] = 'v20.0.0';
         // === [ END TIMELINE SCRUBBER ] ===
         
         // === [ APP ORCHESTRATOR v1.17.0 ] ===
