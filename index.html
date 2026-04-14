@@ -9,7 +9,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
     <style>
-        /* === [ GLOBAL STYLES v4.1.0 ] === */
+        /* === [ GLOBAL STYLES v4.2.0 ] === */
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
         :root { --bg: #121212; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; }
@@ -97,7 +97,8 @@
         .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-y: hidden; overflow-x: auto; position: relative; display: flex; align-items: flex-start; cursor: grab; touch-action: pan-x; -webkit-overflow-scrolling: touch; }
         .timeline-scroll-wrapper.is-dragging { cursor: grabbing; }
         
-        .timeline-track-container { position: relative; height: 100%; transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1); }
+        /* OPTION A CAMERA: Track width scales instantly. Browser calculates final layout in 0ms, clearing the path for smooth scroll */
+        .timeline-track-container { position: relative; height: 100%; }
         
         .tag-lane { border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; box-sizing: border-box; width: 100%; position: absolute; left: 0; right: 0; }
         .tag-lane-label { position: sticky; left: 0; z-index: 100; padding: 0 10px; font-size: 0.75rem; color: #555; display: flex; align-items: center; white-space: nowrap; box-shadow: 2px 0 4px rgba(0,0,0,0.05); border-right: 1px solid #ccc; font-weight: 400; }
@@ -105,9 +106,9 @@
         .event-group { position: absolute; z-index: 10; transition: z-index 0.2s; display: flex; align-items: flex-start; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.15)); }
         .event-group.active { z-index: 30; filter: drop-shadow(0 4px 6px rgba(0,122,204,0.4)); }
         
-        /* HEIGHT FIX: Removed height:100%. Hexagon now organically expands to fit 3-liners */
+        /* CENTER PIN ALIGNMENT: Transforms up by exactly 50% of its own organic height */
         .event-block { 
-            position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+            display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
             text-align: left; font-size: 0.75rem; cursor: pointer; transition: filter 0.2s ease;
             box-sizing: border-box;
             --diag-w: 10px; min-height: var(--lane-h); padding: 6px 12px 6px calc(var(--diag-w) + 8px); 
@@ -133,13 +134,13 @@
         .log-warn { color: #ffb86c; }
         .log-error { color: #ff5555; }
         .log-time { color: #6272a4; margin-right: 5px; }
-        /* === [ END GLOBAL STYLES v4.1.0 ] === */
+        /* === [ END GLOBAL STYLES v4.2.0 ] === */
     </style>
 </head>
 <body>
     <div id="root"></div>
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.39 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.40 ] ===
         import { h, render, Component } from 'https://esm.sh/preact';
         import { useState, useEffect, useRef } from 'https://esm.sh/preact/hooks';
         import htm from 'https://esm.sh/htm';
@@ -147,9 +148,9 @@
 
         const html = htm.bind(h);
         
-        const APP_VERSION = 'v5.21.0';
+        const APP_VERSION = 'v5.22.0';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v4.1.0', Globals: 'v1.17.2' }; 
+        const MODULE_VERSIONS = { Styles: 'v4.2.0', Globals: 'v1.17.2' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
         // === [ END GLOBAL VARIABLES ] ===
         
@@ -572,7 +573,7 @@
         MODULE_VERSIONS['ContentSlider'] = 'v3.2.0';
         // === [ END CONTENT SLIDER ] ===
 
-        // === [ TIMELINE SCRUBBER v21.0.0 ] ===
+        // === [ TIMELINE SCRUBBER v22.0.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -742,39 +743,32 @@
                 }
             }, [activeIndex, data]); 
 
+            // CAMERA PHYSICS FIX: Option A (Instant Canvas, Smooth Scroll)
             useEffect(() => {
                 const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
                 if (activeDataIndex >= 0 && wrapperRef.current && !dragRef.current.isDragging) {
                     const item = validData[activeDataIndex];
                     const sT = item.startDate.getTime();
-                    const eT = (item.endDate && !isNaN(item.endDate.getTime())) ? item.endDate.getTime() : sT;
                     
                     const { pxWidth } = formatLabelSmart(stripHTML(item.title));
                     const containerW = wrapperRef.current.clientWidth || 1000;
+                    
+                    // We calculate target mathematically based on what the DOM WILL be in 1 frame
                     const targetTrackW = Math.max(containerW, containerW * zoomLevel);
                     const sPct = (sT - renderMinTime) / renderTimeRange;
                     
-                    let blockPixelWidth = pxWidth;
-                    if (eT > sT) { blockPixelWidth = ((eT - sT) / renderTimeRange) * targetTrackW; }
+                    // We center purely on the Hexagon block, not the duration
+                    const visualCenterPx = (sPct * targetTrackW) + (pxWidth / 2);
+                    const scrollPos = visualCenterPx - (containerW / 2);
                     
-                    const targetScrollPos = (sPct * targetTrackW) + (blockPixelWidth / 2) - (containerW / 2);
-                    const startScroll = wrapperRef.current.scrollLeft;
-                    
-                    let startTimestamp = null;
-                    const duration = 600; 
-
-                    const scrollLoop = (timestamp) => {
-                        if (!startTimestamp) startTimestamp = timestamp;
-                        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-                        const easeOut = 1 - Math.pow(1 - progress, 3); 
-                        
-                        if (wrapperRef.current) {
-                            wrapperRef.current.scrollLeft = startScroll + (targetScrollPos - startScroll) * easeOut;
-                        }
-                        if (progress < 1) requestAnimationFrame(scrollLoop);
-                    };
-                    
-                    requestAnimationFrame(scrollLoop);
+                    // Wait 1 frame for CSS to instantly snap the width, then command smooth native scroll
+                    requestAnimationFrame(() => {
+                        setTimeout(() => {
+                            if (wrapperRef.current) {
+                                wrapperRef.current.scrollTo({ left: scrollPos, behavior: 'smooth' });
+                            }
+                        }, 50); 
+                    });
                 }
             }, [activeIndex, zoomLevel, data]);
 
@@ -861,7 +855,6 @@
                     
                     if (formatType === 'year') label = d.getFullYear();
                     else if (formatType === 'month') label = d.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
-                    // TIME FIX: Day scale now prints full year context!
                     else if (formatType === 'day') label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
                     else if (formatType === 'time') {
                         if (isMidnight || isFirstTick) label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -912,15 +905,16 @@
                 if (isActive) {
                     const distanceToAxis = availableLanesHeight - topPos;
                     
-                    // ANCHOR FIX: Split logic for Duration Spans vs Point-in-Time
                     if (hasDuration) {
+                        // RESTORED: The Clip-Path Triangle. It perfectly scales inside its percentage-based parent container.
                         activeAnchor = html`
-                            <div style="position: absolute; left: 0; top: 12px; height: ${distanceToAxis - 12}px; width: 2px; background: #007acc; z-index: 999;"></div>
-                            <div style="position: absolute; top: ${distanceToAxis - 16}px; left: 0; width: ${endPct - startPct}%; min-width: 2px; height: 16px; background: linear-gradient(90deg, rgba(0,122,204,0.4) 0%, rgba(0,122,204,0) 100%); border-top: 2px solid #007acc; z-index: 998;"></div>
+                            <div style="position: absolute; left: 0; top: 50%; height: ${distanceToAxis - (blockHeight / 2)}px; width: 2px; background: #007acc; z-index: 999;"></div>
+                            <div style="position: absolute; top: ${distanceToAxis - 16}px; left: 0; width: 100%; min-width: 2px; height: 16px; background: rgba(0,122,204,0.3); border-top: 2px solid #007acc; clip-path: polygon(0 0, 100% 100%, 0 100%); z-index: 998;"></div>
                         `;
                     } else {
+                        // Point in time dot
                         activeAnchor = html`
-                            <div style="position: absolute; left: 0; top: 12px; height: ${distanceToAxis - 12}px; width: 2px; background: #007acc; z-index: 999;"></div>
+                            <div style="position: absolute; left: 0; top: 50%; height: ${distanceToAxis - (blockHeight / 2)}px; width: 2px; background: #007acc; z-index: 999;"></div>
                             <div style="position: absolute; top: ${distanceToAxis - 4}px; left: -3px; width: 8px; height: 8px; border-radius: 50%; background: #007acc; border: 1px solid #fff; z-index: 998;"></div>
                         `;
                     }
@@ -929,10 +923,11 @@
                 const { lines, pxWidth } = formatLabelSmart(stripHTML(item.title));
                 const groupWidth = hasDuration ? `width: ${endPct - startPct}%; min-width: 4px;` : `width: ${pxWidth}px;`;
 
+                // CENTER PIN FIX: The hexagon is positioned absolutely at top: 50% and translates upward by 50% of its own height.
                 return html`
                     <div id="timeline-marker-${globalIndex}" class="event-group ${isActive ? 'active' : ''}" style="left: ${startPct}%; top: ${topPos}px; height: ${blockHeight}px; ${groupWidth}" onClick=${() => setActiveIndex(globalIndex)}>
                         ${activeAnchor}
-                        <div class="event-block" style="--lane-h: ${laneHeight}px; background: ${isActive ? '#007acc' : '#f4f4f5'}; color: ${isActive ? '#fff' : '#444'}; z-index: 5; width: ${pxWidth}px;">
+                        <div class="event-block" style="position: absolute; top: 50%; transform: translateY(-50%); left: 0; --lane-h: ${laneHeight}px; background: ${isActive ? '#007acc' : '#f4f4f5'}; color: ${isActive ? '#fff' : '#444'}; z-index: 5; width: ${pxWidth}px;">
                             <div class="event-text">
                                 ${lines.map(l => html`<div style="white-space: nowrap; overflow: hidden; width: 100%;">${l}</div>`)}
                             </div>
@@ -971,7 +966,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v21.0.0';
+        MODULE_VERSIONS['TimelineScrubber'] = 'v22.0.0';
         // === [ END TIMELINE SCRUBBER ] ===
         
         // === [ APP ORCHESTRATOR v1.17.0 ] ===
