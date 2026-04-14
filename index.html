@@ -9,101 +9,6 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
     <style>
-        /* === [ GLOBAL STYLES v3.8.0 ] === */
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap');
-
-        :root { --bg: #121212; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; }
-        body { margin: 0; font-family: 'Noto Sans', system-ui, sans-serif; font-weight: 400; overflow: hidden; background: var(--bg); color: var(--text); }
-        
-        .loading-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--paneBg); color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease; opacity: 1; }
-        .loading-screen.fade-out { opacity: 0; pointer-events: none; }
-        .loading-title { font-size: 2.5rem; margin-bottom: 1rem; color: var(--accent); font-weight: 400; }
-        .loading-status { font-size: 1.2rem; margin-bottom: 2rem; color: #555; }
-        .loading-bar-container { width: 200px; height: 4px; background: #ddd; border-radius: 2px; overflow: hidden; }
-        .loading-bar-fill { height: 100%; background: var(--accent); transition: width 0.4s ease; }
-
-        #tm-root { position: fixed; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; display: flex; flex-direction: column; }
-        #app-layout { --top-height: 35%; --map-width: 50%; --timeline-height: 15%; display: flex; flex-direction: column; flex: 1; width: 100vw; height: 100%; }
-        
-        .top-row { flex: 0 0 var(--top-height); height: var(--top-height); max-height: var(--top-height); display: flex; background: #fff; overflow: hidden; min-height: 0; min-width: 0; }
-        .map-pane { width: var(--map-width); flex-shrink: 0; background: #e0e0e0; position: relative; min-height: 0; min-width: 0; }
-        .map-pane.no-media { width: 100% !important; }
-        
-        .resizer-v { height: 6px; background: #999; cursor: row-resize; flex-shrink: 0; z-index: 100; transition: background 0.2s; }
-        .resizer-v:hover, .resizer-v:active { background: #007acc; }
-        .resizer-h { width: 6px; background: #999; cursor: col-resize; flex-shrink: 0; z-index: 100; transition: background 0.2s; }
-        .resizer-h:hover, .resizer-h:active { background: #007acc; }
-
-        .media-pane { flex: 1; position: relative; padding: 0; overflow: hidden; background: #111; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
-        .content-pane-wrapper { flex: 1 1 0%; position: relative; display: flex; flex-direction: column; background: var(--paneBg); overflow: hidden; min-height: 0; min-width: 0; }
-        .timeline-pane { flex: 0 0 var(--timeline-height); height: var(--timeline-height); max-height: var(--timeline-height); padding: 0; background: #ececec; display: flex; flex-direction: column; position: relative; overflow: hidden; min-width: 0; min-height: 0;}
-
-        #map-container { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; }
-        .leaflet-tooltip { white-space: normal !important; word-wrap: break-word !important; width: max-content !important; max-width: 300px !important; text-align: left !important; font-size: 0.85rem; font-weight: 400 !important; line-height: 1.4; padding: 6px 10px !important; text-wrap: balance !important; }
-
-        .custom-map-pin { display: flex; align-items: flex-end; justify-content: center; width: 24px; height: 34px; margin-left: -12px; margin-top: -34px; }
-        .pin-head { width: 14px; height: 14px; border-radius: 50%; background: #d32f2f; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.4); position: absolute; top: 0; transition: all 0.2s ease; }
-        .pin-stem { width: 2px; height: 20px; background: #333; position: absolute; bottom: 0; }
-        .custom-map-pin.active .pin-head { background: #007acc; transform: scale(1.3); z-index: 1000; }
-        .custom-map-pin.active .pin-stem { background: #007acc; width: 3px; }
-
-        .media-carousel { flex: 1; display: flex; width: 100%; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scroll-behavior: smooth; }
-        .media-item { width: 100%; height: 100%; flex-shrink: 0; scroll-snap-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
-        .media-content-wrapper { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .media-item img { max-width: 100%; max-height: 100%; object-fit: contain; }
-        .media-item iframe { width: 100%; height: 100%; border: none; }
-        .media-meta-box { width: 100%; background: #222; color: #eee; padding: 8px 15px; box-sizing: border-box; font-size: 0.8rem; border-top: 1px solid #444; }
-        .media-caption { font-style: italic; margin-bottom: 4px; }
-        .media-credit { color: #aaa; font-size: 0.7rem; }
-        .media-counter { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; pointer-events: none; }
-
-        .content-scroll-area { flex: 1; overflow-y: auto; padding: 2rem 4rem; display: flex; flex-direction: column; z-index: 5; }
-        .slide-container { width: 100%; max-width: 1000px; margin: 0 auto; flex: 1; box-sizing: border-box; }
-        
-        .slide-header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.8rem; }
-        .slide-date { color: var(--accent); font-size: 0.95rem; letter-spacing: 1px; font-weight: 400; }
-        .tags-container { display: flex; gap: 6px; flex-wrap: wrap; max-width: 40%; justify-content: flex-end; }
-        .tag-badge { background: #e0e0e0; color: #444; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; white-space: nowrap; border: 1px solid #ccc; font-weight: 400; }
-        
-        .slide-title { margin: 0 0 1.5rem 0; font-size: 2.5rem; color: #111; line-height: 1.1; font-weight: 400; }
-        .slide-desc { line-height: 1.6; font-size: 1.15rem; color: #333; width: 100%; font-weight: 400; }
-        
-        .click-zone { position: absolute; top: 0; bottom: 40px; width: 15%; z-index: 10; cursor: pointer; }
-        .click-zone-left { left: 0; }
-        .click-zone-right { right: 0; }
-
-        .unified-status-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 40px; background: #fff; border-top: 1px solid #ddd; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; box-shadow: 0 -2px 5px rgba(0,0,0,0.02); z-index: 20; }
-        
-        .status-left { display: flex; gap: 10px; flex: 1; justify-content: flex-start; }
-        .status-btn { background: #eee; color: #444; border: 1px solid #ccc; border-radius: 12px; padding: 4px 12px; cursor: pointer; font-size: 0.75rem; transition: all 0.2s; font-weight: 400; font-family: inherit; }
-        .status-btn:hover { background: #ddd; }
-        .status-btn.active { background: #007acc; color: white; border-color: #005f9e; }
-        
-        .status-center { display: flex; gap: 5px; flex: 1; justify-content: center; }
-        .nav-btn-bottom { background: #f8f8f8; color: #333; border: 1px solid #ccc; border-radius: 4px; padding: 4px 15px; cursor: pointer; font-size: 0.85rem; transition: background 0.2s; font-weight: 400; font-family: inherit; }
-        .nav-btn-bottom:hover:not(:disabled) { background: #e0e0e0; }
-        .nav-btn-bottom:disabled { opacity: 0.3; cursor: not-allowed; }
-
-        .status-right { font-size: 0.85rem; color: #666; flex: 1; display: flex; justify-content: flex-end; }
-
-        #about-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; max-width: 800px; max-height: 80vh; overflow-y: auto; background: #fff; z-index: 9999; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); padding: 2rem; display: none; border: 1px solid #ccc; color: #222; font-size: 1.1rem; }
-        #about-modal.open { display: block; }
-        .about-close { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5rem; cursor: pointer; font-family: inherit; }
-        
-        .about-meta-footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #eee; font-size: 0.85rem; color: #666; background: #fdfdfd; padding: 1rem; border-radius: 6px;}
-        .about-meta-footer a { color: #007acc; text-decoration: none; word-break: break-all; }
-        .about-meta-footer a:hover { text-decoration: underline; }
-
-        .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-y: hidden; overflow-x: auto; position: relative; display: flex; align-items: flex-start; cursor: grab; touch-action: pan-x; -webkit-overflow-scrolling: touch; }
-        .timeline-scroll-wrapper.is-dragging { cursor: grabbing; }
-        
-        .timeline-track-container { position: relative; height: 100%; transition: width 1.0s cubic-bezier(0.25, 1, 0.5, 1); }
-        
-        .tag-lane { border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; box-sizing: border-box; width: 100%; position: absolute; left: 0; right: 0; }
-        .tag-lane-label { position: sticky; left: 0; z-index: 100; padding: 0 10px; font-size: 0.75rem; color: #555; display: flex; align-items: center; white-space: nowrap; box-shadow: 2px 0 4px rgba(0,0,0,0.05); border-right: 1px solid #ccc; font-weight: 400; }
-        
-        .event-group { position: absolute; z-index: 10; transition: z-index 0.2s; display: flex; align-items: flex-start; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.15)); }
-<style>
         /* === [ GLOBAL STYLES v3.9.0 ] === */
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
@@ -667,371 +572,7 @@
         MODULE_VERSIONS['ContentSlider'] = 'v3.2.0';
         // === [ END CONTENT SLIDER ] ===
 
-        // === [ TIMELINE SCRUBBER v18.0.0 ] ===
-        const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
-            const wrapperRef = useRef(null);
-            const [zoomLevel, setZoomLevel] = useState(1);
-            const dragRef = useRef({ isDragging: false, startX: 0, scrollLeft: 0 });
-            const touchZoomRef = useRef({ initialDist: 0, initialZoom: 1 });
-            const isManualZoomRef = useRef(false);
-            const prevActiveIndexRef = useRef(-1);
-            const [containerHeight, setContainerHeight] = useState(200);
-
-            useEffect(() => {
-                const measure = () => { if (wrapperRef.current) setContainerHeight(wrapperRef.current.offsetHeight); };
-                measure();
-                window.addEventListener('resize', measure);
-                return () => window.removeEventListener('resize', measure);
-            }, []);
-
-            const tagsMap = new Set();
-            const tagPairs = [];
-            data.forEach(d => {
-                if(!d.startDate || isNaN(d.startDate.getTime())) return;
-                const t = d.tags && d.tags.length > 0 ? d.tags : ['Untagged'];
-                t.forEach(tag => tagsMap.add(tag));
-                for(let i=0; i<t.length-1; i++) tagPairs.push([t[i], t[i+1]]);
-            });
-
-            let orderedTags = [];
-            const remaining = Array.from(tagsMap);
-            if (remaining.length > 0) orderedTags.push(remaining.shift());
-            
-            while(remaining.length > 0) {
-                let placed = false;
-                for (let i = 0; i < remaining.length; i++) {
-                    const r = remaining[i];
-                    const pairedWithFirst = tagPairs.some(p => (p[0]===r && p[1]===orderedTags[0]) || (p[1]===r && p[0]===orderedTags[0]));
-                    const pairedWithLast = tagPairs.some(p => (p[0]===r && p[1]===orderedTags[orderedTags.length-1]) || (p[1]===r && p[0]===orderedTags[orderedTags.length-1]));
-                    if (pairedWithLast) { orderedTags.push(r); remaining.splice(i, 1); placed = true; break; }
-                    if (pairedWithFirst) { orderedTags.unshift(r); remaining.splice(i, 1); placed = true; break; }
-                }
-                if (!placed) orderedTags.push(remaining.shift());
-            }
-
-            const availableLanesHeight = Math.max(containerHeight - 28, 50); 
-            const laneHeight = Math.max(24, availableLanesHeight / (orderedTags.length || 1));
-
-            const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
-            const minTimeRaw = validData.length > 0 ? validData[0].startDate.getTime() : new Date().getTime();
-            let maxTimeRaw = minTimeRaw;
-            validData.forEach(d => { if (d.endDate && !isNaN(d.endDate.getTime()) && d.endDate.getTime() > maxTimeRaw) maxTimeRaw = d.endDate.getTime(); else if (d.startDate.getTime() > maxTimeRaw) maxTimeRaw = d.startDate.getTime(); });
-            
-            const rawTimeRange = maxTimeRaw - minTimeRaw || 1;
-            const padMs = rawTimeRange * 0.05; 
-            const renderMinTime = minTimeRaw - padMs;
-            const renderMaxTime = maxTimeRaw + padMs;
-            const renderTimeRange = renderMaxTime - renderMinTime;
-
-            // NEW PHYSICS: Native Canvas Typography Engine
-            const measureTextWidth = (text) => {
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-                // 0.75rem equals exactly 12px in standard browsers. We use this to measure the exact footprint.
-                context.font = '400 12px "Noto Sans", sans-serif'; 
-                return context.measureText(text).width;
-            };
-
-            const formatLabelSmart = (titleStr) => {
-                const maxPx = 350; // The hard width limit for text before it wraps
-                const words = titleStr.split(' ');
-                
-                // Fast-pass: Does it fit perfectly on 1 line?
-                const totalWidth = measureTextWidth(titleStr);
-                if (totalWidth <= maxPx) return { lines: [titleStr], pxWidth: Math.max(60, totalWidth + 35) };
-
-                // Build initial lines
-                let rawLines = [];
-                let current = '';
-                for (let w of words) {
-                    let test = current ? current + ' ' + w : w;
-                    if (measureTextWidth(test) > maxPx) {
-                        if (current) rawLines.push(current);
-                        current = w;
-                    } else {
-                        current = test;
-                    }
-                }
-                if (current) rawLines.push(current);
-
-                // The Balancing Engine: If it's a 2-liner, test all splits to find the most visually equal lines
-                if (rawLines.length === 2) {
-                    let bestDiff = Infinity;
-                    let bestSplit = 1;
-                    for (let i = 1; i < words.length; i++) {
-                        let l1 = words.slice(0, i).join(' ');
-                        let l2 = words.slice(i).join(' ');
-                        let w1 = measureTextWidth(l1);
-                        let w2 = measureTextWidth(l2);
-                        if (w1 <= maxPx && w2 <= maxPx) {
-                            let diff = Math.abs(w1 - w2);
-                            if (diff < bestDiff) { bestDiff = diff; bestSplit = i; }
-                        }
-                    }
-                    rawLines = [words.slice(0, bestSplit).join(' '), words.slice(bestSplit).join(' ')];
-                }
-
-                // Truncation: Hard clamp at 3 lines
-                if (rawLines.length > 3) {
-                    rawLines = rawLines.slice(0, 3);
-                    let last = rawLines[2];
-                    while (measureTextWidth(last + '...') > maxPx && last.length > 0) {
-                        last = last.slice(0, -1);
-                    }
-                    rawLines[2] = last.trim() + '...';
-                }
-
-                const maxLineW = Math.max(...rawLines.map(l => measureTextWidth(l)));
-                // Return exact absolute pixel dimensions (Adding 35px for the diagonal polygon and inner padding)
-                return { lines: rawLines, pxWidth: Math.max(60, maxLineW + 35) };
-            };
-
-            useEffect(() => {
-                if (validData.length > 1 && wrapperRef.current && !dragRef.current.isDragging) {
-                    if (activeIndex !== prevActiveIndexRef.current) {
-                        prevActiveIndexRef.current = activeIndex;
-                        isManualZoomRef.current = false; 
-
-                        const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
-                        if (activeDataIndex >= 0 && !isManualZoomRef.current) {
-                            const item = validData[activeDataIndex];
-                            const sT = item.startDate.getTime();
-                            const eT = (item.endDate && !isNaN(item.endDate.getTime())) ? item.endDate.getTime() : sT;
-                            
-                            const activeTags = item.tags && item.tags.length > 0 ? item.tags : ['Untagged'];
-                            
-                            const { pxWidth } = formatLabelSmart(stripHTML(item.title));
-                            const containerW = wrapperRef.current.offsetWidth || 1000;
-                            const actualWidth = pxWidth;
-                            
-                            let minTimeGapSameLane = Infinity;
-                            let minTimeGapAnyLane = Infinity;
-                            
-                            validData.forEach((d, idx) => {
-                                if (idx === activeDataIndex) return;
-                                
-                                const dSt = d.startDate.getTime();
-                                const dEt = (d.endDate && !isNaN(d.endDate.getTime())) ? d.endDate.getTime() : dSt;
-                                
-                                let gap = Infinity;
-                                if (dSt >= eT) gap = dSt - eT;
-                                else if (dEt <= sT) gap = sT - dEt;
-                                
-                                if (gap >= 0 && gap < minTimeGapAnyLane) minTimeGapAnyLane = gap;
-
-                                const dTags = d.tags && d.tags.length > 0 ? d.tags : ['Untagged'];
-                                if (dTags.some(t => activeTags.includes(t))) {
-                                    if (gap >= 0 && gap < minTimeGapSameLane) minTimeGapSameLane = gap;
-                                }
-                            });
-
-                            let collisionZoom = 1;
-                            if (minTimeGapSameLane !== Infinity && minTimeGapSameLane > 0) {
-                                const requiredTrackW = ((actualWidth + 10) * renderTimeRange) / minTimeGapSameLane;
-                                collisionZoom = requiredTrackW / containerW;
-                            }
-
-                            let contextZoom = 1;
-                            if (minTimeGapAnyLane !== Infinity && minTimeGapAnyLane > 0) {
-                                const requiredTrackW = (150 * renderTimeRange) / minTimeGapAnyLane;
-                                contextZoom = requiredTrackW / containerW;
-                            }
-
-                            const idealZoom = Math.max(collisionZoom, contextZoom * 1.3); 
-                            
-                            setZoomLevel(prev => {
-                                const maxJump = prev * 0.5;
-                                if (idealZoom > prev + maxJump) return prev + maxJump;
-                                if (idealZoom < prev - maxJump) return Math.max(1, prev - maxJump);
-                                return Math.min(Math.max(1, idealZoom), 150);
-                            });
-                        }
-                    }
-                }
-            }, [activeIndex, data]); 
-
-            useEffect(() => {
-                const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
-                if (activeDataIndex >= 0 && wrapperRef.current && !dragRef.current.isDragging) {
-                    const item = validData[activeDataIndex];
-                    const sT = item.startDate.getTime();
-                    const eT = (item.endDate && !isNaN(item.endDate.getTime())) ? item.endDate.getTime() : sT;
-                    
-                    const { pxWidth } = formatLabelSmart(stripHTML(item.title));
-                    const containerW = wrapperRef.current.offsetWidth || 1000;
-                    const targetTrackW = Math.max(containerW, containerW * zoomLevel);
-                    
-                    const sPct = (sT - renderMinTime) / renderTimeRange;
-                    
-                    let blockPixelWidth = pxWidth;
-                    if (eT > sT) { blockPixelWidth = ((eT - sT) / renderTimeRange) * targetTrackW; }
-                    
-                    const visualCenterPx = (sPct * targetTrackW) + (blockPixelWidth / 2);
-                    const scrollPos = visualCenterPx - (containerW / 2);
-                    
-                    setTimeout(() => {
-                        if (wrapperRef.current) {
-                            wrapperRef.current.scrollTo({ left: scrollPos, behavior: 'smooth' });
-                        }
-                    }, 50); 
-                }
-            }, [activeIndex, zoomLevel, data]);
-
-            const onDown = (e) => { 
-                isManualZoomRef.current = true;
-                if (e.touches && e.touches.length === 2) {
-                    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-                    touchZoomRef.current = { initialDist: dist, initialZoom: zoomLevel };
-                    return;
-                }
-                const x = e.touches ? e.touches[0].clientX : e.clientX;
-                dragRef.current = { isDragging: true, startX: x - wrapperRef.current.offsetLeft, scrollLeft: wrapperRef.current.scrollLeft }; 
-                wrapperRef.current.classList.add('is-dragging'); 
-            };
-            const onUp = () => { dragRef.current.isDragging = false; wrapperRef.current?.classList.remove('is-dragging'); };
-            const onMove = (e) => {
-                if (e.touches && e.touches.length === 2) {
-                    e.preventDefault(); 
-                    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-                    const scale = dist / touchZoomRef.current.initialDist;
-                    setZoomLevel(Math.min(Math.max(touchZoomRef.current.initialZoom * scale, 0.5), 150));
-                    return;
-                }
-                if (!dragRef.current.isDragging) return;
-                const x = e.touches ? e.touches[0].clientX : e.clientX;
-                if (!e.touches) e.preventDefault(); 
-                wrapperRef.current.scrollLeft = dragRef.current.scrollLeft - ((x - wrapperRef.current.offsetLeft - dragRef.current.startX) * 2);
-            };
-
-            const doManualZoom = (direction) => {
-                isManualZoomRef.current = true;
-                setZoomLevel(p => direction === 'in' ? Math.min(p + 0.5, 150) : Math.max(p - 0.5, 0.5));
-            };
-
-            if (validData.length === 0) return html`<div style="padding:1rem;">No valid temporal data.</div>`;
-
-            const containerW = wrapperRef.current ? wrapperRef.current.offsetWidth : 1000;
-            const trackWidthPx = Math.max(containerW, containerW * zoomLevel);
-            const visibleMs = renderTimeRange / zoomLevel;
-            const msPerPixel = renderTimeRange / trackWidthPx;
-            
-            const targetMsPerMajorTick = (200 / containerW) * visibleMs; 
-
-            const MINUTE = 60000; const HOUR = 60 * MINUTE; const DAY = 24 * HOUR; const MONTH = 30 * DAY; const YEAR = 365.25 * DAY;
-            const majorSteps = [ 100 * YEAR, 50 * YEAR, 10 * YEAR, YEAR, 6 * MONTH, MONTH, 7 * DAY, DAY, 12 * HOUR, 6 * HOUR, HOUR ];
-            
-            let majorStepMs = majorSteps[0];
-            for (let s of majorSteps) { if (targetMsPerMajorTick <= s) majorStepMs = s; }
-
-            let formatType = 'year'; let minorStepMs = MONTH;
-            if (majorStepMs <= YEAR) { formatType = 'month'; minorStepMs = DAY; }
-            if (majorStepMs <= MONTH) { formatType = 'day'; minorStepMs = 7 * DAY; } 
-            if (majorStepMs <= 7 * DAY) { formatType = 'day'; minorStepMs = DAY; }   
-            if (majorStepMs <= DAY) { formatType = 'time'; minorStepMs = 4 * HOUR; }
-            if (majorStepMs <= 12 * HOUR) { formatType = 'time'; minorStepMs = 2 * HOUR; }
-            if (majorStepMs <= 6 * HOUR) { formatType = 'time'; minorStepMs = HOUR; }
-
-            const rulerTicks = [];
-            const minDate = new Date(renderMinTime);
-            let startTickTime = renderMinTime;
-            
-            if (formatType === 'year') startTickTime = new Date(minDate.getFullYear(), 0, 1).getTime();
-            if (formatType === 'month') startTickTime = new Date(minDate.getFullYear(), minDate.getMonth(), 1).getTime();
-            if (formatType === 'day') startTickTime = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate()).getTime();
-            if (formatType === 'time') {
-                const hours = minDate.getHours();
-                const flooredHours = Math.floor(hours / (majorStepMs / HOUR)) * (majorStepMs / HOUR);
-                startTickTime = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate(), flooredHours, 0, 0).getTime();
-            }
-            
-            let iterTime = startTickTime;
-            let safety = 0;
-            let drawnFirstVisible = false;
-
-            while (iterTime <= renderMaxTime && safety < 1000) {
-                safety++;
-                if (iterTime >= renderMinTime) {
-                    const d = new Date(iterTime);
-                    let label = '';
-                    const pctLeft = ((iterTime - renderMinTime) / renderTimeRange) * 100;
-                    
-                    const isVisible = pctLeft >= 0 && pctLeft <= 100;
-                    const forceContext = isVisible && !drawnFirstVisible;
-                    if (isVisible) drawnFirstVisible = true;
-                    
-                    if (formatType === 'year') label = d.getFullYear();
-                    else if (formatType === 'month') label = d.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
-                    else if (formatType === 'day') label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short' });
-                    else if (formatType === 'time') {
-                        const isMidnight = (d.getHours() === 0 && d.getMinutes() === 0);
-                        if (isMidnight || forceContext) label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-                        else label = d.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
-                    }
-
-                    rulerTicks.push(html`
-                        <div class="timeline-ruler-tick" style="left: ${pctLeft}%; position: absolute; bottom: 3px; display: flex; flex-direction: column; align-items: center; z-index: 5;">
-                            <div style="width: 2px; height: 10px; background: #666; margin-bottom: 2px;"></div>
-                            <div style="font-size: 0.75rem; color: #444; white-space: nowrap;">${label}</div>
-                        </div>
-                    `);
-
-                    let minorIter = iterTime + minorStepMs;
-                    let minorCount = 0;
-                    while (minorIter < iterTime + majorStepMs && minorCount < 30) {
-                        minorCount++;
-                        if ((minorStepMs / msPerPixel) > 15) { 
-                            const mPctLeft = ((minorIter - renderMinTime) / renderTimeRange) * 100;
-                            rulerTicks.push(html`<div style="position: absolute; left: ${mPctLeft}%; top: 0; width: 1px; height: 5px; background: #aaa; z-index: 4;"></div>`);
-                        }
-                        minorIter += minorStepMs;
-                    }
-                }
-                iterTime += majorStepMs; 
-            }
-
-            const markers = validData.map((item, index) => {
-                const globalIndex = data.findIndex(d => d.id === item.id);
-                
-                const startPct = Number((((item.startDate.getTime() - renderMinTime) / renderTimeRange) * 100).toFixed(4));
-                let endPct = startPct;
-                if (item.endDate && !isNaN(item.endDate.getTime()) && item.endDate.getTime() > item.startDate.getTime()) {
-                    endPct = Number((((item.endDate.getTime() - renderMinTime) / renderTimeRange) * 100).toFixed(4));
-                }
-                const hasDuration = (endPct - startPct) > 0.001;
-                
-                const isActive = globalIndex === activeIndex;
-                const activeTags = item.tags && item.tags.length > 0 ? item.tags : ['Untagged'];
-                const tagIndices = activeTags.map(t => orderedTags.indexOf(t));
-                const minIdx = Math.min(...tagIndices);
-                const maxIdx = Math.max(...tagIndices);
-                
-                const topPos = minIdx * laneHeight;
-                const blockHeight = (maxIdx - minIdx + 1) * laneHeight; 
-
-                let activeAnchor = '';
-                if (isActive) {
-                    const distanceToAxis = availableLanesHeight - topPos;
-                    const triangleStyles = hasDuration ? `left: 0; width: ${endPct - startPct}%; min-width: 2px;` : `left: 0; transform: translateX(-50%); width: 12px;`;
-                    
-                    activeAnchor = html`
-                        <div style="position: absolute; left: 0; top: ${blockHeight}px; bottom: 0; width: 2px; background: #007acc; z-index: 999;"></div>
-                        <div style="position: absolute; bottom: 0; ${triangleStyles} height: 16px; background: rgba(0,122,204,0.3); border-top: 2px solid #007acc; clip-path: polygon(0 0, 100% 100%, 0 100%); z-index: 998;"></div>
-                    `;
-                }
-
-                // Render the SMART absolute pixel dimensions into the inline styles
-                const { lines, pxWidth } = formatLabelSmart(stripHTML(item.title));
-                const groupWidth = hasDuration ? `width: ${endPct - startPct}%; min-width: 4px;` : `width: ${pxWidth}px;`;
-
-                return html`
-                    <div id="timeline-marker-${globalIndex}" class="event-group ${isActive ? 'active' : ''}" style="left: ${startPct}%; top: ${topPos}px; height: ${blockHeight}px; ${groupWidth}" onClick=${() => setActiveIndex(globalIndex)}>
-                        ${activeAnchor}
-                        <div class="event-block" style="--lane-h: ${laneHeight}px; background: ${isActive ? '#007acc' : '#f4f4f5'}; color: ${isActive ? '#fff' : '#444'}; z-index: 5; width: ${pxWidth}px;">
-                            <div class="event-text">
-                                ${lines.map(l => html`<div style="white-space: nowrap; overflow: hidden; width: 100%;">${l}</div>`)}
-                            </div>
-                        </div>
-// === [ TIMELINE SCRUBBER v19.0.0 ] ===
+        // === [ TIMELINE SCRUBBER v19.0.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -1378,7 +919,58 @@
                     
                     activeAnchor = html`
                         <div style="position: absolute; left: 0; top: ${blockHeight}px; bottom: 0; width: 2px; background: #007acc; z-index: 999;"></div>
+                        <div style="position: absolute; bottom: 0; ${triangleStyles} height: 16px; background: rgba(0,122,204,0.3); border-top: 2px solid #007acc; clip-path: polygon(0 0, 100% 100%, 0 100%); z-index: 998;"></div>
+                    `;
+                }
 
+                const { lines, pxWidth } = formatLabelSmart(stripHTML(item.title));
+                const groupWidth = hasDuration ? `width: ${endPct - startPct}%; min-width: 4px;` : `width: ${pxWidth}px;`;
+
+                return html`
+                    <div id="timeline-marker-${globalIndex}" class="event-group ${isActive ? 'active' : ''}" style="left: ${startPct}%; top: ${topPos}px; height: ${blockHeight}px; ${groupWidth}" onClick=${() => setActiveIndex(globalIndex)}>
+                        ${activeAnchor}
+                        <div class="event-block" style="--lane-h: ${laneHeight}px; background: ${isActive ? '#007acc' : '#f4f4f5'}; color: ${isActive ? '#fff' : '#444'}; z-index: 5; width: ${pxWidth}px;">
+                            <div class="event-text">
+                                ${lines.map(l => html`<div style="white-space: nowrap; overflow: hidden; width: 100%;">${l}</div>`)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            return html`
+                <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;">
+                    <div class="timeline-controls">
+                        <button class="timeline-btn" onClick=${() => doManualZoom('out')}>-</button>
+                        <div style="background: rgba(255,255,255,0.9); padding: 0 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.75rem; display: flex; align-items: center; font-weight: bold; color: #555; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                            ${zoomLevel.toFixed(1)}x
+                        </div>
+                        <button class="timeline-btn" onClick=${() => doManualZoom('in')}>+</button>
+                    </div>
+                    <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${(e) => { e.preventDefault(); doManualZoom(e.deltaY < 0 ? 'in' : 'out'); }}>
+                        <div class="timeline-track-container" style="width: ${trackWidthPx}px; flex-shrink: 0; min-width: 100%; height: 100%;">
+                            
+                            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 28px; pointer-events: none; z-index: 0;">
+                                ${orderedTags.map((tag, i) => html`
+                                    <div class="tag-lane" style="top: ${i * laneHeight}px; height: ${laneHeight}px; background: ${i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent'};">
+                                        <div class="tag-lane-label" style="background: ${i % 2 === 0 ? '#f4f4f4' : '#fcfcfc'}; pointer-events: auto;">${tag}</div>
+                                    </div>
+                                `)}
+                            </div>
+
+                            <div class="timeline-axis">
+                                ${rulerTicks}
+                            </div>
+                            
+                            ${markers}
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+        MODULE_VERSIONS['TimelineScrubber'] = 'v19.0.0';
+        // === [ END TIMELINE SCRUBBER ] ===
+        
         // === [ APP ORCHESTRATOR v1.17.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
