@@ -9,15 +9,15 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
     <style>
-        /* === [ GLOBAL STYLES v3.1.0 ] === */
+        /* === [ GLOBAL STYLES v3.2.0 ] === */
         
-        /* TRUE BOLD & TRUE GREEK SUPPORT: Forcing the download of Greek and Polytonic glyphs */
-        @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,700;1,400;1,700&family=Fira+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap&subset=greek,greek-ext');
+        /* HTTP 400 BUG FIX: Reverted to standard CSS2 API which handles Polytonic Greek natively via unicode-range */
+        @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,700;1,400;1,700&family=Fira+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
         :root { --bg: #121212; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; }
         body { margin: 0; font-family: 'Fira Sans', system-ui, sans-serif; font-weight: 400; overflow: hidden; background: var(--bg); color: var(--text); }
         
-        /* The Loading Screen (Staged Determinate) */
+        /* The Loading Screen */
         .loading-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--paneBg); color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; font-family: 'Fira Sans', sans-serif; transition: opacity 0.5s ease; opacity: 1; }
         .loading-screen.fade-out { opacity: 0; pointer-events: none; }
         .loading-title { font-size: 2.5rem; margin-bottom: 1rem; color: var(--accent); font-family: 'EB Garamond', serif; font-weight: 400; }
@@ -64,7 +64,6 @@
         .slide-container { width: 100%; max-width: 1000px; margin: 0 auto; flex: 1; box-sizing: border-box; }
         
         .slide-header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.8rem; }
-        
         .slide-date { color: var(--accent); font-size: 0.95rem; letter-spacing: 1px; font-family: 'Fira Sans', sans-serif; font-weight: 400; }
         .tags-container { display: flex; gap: 6px; flex-wrap: wrap; max-width: 40%; justify-content: flex-end; }
         .tag-badge { background: #e0e0e0; color: #444; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; white-space: nowrap; border: 1px solid #ccc; font-family: 'Fira Sans', sans-serif; font-weight: 400; }
@@ -93,6 +92,11 @@
         #about-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; max-width: 800px; max-height: 80vh; overflow-y: auto; background: #fff; z-index: 9999; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); padding: 2rem; display: none; border: 1px solid #ccc; color: #222; font-family: 'EB Garamond', serif; font-size: 1.1rem; }
         #about-modal.open { display: block; }
         .about-close { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5rem; cursor: pointer; font-family: 'Fira Sans', sans-serif;}
+        
+        /* The New About Meta-Footer */
+        .about-meta-footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #eee; font-family: 'Fira Sans', sans-serif; font-size: 0.85rem; color: #666; background: #fdfdfd; padding: 1rem; border-radius: 6px;}
+        .about-meta-footer a { color: #007acc; text-decoration: none; word-break: break-all; }
+        .about-meta-footer a:hover { text-decoration: underline; }
 
         .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-y: hidden; overflow-x: auto; position: relative; display: flex; align-items: flex-start; cursor: grab; touch-action: pan-x; -webkit-overflow-scrolling: touch; }
         .timeline-scroll-wrapper.is-dragging { cursor: grabbing; }
@@ -131,13 +135,14 @@
         .log-warn { color: #ffb86c; }
         .log-error { color: #ff5555; }
         .log-time { color: #6272a4; margin-right: 5px; }
-        /* === [ END GLOBAL STYLES v3.1.0 ] === */
+        /* === [ END GLOBAL STYLES v3.2.0 ] === */
+    </style>
     </style>
 </head>
 <body>
     <div id="root"></div>
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.29 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.30 ] ===
         import { h, render, Component } from 'https://esm.sh/preact';
         import { useState, useEffect, useRef } from 'https://esm.sh/preact/hooks';
         import htm from 'https://esm.sh/htm';
@@ -145,9 +150,9 @@
 
         const html = htm.bind(h);
         
-        const APP_VERSION = 'v5.13.0';
+        const APP_VERSION = 'v5.14.0';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v3.1.0', Globals: 'v1.16.0' }; 
+        const MODULE_VERSIONS = { Styles: 'v3.2.0', Globals: 'v1.16.0' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
         // === [ END GLOBAL VARIABLES ] ===
         
@@ -875,7 +880,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v15.0.0';
         // === [ END TIMELINE SCRUBBER ] ===
 
-        // === [ APP ORCHESTRATOR v1.15.1 ] ===
+        // === [ APP ORCHESTRATOR v1.16.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [data, setData] = useState([]);
@@ -963,7 +968,11 @@
                 
                 const params = new URLSearchParams(window.location.search);
                 const gid = params.get('gid') || '0'; 
-                let fetchUrl = params.get('source');
+                
+                // Extract the raw source specifically for the About Modal display
+                const rawSource = params.get('source');
+                let fetchUrl = rawSource;
+                
                 if (!fetchUrl) return setStatus({ text: 'Awaiting Source URL', progress: 0, isFading: false, active: false });
 
                 if (fetchUrl.includes('http')) {
@@ -996,7 +1005,11 @@
                                 return ''; 
                             };
                             
-                            setAboutData({ title: fuzzy(results.data[0], ['title', 'headline', 'name']) || 'About', description: fuzzy(results.data[0], ['description', 'text', 'content']) });
+                            setAboutData({ 
+                                title: fuzzy(results.data[0], ['title', 'headline', 'name']) || 'About', 
+                                description: fuzzy(results.data[0], ['description', 'text', 'content']),
+                                rawSource: rawSource
+                            });
 
                             const cleaned = results.data.map((row, index) => {
                                 const s = fuzzy(row, ['start', 'start date', 'startdate', 'date']);
@@ -1054,7 +1067,18 @@
                     ` : ''}
 
                     ${data.length > 0 ? html`
-                        ${aboutData ? html`<div id="about-modal" class=${isAboutOpen ? 'open' : ''}><button class="about-close" onClick=${() => setIsAboutOpen(false)}>×</button><h2 dangerouslySetInnerHTML=${{__html: aboutData.title}}></h2><div style="line-height: 1.6;" dangerouslySetInnerHTML=${{__html: aboutData.description}}></div></div>` : ''}
+                        ${aboutData ? html`
+                            <div id="about-modal" class=${isAboutOpen ? 'open' : ''}>
+                                <button class="about-close" onClick=${() => setIsAboutOpen(false)}>×</button>
+                                <h2 dangerouslySetInnerHTML=${{__html: aboutData.title}}></h2>
+                                <div style="line-height: 1.6; margin-bottom: 2rem;" dangerouslySetInnerHTML=${{__html: aboutData.description}}></div>
+                                
+                                <div class="about-meta-footer">
+                                    <div style="margin-bottom: 6px;"><b style="color: #333;">Engine:</b> CarTiMapper Core ${APP_VERSION}</div>
+                                    <div><b style="color: #333;">Source:</b> <a href="${aboutData.rawSource && aboutData.rawSource.startsWith('http') ? aboutData.rawSource : `https://docs.google.com/spreadsheets/d/${aboutData.rawSource}`}" target="_blank">${aboutData.rawSource || 'Local/Unknown Data'}</a></div>
+                                </div>
+                            </div>
+                        ` : ''}
 
                         <div id="app-layout" ref=${appRef}>
                             <div class="top-row">
@@ -1082,7 +1106,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.15.1';
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.16.0';
         
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
         // === [ END APP ORCHESTRATOR ] ===
