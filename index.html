@@ -9,9 +9,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
     <style>
-        /* === [ GLOBAL STYLES v2.10.0 ] === */
-        
-        /* Typography Upgrade: Polytonic Greek Support */
+        /* === [ GLOBAL STYLES v2.11.0 ] === */
         @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,700;1,400&family=Fira+Sans:wght@400;600&display=swap');
 
         :root { --bg: #121212; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; }
@@ -52,38 +50,37 @@
         .media-credit { color: #aaa; font-size: 0.7rem; }
         .media-counter { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; pointer-events: none; }
 
-        /* Content Slider Upgrades */
         .content-scroll-area { flex: 1; overflow-y: auto; padding: 2rem 4rem; display: flex; flex-direction: column; z-index: 5; }
         .slide-container { width: 100%; max-width: 1000px; margin: 0 auto; flex: 1; box-sizing: border-box; }
         
         .slide-header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.8rem; }
-        .slide-date { color: var(--accent); font-weight: bold; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px; font-family: 'Fira Sans', sans-serif; }
+        
+        /* CRITICAL FIX: Removed text-transform uppercase from date to allow "Wed" instead of "WED" */
+        .slide-date { color: var(--accent); font-weight: bold; font-size: 0.95rem; letter-spacing: 1px; font-family: 'Fira Sans', sans-serif; }
         .tags-container { display: flex; gap: 6px; flex-wrap: wrap; max-width: 40%; justify-content: flex-end; }
         .tag-badge { background: #e0e0e0; color: #444; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; white-space: nowrap; border: 1px solid #ccc; font-family: 'Fira Sans', sans-serif; }
         
-        /* Garamond Typography Injection */
         .slide-title { margin: 0 0 1.5rem 0; font-size: 2.5rem; color: #111; font-weight: bold; font-family: 'EB Garamond', serif; line-height: 1.1; }
         .slide-desc { line-height: 1.6; font-size: 1.25rem; color: #333; width: 100%; font-family: 'EB Garamond', serif; }
         
-        /* Ergonomic Click Zones (15% UX Standard) */
         .click-zone { position: absolute; top: 0; bottom: 40px; width: 15%; z-index: 10; cursor: pointer; }
         .click-zone-left { left: 0; }
         .click-zone-right { right: 0; }
 
-        /* Unified Status Bar */
         .unified-status-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 40px; background: #fff; border-top: 1px solid #ddd; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; box-shadow: 0 -2px 5px rgba(0,0,0,0.02); z-index: 20; font-family: 'Fira Sans', sans-serif; }
         
-        .status-left { display: flex; gap: 10px; }
+        /* CRITICAL FIX: flex: 1 forces perfect symmetrical centering of the middle child */
+        .status-left { display: flex; gap: 10px; flex: 1; justify-content: flex-start; }
         .status-btn { background: #eee; color: #444; border: 1px solid #ccc; border-radius: 12px; padding: 4px 12px; cursor: pointer; font-size: 0.75rem; font-weight: bold; transition: all 0.2s; }
         .status-btn:hover { background: #ddd; }
         .status-btn.active { background: #007acc; color: white; border-color: #005f9e; }
         
-        .status-center { display: flex; gap: 5px; }
+        .status-center { display: flex; gap: 5px; flex: 1; justify-content: center; }
         .nav-btn-bottom { background: #f8f8f8; color: #333; border: 1px solid #ccc; border-radius: 4px; padding: 4px 15px; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: background 0.2s; }
         .nav-btn-bottom:hover:not(:disabled) { background: #e0e0e0; }
         .nav-btn-bottom:disabled { opacity: 0.3; cursor: not-allowed; }
 
-        .status-right { font-size: 0.85rem; color: #666; font-weight: bold; }
+        .status-right { font-size: 0.85rem; color: #666; font-weight: bold; flex: 1; display: flex; justify-content: flex-end; }
 
         #about-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; max-width: 800px; max-height: 80vh; overflow-y: auto; background: #fff; z-index: 9999; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); padding: 2rem; display: none; border: 1px solid #ccc; color: #222; font-family: 'EB Garamond', serif; font-size: 1.1rem; }
         #about-modal.open { display: block; }
@@ -126,7 +123,7 @@
         .log-warn { color: #ffb86c; }
         .log-error { color: #ff5555; font-weight: bold; }
         .log-time { color: #6272a4; margin-right: 5px; }
-        /* === [ END GLOBAL STYLES v2.10.0 ] === */
+        /* === [ END GLOBAL STYLES v2.11.0 ] === */
     </style>
     
     <script type="importmap">
@@ -144,7 +141,7 @@
     <div id="root"></div>
 
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.25 ] ===
+        /// === [ GLOBAL VARIABLES & MANIFEST v1.0.26 ] ===
         import { h, render, Component } from 'preact';
         import { useState, useEffect, useRef } from 'preact/hooks';
         import htm from 'htm';
@@ -153,11 +150,11 @@
         const html = htm.bind(h);
         
         // Automated Global Registry
-        const APP_VERSION = 'v5.11.0';
+        const APP_VERSION = 'v5.12.0';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v2.10.0', Globals: 'v1.13.0' }; 
+        const MODULE_VERSIONS = { Styles: 'v2.11.0', Globals: 'v1.14.0' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
-        // === [ END GLOBAL VARIABLES v1.0.25 ] ===
+        // === [ END GLOBAL VARIABLES v1.0.26 ] ===
         
         // === [ UTILITIES ] ===
         const stripHTML = (htmlStr) => {
@@ -498,7 +495,7 @@
         };
         // === [ END MEDIA VIEWER ] ===
 
-        // === [ CONTENT SLIDER v3.0.0 ] ===
+        // === [ CONTENT SLIDER v3.1.0 ] ===
         const ContentSlider = ({ data, activeIndex, setActiveIndex, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen }) => {
             const slide = data[activeIndex];
             if (!slide) return null;
@@ -521,7 +518,7 @@
                 const eTimeStr = fTime(eD);
                 const eDayStr = fDay(eD);
 
-                // Same Day (e.g., Wed 23/9/1944 18:00 - 22:00)
+                // Same Day
                 if (sD.getFullYear() === eD.getFullYear() && sD.getMonth() === eD.getMonth() && sD.getDate() === eD.getDate()) {
                     if (sTimeStr && eTimeStr && sTimeStr !== eTimeStr) {
                         return `${sDayStr} ${sDateStr} ${sTimeStr} - ${eTimeStr}`.trim();
@@ -529,7 +526,7 @@
                     return `${sDayStr} ${sDateStr} ${sTimeStr}`.trim();
                 }
 
-                // Same Month & Year (e.g., Wed 2 - Fri 4/11/1944)
+                // Same Month & Year
                 if (sD.getFullYear() === eD.getFullYear() && sD.getMonth() === eD.getMonth()) {
                     const timePart = eTimeStr ? ` ${eTimeStr}` : '';
                     return `${sDayStr} ${sD.getDate()} - ${eDayStr} ${eDateStr}${timePart}`.trim();
@@ -555,7 +552,8 @@
                                     ${slide.tags.map(t => html`<span class="tag-badge">${t}</span>`)}
                                 </div>
                             </div>
-                            <h2 class="slide-title">${stripHTML(slide.title)}</h2>
+                            
+                            <h2 class="slide-title" dangerouslySetInnerHTML=${{ __html: slide.title }}></h2>
                             <div class="slide-desc" dangerouslySetInnerHTML=${{ __html: slide.description }}></div>
                         </div>
                     </div>
@@ -578,6 +576,7 @@
                 </div>
             `;
         };
+        MODULE_VERSIONS['ContentSlider'] = 'v3.1.0';
         // === [ END CONTENT SLIDER ] ===
 
         // === [ TIMELINE SCRUBBER v14.0.0 ] ===
@@ -885,14 +884,14 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v14.0.0';
         // === [ END TIMELINE SCRUBBER ] ===
 
-        // === [ APP ORCHESTRATOR v1.13.0 ] ===
+        // === [ APP ORCHESTRATOR v1.14.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [data, setData] = useState([]);
             const [aboutData, setAboutData] = useState(null); 
             const [status, setStatus] = useState('Idle');
             const [activeIndex, setActiveIndex] = useState(0); 
-            const [isMonitorOpen, setIsMonitorOpen] = useState(false); // Starts closed
+            const [isMonitorOpen, setIsMonitorOpen] = useState(false); 
             const [isAboutOpen, setIsAboutOpen] = useState(false);
             const appRef = useRef(null);
 
@@ -1007,7 +1006,8 @@
                             
                             setAboutData({ title: fuzzy(results.data[0], ['title', 'headline', 'name']) || 'About', description: fuzzy(results.data[0], ['description', 'text', 'content']) });
 
-                            const cleaned = results.data.slice(1).map((row, index) => {
+                            // CRITICAL FIX: Removed .slice(1) so Record 1 is perfectly parsed into the timeline.
+                            const cleaned = results.data.map((row, index) => {
                                 const s = fuzzy(row, ['start', 'start date', 'startdate', 'date']);
                                 const e = fuzzy(row, ['end', 'end date', 'enddate']);
                                 
@@ -1074,7 +1074,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.13.0';
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.14.0';
         
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
         // === [ END APP ORCHESTRATOR ] ===
