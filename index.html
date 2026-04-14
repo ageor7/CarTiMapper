@@ -960,12 +960,11 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v15.0.0';
         // === [ END TIMELINE SCRUBBER ] ===
 
-        // === [ APP ORCHESTRATOR v1.15.0 ] ===
+        // === [ APP ORCHESTRATOR v1.15.1 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [data, setData] = useState([]);
             const [aboutData, setAboutData] = useState(null); 
-            // Status is now an object tracking text, progress percentage, and fade state
             const [status, setStatus] = useState({ text: 'Initializing Engine...', progress: 10, isFading: false, active: false });
             const [activeIndex, setActiveIndex] = useState(0); 
             const [isMonitorOpen, setIsMonitorOpen] = useState(false); 
@@ -1045,7 +1044,7 @@
 
             useEffect(() => {
                 document.documentElement.style.setProperty('--paneBg', TM_CONFIG.paneBackground);
-                addLog(`CarTiMapper Engine ${APP_VERSION} Boot Sequence Initiated.`, 'info');
+                addLog(`CarTiMapper Engine Boot Sequence Initiated.`, 'info');
                 
                 const params = new URLSearchParams(window.location.search);
                 const gid = params.get('gid') || '0'; 
@@ -1113,7 +1112,6 @@
                             setData([...valid, ...cleaned.filter(r => !r.startDate)]);
                             setActiveIndex(0); 
                             
-                            // Trigger the satisfying completion state, wait 500ms, then fade out
                             setStatus({ text: `Success! Loaded ${cleaned.length} records.`, progress: 100, isFading: true, active: false });
                             setTimeout(() => {
                                 setStatus({ text: '', progress: 100, isFading: true, active: true });
@@ -1140,34 +1138,36 @@
                         </div>
                     ` : ''}
 
-                    ${aboutData ? html`<div id="about-modal" class=${isAboutOpen ? 'open' : ''}><button class="about-close" onClick=${() => setIsAboutOpen(false)}>×</button><h2 dangerouslySetInnerHTML=${{__html: aboutData.title}}></h2><div style="line-height: 1.6;" dangerouslySetInnerHTML=${{__html: aboutData.description}}></div></div>` : ''}
+                    ${data.length > 0 ? html`
+                        ${aboutData ? html`<div id="about-modal" class=${isAboutOpen ? 'open' : ''}><button class="about-close" onClick=${() => setIsAboutOpen(false)}>×</button><h2 dangerouslySetInnerHTML=${{__html: aboutData.title}}></h2><div style="line-height: 1.6;" dangerouslySetInnerHTML=${{__html: aboutData.description}}></div></div>` : ''}
 
-                    <div id="app-layout" ref=${appRef}>
-                        <div class="top-row">
-                            <div class="map-pane ${!hasMedia ? 'no-media' : ''}">
-                                <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} addLog=${addLog} />
-                                <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} />
+                        <div id="app-layout" ref=${appRef}>
+                            <div class="top-row">
+                                <div class="map-pane ${!hasMedia ? 'no-media' : ''}">
+                                    <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} addLog=${addLog} />
+                                    <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} />
+                                </div>
+                                ${hasMedia ? html`<div class="resizer-h" onMouseDown=${startMapResize} onTouchStart=${startMapResize}></div>` : ''}
+                                <div class="media-pane" style="display: ${hasMedia ? 'flex' : 'none'};">
+                                    <${MediaViewer} activeSlide=${activeSlide} />
+                                </div>
                             </div>
-                            ${hasMedia ? html`<div class="resizer-h" onMouseDown=${startMapResize} onTouchStart=${startMapResize}></div>` : ''}
-                            <div class="media-pane" style="display: ${hasMedia ? 'flex' : 'none'};">
-                                <${MediaViewer} activeSlide=${activeSlide} />
+
+                            <div class="resizer-v" onMouseDown=${startTopResize} onTouchStart=${startTopResize}></div>
+                            
+                            <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} aboutData=${aboutData} isAboutOpen=${isAboutOpen} setIsAboutOpen=${setIsAboutOpen} isMonitorOpen=${isMonitorOpen} setIsMonitorOpen=${setIsMonitorOpen} />
+                            
+                            <div class="resizer-v" onMouseDown=${startTimelineResize} onTouchStart=${startTimelineResize}></div>
+
+                            <div class="timeline-pane">
+                                <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} />
                             </div>
                         </div>
-
-                        <div class="resizer-v" onMouseDown=${startTopResize} onTouchStart=${startTopResize}></div>
-                        
-                        <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} aboutData=${aboutData} isAboutOpen=${isAboutOpen} setIsAboutOpen=${setIsAboutOpen} isMonitorOpen=${isMonitorOpen} setIsMonitorOpen=${setIsMonitorOpen} />
-                        
-                        <div class="resizer-v" onMouseDown=${startTimelineResize} onTouchStart=${startTimelineResize}></div>
-
-                        <div class="timeline-pane">
-                            <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} />
-                        </div>
-                    </div>
+                    ` : ''}
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.15.0';
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.15.1';
         
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
         // === [ END APP ORCHESTRATOR ] ===
