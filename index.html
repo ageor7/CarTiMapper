@@ -9,7 +9,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
     <style>
-        /* === [ GLOBAL STYLES v3.7.0 ] === */
+        /* === [ GLOBAL STYLES v3.8.0 ] === */
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
         :root { --bg: #121212; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; }
@@ -105,18 +105,17 @@
         .event-group { position: absolute; z-index: 10; transition: z-index 0.2s; display: flex; align-items: flex-start; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.15)); }
         .event-group.active { z-index: 30; filter: drop-shadow(0 4px 6px rgba(0,122,204,0.4)); }
         
-        /* NEW PHYSICS: max-content width allows the box to stretch naturally up to the 500px limit */
+        /* NEW PHYSICS: CSS is no longer allowed to determine the width or clamp the text. */
         .event-block { 
             position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
             text-align: left; font-size: 0.75rem; cursor: pointer; transition: filter 0.2s ease;
-            box-sizing: border-box; width: max-content; max-width: min(500px, 60vw); 
+            box-sizing: border-box;
             --diag-w: 10px; min-height: var(--lane-h); padding: 4px 12px 4px calc(var(--diag-w) + 8px); 
             clip-path: polygon( 0 calc(50% - (var(--lane-h) / 2) + 0.5px), var(--diag-w) 0, 100% 0, 100% 100%, var(--diag-w) 100%, 0 calc(50% + (var(--lane-h) / 2) - 0.5px) );
         }
         .event-block:hover { filter: brightness(1.05); z-index: 40; }
         
-        /* NEW PHYSICS: Removed text-wrap balance, clamped to 2 strict lines */
-        .event-text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.3; font-weight: 400; }
+        .event-text { display: flex; flex-direction: column; line-height: 1.3; font-weight: 400; width: 100%; }
         
         .timeline-axis { position: absolute; bottom: 0; left: 0; right: 0; height: 28px; background: #e0e0e0; border-top: 2px solid #999; z-index: 5; }
         .timeline-ruler-tick { position: absolute; bottom: 3px; display: flex; flex-direction: column; align-items: center; z-index: 5; transform: translateX(-50%); }
@@ -134,13 +133,13 @@
         .log-warn { color: #ffb86c; }
         .log-error { color: #ff5555; }
         .log-time { color: #6272a4; margin-right: 5px; }
-        /* === [ END GLOBAL STYLES v3.7.0 ] === */
+        /* === [ END GLOBAL STYLES v3.8.0 ] === */
     </style>
 </head>
 <body>
     <div id="root"></div>
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.35 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.36 ] ===
         import { h, render, Component } from 'https://esm.sh/preact';
         import { useState, useEffect, useRef } from 'https://esm.sh/preact/hooks';
         import htm from 'https://esm.sh/htm';
@@ -148,9 +147,9 @@
 
         const html = htm.bind(h);
         
-        const APP_VERSION = 'v5.16.2';
+        const APP_VERSION = 'v5.17.0';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v3.7.0', Globals: 'v1.17.2' }; 
+        const MODULE_VERSIONS = { Styles: 'v3.8.0', Globals: 'v1.17.2' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
         // === [ END GLOBAL VARIABLES ] ===
         
@@ -573,7 +572,7 @@
         MODULE_VERSIONS['ContentSlider'] = 'v3.2.0';
         // === [ END CONTENT SLIDER ] ===
 
-        // === [ TIMELINE SCRUBBER v16.0.0 ] ===
+        // === [ TIMELINE SCRUBBER v17.0.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -615,7 +614,7 @@
                 if (!placed) orderedTags.push(remaining.shift());
             }
 
-            const availableLanesHeight = Math.max(containerHeight - 28, 50); // Hard 28px axis subtraction
+            const availableLanesHeight = Math.max(containerHeight - 28, 50); 
             const laneHeight = Math.max(24, availableLanesHeight / (orderedTags.length || 1));
 
             const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
@@ -629,11 +628,39 @@
             const renderMaxTime = maxTimeRaw + padMs;
             const renderTimeRange = renderMaxTime - renderMinTime;
 
+            // NEW PHYSICS: Hard JS Typography Algorithm
+            const formatLabel = (titleStr) => {
+                const maxChars = 52; // Mathematically equates to ~360px + padding = ~395px total width
+                const words = titleStr.split(' ');
+                let lines = [];
+                let current = '';
+                for (let w of words) {
+                    if ((current + w).length > maxChars) {
+                        if (current) lines.push(current.trim());
+                        current = w + ' ';
+                    } else {
+                        current += w + ' ';
+                    }
+                }
+                if (current) lines.push(current.trim());
+                
+                if (lines.length > 3) {
+                    lines = lines.slice(0, 3);
+                    if (lines[2].length > maxChars - 3) lines[2] = lines[2].slice(0, maxChars - 3);
+                    lines[2] += '...';
+                }
+                
+                const maxLen = Math.max(...lines.map(l => l.length));
+                // Width = (Longest Line * ~6.5px per char) + 35px for Diagonal Cut and Padding
+                const pxWidth = Math.max(60, (maxLen * 6.5) + 35); 
+                return { lines, pxWidth };
+            };
+
             useEffect(() => {
                 if (validData.length > 1 && wrapperRef.current && !dragRef.current.isDragging) {
                     if (activeIndex !== prevActiveIndexRef.current) {
                         prevActiveIndexRef.current = activeIndex;
-                        isManualZoomRef.current = false; // Reset manual override on new slide
+                        isManualZoomRef.current = false; 
 
                         const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
                         if (activeDataIndex >= 0 && !isManualZoomRef.current) {
@@ -642,10 +669,11 @@
                             const eT = (item.endDate && !isNaN(item.endDate.getTime())) ? item.endDate.getTime() : sT;
                             
                             const activeTags = item.tags && item.tags.length > 0 ? item.tags : ['Untagged'];
-                            const titleStr = stripHTML(item.title);
-                            const estWidth = (titleStr.length * 7) + 30; 
+                            
+                            // Share the exact JS algorithm width with the Auto-Zoom Engine
+                            const { pxWidth } = formatLabel(stripHTML(item.title));
                             const containerW = wrapperRef.current.offsetWidth || 1000;
-                            const actualWidth = Math.min(estWidth, 400, containerW * 0.5);
+                            const actualWidth = pxWidth;
                             
                             let minTimeGapSameLane = Infinity;
                             let minTimeGapAnyLane = Infinity;
@@ -680,7 +708,6 @@
                                 contextZoom = requiredTrackW / containerW;
                             }
 
-                            // PHYSICS FIX: Bias Context Zoom & Apply Zoom Friction (Max 50% jump)
                             const idealZoom = Math.max(collisionZoom, contextZoom * 1.3); 
                             
                             setZoomLevel(prev => {
@@ -701,22 +728,21 @@
                     const sT = item.startDate.getTime();
                     const eT = (item.endDate && !isNaN(item.endDate.getTime())) ? item.endDate.getTime() : sT;
                     
-                    const titleStr = stripHTML(item.title);
-                    const estWidth = (titleStr.length * 7) + 30; 
+                    // Share exact width with the Camerea Centering Engine
+                    const { pxWidth } = formatLabel(stripHTML(item.title));
                     const containerW = wrapperRef.current.offsetWidth || 1000;
-                    const actualLabelWidth = Math.min(estWidth, 400, containerW * 0.5);
-
+                    const targetTrackW = Math.max(containerW, containerW * zoomLevel);
+                    
+                    const sPct = (sT - renderMinTime) / renderTimeRange;
+                    
+                    let blockPixelWidth = pxWidth;
+                    if (eT > sT) { blockPixelWidth = ((eT - sT) / renderTimeRange) * targetTrackW; }
+                    
+                    const visualCenterPx = (sPct * targetTrackW) + (blockPixelWidth / 2);
+                    const scrollPos = visualCenterPx - (containerW / 2);
+                    
                     setTimeout(() => {
                         if (wrapperRef.current) {
-                            const trackW = wrapperRef.current.querySelector('.timeline-track-container').offsetWidth;
-                            const sPct = (sT - renderMinTime) / renderTimeRange;
-                            
-                            let blockPixelWidth = actualLabelWidth;
-                            if (eT > sT) { blockPixelWidth = ((eT - sT) / renderTimeRange) * trackW; }
-                            
-                            const visualCenterPx = (sPct * trackW) + (blockPixelWidth / 2);
-                            const scrollPos = visualCenterPx - (containerW / 2);
-                            
                             wrapperRef.current.scrollTo({ left: scrollPos, behavior: 'smooth' });
                         }
                     }, 50); 
@@ -771,8 +797,8 @@
 
             let formatType = 'year'; let minorStepMs = MONTH;
             if (majorStepMs <= YEAR) { formatType = 'month'; minorStepMs = DAY; }
-            if (majorStepMs <= MONTH) { formatType = 'day'; minorStepMs = 7 * DAY; } // UX FIX: Weeks
-            if (majorStepMs <= 7 * DAY) { formatType = 'day'; minorStepMs = DAY; }   // UX FIX: Days
+            if (majorStepMs <= MONTH) { formatType = 'day'; minorStepMs = 7 * DAY; } 
+            if (majorStepMs <= 7 * DAY) { formatType = 'day'; minorStepMs = DAY; }   
             if (majorStepMs <= DAY) { formatType = 'time'; minorStepMs = 4 * HOUR; }
             if (majorStepMs <= 12 * HOUR) { formatType = 'time'; minorStepMs = 2 * HOUR; }
             if (majorStepMs <= 6 * HOUR) { formatType = 'time'; minorStepMs = HOUR; }
@@ -781,7 +807,6 @@
             const minDate = new Date(renderMinTime);
             let startTickTime = renderMinTime;
             
-            // PHYSICS FIX: Floor times to clean intervals
             if (formatType === 'year') startTickTime = new Date(minDate.getFullYear(), 0, 1).getTime();
             if (formatType === 'month') startTickTime = new Date(minDate.getFullYear(), minDate.getMonth(), 1).getTime();
             if (formatType === 'day') startTickTime = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate()).getTime();
@@ -828,7 +853,6 @@
                         minorCount++;
                         if ((minorStepMs / msPerPixel) > 15) { 
                             const mPctLeft = ((minorIter - renderMinTime) / renderTimeRange) * 100;
-                            // UX FIX: Drawing downwards from the top of the axis
                             rulerTicks.push(html`<div style="position: absolute; left: ${mPctLeft}%; top: 0; width: 1px; height: 5px; background: #aaa; z-index: 4;"></div>`);
                         }
                         minorIter += minorStepMs;
@@ -840,7 +864,6 @@
             const markers = validData.map((item, index) => {
                 const globalIndex = data.findIndex(d => d.id === item.id);
                 
-                // PHYSICS FIX: Strict rounding to kill floating-point phantom durations
                 const startPct = Number((((item.startDate.getTime() - renderMinTime) / renderTimeRange) * 100).toFixed(4));
                 let endPct = startPct;
                 if (item.endDate && !isNaN(item.endDate.getTime()) && item.endDate.getTime() > item.startDate.getTime()) {
@@ -868,13 +891,17 @@
                     `;
                 }
 
-                const groupWidth = hasDuration ? `width: ${endPct - startPct}%; min-width: 4px;` : `width: max-content;`;
+                // Render the absolute pixel dimensions into the inline styles
+                const { lines, pxWidth } = formatLabel(stripHTML(item.title));
+                const groupWidth = hasDuration ? `width: ${endPct - startPct}%; min-width: 4px;` : `width: ${pxWidth}px;`;
 
                 return html`
                     <div id="timeline-marker-${globalIndex}" class="event-group ${isActive ? 'active' : ''}" style="left: ${startPct}%; top: ${topPos}px; height: ${blockHeight}px; ${groupWidth}" onClick=${() => setActiveIndex(globalIndex)}>
                         ${activeAnchor}
-                        <div class="event-block" style="--lane-h: ${laneHeight}px; background: ${isActive ? '#007acc' : '#f4f4f5'}; color: ${isActive ? '#fff' : '#444'}; z-index: 5;">
-                            <span class="event-text">${stripHTML(item.title)}</span>
+                        <div class="event-block" style="--lane-h: ${laneHeight}px; background: ${isActive ? '#007acc' : '#f4f4f5'}; color: ${isActive ? '#fff' : '#444'}; z-index: 5; width: ${pxWidth}px;">
+                            <div class="event-text">
+                                ${lines.map(l => html`<div style="white-space: nowrap; overflow: hidden; width: 100%;">${l}</div>`)}
+                            </div>
                         </div>
                     </div>
                 `;
@@ -884,6 +911,9 @@
                 <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;">
                     <div class="timeline-controls">
                         <button class="timeline-btn" onClick=${() => doManualZoom('out')}>-</button>
+                        <div style="background: rgba(255,255,255,0.9); padding: 0 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.75rem; display: flex; align-items: center; font-weight: bold; color: #555; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                            ${zoomLevel.toFixed(1)}x
+                        </div>
                         <button class="timeline-btn" onClick=${() => doManualZoom('in')}>+</button>
                     </div>
                     <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${(e) => { e.preventDefault(); doManualZoom(e.deltaY < 0 ? 'in' : 'out'); }}>
@@ -907,7 +937,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v16.0.0';
+        MODULE_VERSIONS['TimelineScrubber'] = 'v17.0.0';
         // === [ END TIMELINE SCRUBBER ] ===
 
         // === [ APP ORCHESTRATOR v1.17.0 ] ===
