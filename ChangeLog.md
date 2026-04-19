@@ -1,6 +1,14 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+## [v6.0.13] - April 2026
+### UI/UX Engine
+* **Map Engine:** Permanently resolved a double-offset CSS bug (`[REF: UI-12]`). Previously, overlapping negative margins between custom CSS and Leaflet's native `iconAnchor` pushed visual map pins away from their mathematical coordinates, causing Tooltips to improperly cover the icons and default to the right side.
+* **Branding Layout:** Replaced the legacy text button in the status bar with the sleek new CarTiMapper Logo icon, fully integrated into the UI. The large logo block has been removed from the Content Slider header, reclaiming massive vertical reading space for text.
+* **Typography Hierarchy:** Moved the `📍 Place` metadata badge to the right-hand column beneath the Tags `[REF: UI-13]`. Stripped its bold blue background and applied the gray, pill-shaped aesthetic of the Tag badges to create a fully unified spatial metadata aesthetic.
+
+---
+
 ## [v6.0.12] - April 2026
 ### Code Engine (`index.html`)
 * **Branding:** Officially integrated the final CarTiMapper branding system. 
