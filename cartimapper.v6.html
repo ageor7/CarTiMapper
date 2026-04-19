@@ -139,6 +139,16 @@
         .log-warn { color: #ffb86c; }
         .log-error { color: #ff5555; }
         .log-time { color: #6272a4; margin-right: 5px; }
+        
+        /* [REF: UI-05] Map Overrides & Custom Enhancements */
+        .custom-div-icon { background: transparent !important; border: none !important; }
+        .centered-tooltip { text-align: center; }
+        .map-zoom-indicator {
+            position: absolute; bottom: 15px; left: 15px; z-index: 1000;
+            background: rgba(255,255,255,0.85); padding: 4px 10px; 
+            border-radius: 4px; font-size: 0.85rem; font-weight: bold; 
+            color: #333; pointer-events: none; border: 1px solid #ccc;
+        }
         /* === [ END GLOBAL STYLES v4.2.0 ] === */
     </style>
 </head>
@@ -153,7 +163,7 @@
 
         const html = htm.bind(h);
         
-        const APP_VERSION = 'v6.0.0';
+        const APP_VERSION = 'v6.0.4';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.2.0', Globals: 'v1.17.2' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -243,10 +253,11 @@
         MODULE_VERSIONS['VibeMonitor'] = 'v1.0.0';
         // === [ END VIBE MONITOR ] ===
 
-        // === [ MAP VIEWER v3.0.0 ] ===
+        // === [ MAP VIEWER v3.1.1 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog }) => {
             const mapDomRef = useRef(null);
             const mapInstance = useRef(null);
+            const [mapZoom, setMapZoom] = useState(2); 
             
             // [REF: MAP-02] Spatial Decluttering - Layer buckets
             const markerLayer = useRef(null); 
@@ -257,18 +268,18 @@
             const hasFitBounds = useRef(false);
 
             const createPinHtml = (isActive, isVip) => {
-                const color = isActive ? '#007acc' : (isVip ? '#ffb300' : '#d32f2f');
+                const color = isActive ? '#28a745' : (isVip ? '#ffb300' : '#007acc');
                 const scale = isActive ? 'scale(1.3)' : 'scale(1)';
                 const z = isActive ? '1000' : '0';
                 return `<div class="custom-map-pin" style="transform: ${scale}; z-index: ${z};">
                             <div class="pin-head" style="background: ${color};"></div>
-                            <div class="pin-stem" style="background: ${isActive ? '#007acc' : '#333'}; width: ${isActive ? '3px' : '2px'};"></div>
+                            <div class="pin-stem" style="background: ${isActive ? '#28a745' : '#333'}; width: ${isActive ? '3px' : '2px'};"></div>
                         </div>`;
             };
             
             const createArrowIcon = (angle, isActive) => L.divIcon({
-                className: 'geo-arrow',
-                html: `<div style="transform: rotate(${angle}deg); font-size: 16px; color: ${isActive ? '#007acc' : '#d32f2f'}; margin-top: -8px; margin-left: -8px; text-shadow: 0 0 2px #fff;">▲</div>`,
+                className: 'geo-arrow custom-div-icon',
+                html: `<div style="transform: rotate(${angle}deg); font-size: 16px; color: ${isActive ? '#28a745' : '#007acc'}; margin-top: -8px; margin-left: -8px; text-shadow: 0 0 2px #fff;">▲</div>`,
                 iconSize: [16, 16],
                 iconAnchor: [8, 8]
             });
@@ -280,9 +291,9 @@
                         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM' }).addTo(map);
                         L.control.zoom({ position: 'topright' }).addTo(map);
                         
+                        map.on('zoomend', () => setMapZoom(map.getZoom()));
+
                         markerLayer.current = L.featureGroup().addTo(map);
-                        
-                        // [REF: MAP-02] Initialize MarkerCluster Spatial Indexing Engine
                         clusterLayer.current = L.markerClusterGroup({ maxClusterRadius: 40, spiderfyOnMaxZoom: true }).addTo(map);
                         mapInstance.current = map;
                         
@@ -320,44 +331,39 @@
                     let featureLayers = [];
 
                     try {
-                        // [REF: MAP-01] Primary Engine: Parse Well-Known Text
                         if (window.Wkt && (locStr.match(/^[A-Z]+\s*\(/) || locStr.match(/^GEOMETRYCOLLECTION/))) {
                             const wkt = new window.Wkt.Wkt();
                             wkt.read(locStr);
-                            const wktObj = wkt.toObject();
                             
-                            if (Array.isArray(wktObj)) featureLayers = wktObj;
-                            else if (wktObj instanceof L.LayerGroup) featureLayers = wktObj.getLayers();
-                            else featureLayers = [wktObj];
+                            // [REF: MAP-01] The GeoJSON Bridge (Fixes Wicket coordinate inversion)
+                            const geojson = wkt.toJson();
+                            const geoLayer = L.geoJSON(geojson);
+                            geoLayer.eachLayer(l => featureLayers.push(l));
+                            
                         } 
-                        // [REF: MAP-01] Fallback Engine: Legacy GeoJSON / LatLon
-                        else {
-                            if (locStr.startsWith('{') && locStr.includes('"type"')) {
-                                const geoLayer = L.geoJSON(JSON.parse(locStr));
-                                geoLayer.eachLayer(l => featureLayers.push(l));
-                            } else {
-                                const coordMatch = locStr.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
-                                if (coordMatch) {
-                                    const lat = parseFloat(coordMatch[1]);
-                                    const lon = parseFloat(coordMatch[2]);
-                                    if (!isNaN(lat) && !isNaN(lon)) featureLayers.push(L.marker([lat, lon]));
-                                }
+                        else if (locStr.startsWith('{') && locStr.includes('"type"')) {
+                            const geoLayer = L.geoJSON(JSON.parse(locStr));
+                            geoLayer.eachLayer(l => featureLayers.push(l));
+                        } else {
+                            const coordMatch = locStr.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
+                            if (coordMatch) {
+                                const lat = parseFloat(coordMatch[1]);
+                                const lon = parseFloat(coordMatch[2]);
+                                if (!isNaN(lat) && !isNaN(lon)) featureLayers.push(L.marker([lat, lon]));
                             }
                         }
 
-                        // [REF: MAP-04] Parse Sub-Labels into parallel array
                         const subLabels = item.subLabels ? item.subLabels.split('|') : [];
                         const isVip = String(item.priority).trim().toUpperCase() === 'VIP';
 
                         featureLayers.forEach((layer, layerIdx) => {
-                            if (layer.setStyle) layer.setStyle({ color: '#d32f2f', weight: 4 });
+                            if (layer.setStyle) layer.setStyle({ color: '#007acc', weight: 4 });
                             
                             if (layer instanceof L.Marker) {
                                 layer.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
                                 layer.originalPriority = item.priority; 
                                 layer.isVip = isVip;
                             } 
-                            // Custom Arrow Vector Rendering Preserved
                             else if (layer instanceof L.Polyline && !(layer instanceof L.Polygon)) {
                                 try {
                                     const latlngs = layer.getLatLngs();
@@ -373,19 +379,16 @@
                                         arrow.isArrow = true;
                                         arrow.arrowAngle = angle;
                                         
-                                        // Arrows do not cluster
                                         arrow.addTo(markerLayer.current);
                                         activeLayersArray.push(arrow);
                                     }
                                 } catch(e) {}
                             }
 
-                            // [REF: MAP-04] Align label index to geometry index
                             const labelText = subLabels[layerIdx] ? subLabels[layerIdx].trim() : stripHTML(item.title);
-                            layer.bindTooltip(labelText, { direction: 'top', offset: [0, -35] });
+                            layer.bindTooltip(labelText, { direction: 'top', offset: [0, -38], className: 'centered-tooltip' });
                             layer.on('click', () => setActiveIndex(idx));
 
-                            // [REF: MAP-02] The VIP Router Logic
                             if (layer instanceof L.Marker && !isVip && !layer.isArrow) {
                                 clusterLayer.current.addLayer(layer); 
                             } else {
@@ -396,7 +399,6 @@
                             validMarkers++;
                         });
 
-                        // [REF: MAP-03] Store the full slide group array in the memory dictionary
                         if (activeLayersArray.length > 0) {
                             markersRef.current[idx] = activeLayersArray; 
                         }
@@ -424,23 +426,20 @@
 
             }, [data]);
 
-            // [REF: MAP-03] The Slide Focus Engine (State-Based Layer Swapping)
             useEffect(() => {
                 const map = mapInstance.current;
                 const markers = markersRef.current;
                 if (!map || Object.keys(markers).length === 0) return;
 
-                // Step 1: Cleanup old slide
                 Object.values(markers).forEach(layerArray => {
                     layerArray.forEach(l => {
-                        if (l.setStyle) l.setStyle({ color: '#d32f2f', weight: 4 });
+                        if (l.setStyle) l.setStyle({ color: '#007acc', weight: 4 }); // Blue Inactive
                         if (l instanceof L.Marker) {
                             if (l.isArrow) l.setIcon(createArrowIcon(l.arrowAngle, false));
                             else l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
                             
                             if (l.setZIndexOffset) l.setZIndexOffset(0);
                             
-                            // Return temporarily active pins back to the cluster bucket
                             if (!l.isVip && !l.isArrow) {
                                 markerLayer.current.removeLayer(l);
                                 clusterLayer.current.addLayer(l);
@@ -449,18 +448,14 @@
                     });
                 });
 
-                // Step 2: Elevate new slide
                 const activeLayers = markers[activeIndex];
                 if (activeLayers && activeLayers.length > 0) {
-                    
-                    // Rebuild a temporary FeatureGroup to calculate exact boundaries safely
                     const activeFeatureGroup = L.featureGroup(activeLayers);
                     
                     activeLayers.forEach(l => {
-                        if (l.setStyle) l.setStyle({ color: '#007acc', weight: 5 });
+                        if (l.setStyle) l.setStyle({ color: '#28a745', weight: 5 }); // Green Active
                         if (l instanceof L.Marker) {
                             
-                            // Pull marker out of the cluster bucket
                             if (!l.isVip && !l.isArrow) {
                                 clusterLayer.current.removeLayer(l);
                                 markerLayer.current.addLayer(l);
@@ -475,7 +470,6 @@
                         }
                     });
 
-                    // Existing Custom Camera Math Preserved
                     setTimeout(() => {
                         try {
                             const bounds = activeFeatureGroup.getBounds();
@@ -484,7 +478,6 @@
                                 const sw = bounds.getSouthWest();
                                 const isSinglePoint = (ne.lat === sw.lat && ne.lng === sw.lng);
                                 const center = bounds.getCenter();
-                                
                                 let isCrowded = false;
 
                                 if (isSinglePoint) {
@@ -493,9 +486,7 @@
                                         const otherBounds = L.featureGroup(layerArray).getBounds();
                                         if (otherBounds.isValid()) {
                                             const otherCenter = otherBounds.getCenter();
-                                            if (map.distance(center, otherCenter) <= 1000) {
-                                                isCrowded = true;
-                                            }
+                                            if (map.distance(center, otherCenter) <= 1000) isCrowded = true;
                                         }
                                     });
                                 }
@@ -503,11 +494,11 @@
                                 const flyOptions = { animate: true, duration: 2.5 };
 
                                 if (isSinglePoint && !isCrowded) {
-                                    map.flyTo(center, 6, flyOptions);
+                                    map.flyTo(center, 12, flyOptions);
                                 } else if (isSinglePoint && isCrowded) {
-                                    map.flyTo(center, 11, flyOptions);
+                                    map.flyTo(center, 16, flyOptions);
                                 } else {
-                                    map.flyToBounds(bounds, { ...flyOptions, maxZoom: 11 });
+                                    map.flyToBounds(bounds, { ...flyOptions, maxZoom: 16 });
                                 }
                             }
                             activeLayers.forEach(l => { if (l.openTooltip) l.openTooltip(); });
@@ -516,9 +507,14 @@
                 }
             }, [activeIndex, data]);
 
-            return html`<div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>`;
+            return html`
+                <div style="position: relative; width:100%; height:100%;">
+                    <div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>
+                    <div class="map-zoom-indicator">Zoom: ${mapZoom}</div>
+                </div>
+            `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.0.0';
+        MODULE_VERSIONS['MapViewer'] = 'v3.1.1';
         // === [ END MAP VIEWER ] ===
         
         // === [ MEDIA VIEWER v2.1.0 ] ===
