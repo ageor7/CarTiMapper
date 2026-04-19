@@ -1,6 +1,12 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+## [v6.0.11] - April 2026
+### Code Engine (`index.html`)
+* **Map Engine:** Deployed hotfix for a fatal `ReferenceError` (`new URLSearchParams` typo) in the `MapViewer` component that was preventing the application from mounting, resulting in a blank screen.
+
+---
+
 ## [v6.0.10] - April 2026
 ### Code Engine (`index.html`)
 * **Data Schema:** Expanded the CSV ingestor to capture the explicit `Place` column (Column J) from the upstream Google Sheet. 
