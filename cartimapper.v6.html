@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wicket/1.3.8/wicket.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/wicket/1.3.8/wicket-leaflet.min.js"></script>
     <style>
         /* === [ GLOBAL STYLES v4.2.1 ] === */
@@ -150,7 +151,7 @@
 <body>
     <div id="root"></div>
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.43 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.44 ] ===
         import { h, render, Component } from 'https://esm.sh/preact';
         import { useState, useEffect, useRef } from 'https://esm.sh/preact/hooks';
         import htm from 'https://esm.sh/htm';
@@ -158,9 +159,9 @@
 
         const html = htm.bind(h);
         
-        const APP_VERSION = 'v6.0.8';
+        const APP_VERSION = 'v6.0.9';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v4.2.1', Globals: 'v1.0.43' }; 
+        const MODULE_VERSIONS = { Styles: 'v4.2.1', Globals: 'v1.0.44' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
         // === [ END GLOBAL VARIABLES ] ===
         
@@ -247,7 +248,7 @@
         MODULE_VERSIONS['VibeMonitor'] = 'v1.0.0';
         // === [ END VIBE MONITOR ] ===
 
-        // === [ MAP VIEWER v3.5.0 ] ===
+        // === [ MAP VIEWER v3.6.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog }) => {
             const mapDomRef = useRef(null);
             const mapInstance = useRef(null);
@@ -257,7 +258,7 @@
             const clusterLayer = useRef(null); 
             const markersRef = useRef({}); 
             const hasFitBounds = useRef(false);
-            const debugFired = useRef(false); // Ensures we only spam the monitor once
+            const wktDebugLogFired = useRef(false);
 
             const createPinHtml = (isActive, isVip) => {
                 const color = isActive ? '#28a745' : (isVip ? '#ffb300' : '#007acc');
@@ -275,27 +276,6 @@
                 iconSize: [16, 16],
                 iconAnchor: [8, 8]
             });
-
-            // [REF: MAP-05] Recursive Leaflet Geometry Flipper
-            const flipLeafletGeometry = (layer) => {
-                if (layer.getLatLng) {
-                    const ll = layer.getLatLng();
-                    layer.setLatLng([ll.lng, ll.lat]);
-                } else if (layer.getLatLngs) {
-                    const flipArray = (arr) => {
-                        if (Array.isArray(arr)) {
-                            if (arr[0] instanceof window.L.LatLng) {
-                                arr.forEach(ll => { const t = ll.lat; ll.lat = ll.lng; ll.lng = t; });
-                            } else {
-                                arr.forEach(flipArray);
-                            }
-                        }
-                    };
-                    const lls = layer.getLatLngs();
-                    flipArray(lls);
-                    layer.setLatLngs(lls);
-                }
-            };
 
             useEffect(() => {
                 try {
@@ -348,42 +328,34 @@
                     let featureLayers = [];
 
                     try {
-                        if (window.Wkt && (locStr.match(/^[A-Z]+\s*\(/) || locStr.match(/^GEOMETRYCOLLECTION/))) {
+                        if (locStr.match(/^[A-Z]+\s*\(/) || locStr.match(/^GEOMETRYCOLLECTION/)) {
                             
+                            if (!window.Wkt) {
+                                if (!wktDebugLogFired.current) { addLog(`[FATAL] Wicket Core Library is missing. Cannot parse WKT strings!`, 'error'); wktDebugLogFired.current = true; }
+                                throw new Error("Wicket Library Not Loaded");
+                            }
+
+                            if (!wktDebugLogFired.current) { addLog(`[WKT INGEST] ${locStr.substring(0, 45)}...`, 'info'); }
+
                             const wkt = new window.Wkt.Wkt();
                             wkt.read(locStr);
                             const wktObj = wkt.toObject();
                             let rawLayers = Array.isArray(wktObj) ? wktObj : (wktObj instanceof L.LayerGroup ? wktObj.getLayers() : [wktObj]);
                             
-                            // === DIAGNOSTIC TELEMETRY ===
-                            if (!debugFired.current) {
-                                addLog(`[WKT-DEBUG] Found WKT: ${locStr.substring(0, 40)}...`, 'info');
-                                if (rawLayers[0] && rawLayers[0].getLatLng) {
-                                    const preFlip = rawLayers[0].getLatLng();
-                                    addLog(`[WKT-DEBUG] Wicket Output -> Lat: ${preFlip.lat.toFixed(4)}, Lng: ${preFlip.lng.toFixed(4)}`, 'warn');
-                                }
+                            if (!wktDebugLogFired.current && rawLayers[0] && rawLayers[0].getLatLng) {
+                                const mapped = rawLayers[0].getLatLng();
+                                addLog(`[WKT PARSED] Leaflet Object -> Lat: ${mapped.lat.toFixed(4)}, Lng: ${mapped.lng.toFixed(4)}`, 'success');
+                                wktDebugLogFired.current = true;
                             }
 
-                            // Physically flip the coordinates in Leaflet memory
-                            rawLayers.forEach(layer => {
-                                flipLeafletGeometry(layer);
-                                featureLayers.push(layer);
-                            });
-
-                            if (!debugFired.current) {
-                                if (rawLayers[0] && rawLayers[0].getLatLng) {
-                                    const postFlip = rawLayers[0].getLatLng();
-                                    addLog(`[WKT-DEBUG] Flipped Output -> Lat: ${postFlip.lat.toFixed(4)}, Lng: ${postFlip.lng.toFixed(4)}`, 'success');
-                                }
-                                debugFired.current = true;
-                            }
-                            // === END TELEMETRY ===
+                            rawLayers.forEach(layer => featureLayers.push(layer));
 
                         } 
                         else if (locStr.startsWith('{') && locStr.includes('"type"')) {
                             const geoLayer = L.geoJSON(JSON.parse(locStr));
                             geoLayer.eachLayer(l => featureLayers.push(l));
-                        } else {
+                        } 
+                        else {
                             const coordMatch = locStr.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
                             if (coordMatch) {
                                 const lat = parseFloat(coordMatch[1]);
@@ -442,7 +414,12 @@
                             markersRef.current[idx] = activeLayersArray; 
                         }
 
-                    } catch(e) {}
+                    } catch(e) {
+                        if (!wktDebugLogFired.current) {
+                            addLog(`[WKT FATAL ERROR] Row ${idx}: ${e.message}`, 'error');
+                            wktDebugLogFired.current = true;
+                        }
+                    }
                 });
 
                 setTimeout(() => {
@@ -465,7 +442,6 @@
 
             }, [data]);
 
-            // ... (Keep the rest of the file EXACTLY the same, activeIndex useEffect and HTML return)
             useEffect(() => {
                 const map = mapInstance.current;
                 const markers = markersRef.current;
@@ -554,7 +530,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.5.0';
+        MODULE_VERSIONS['MapViewer'] = 'v3.6.0';
         // === [ END MAP VIEWER ] ===
 
         // === [ MEDIA VIEWER v2.1.0 ] ===
@@ -1076,7 +1052,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.0.0';
         // === [ END TIMELINE SCRUBBER ] ===
 
-        // === [ APP ORCHESTRATOR v1.20.0 ] ===
+        // === [ APP ORCHESTRATOR v1.21.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [data, setData] = useState([]);
@@ -1175,10 +1151,11 @@
                 addLog(`CarTiMapper Engine Boot Sequence Initiated.`, 'info');
                 
                 const gid = urlParams.get('gid') || '0'; 
-                const rawSource = urlParams.get('source');
-                let fetchUrl = rawSource;
                 
-                if (!fetchUrl) return setStatus({ text: 'Awaiting Source URL', progress: 0, isFading: false, active: false });
+                // [REF: URL-01] Data Fallback
+                const defaultDb = '1kdgGiHNDsIZrn8Z1aqWXrEEYKMGxLAqFiwATx3aqbJI';
+                const rawSource = urlParams.get('source') || defaultDb;
+                let fetchUrl = rawSource;
 
                 if (fetchUrl.includes('http')) {
                     if (fetchUrl.includes('/e/2PACX')) fetchUrl = fetchUrl.split('/pub')[0] + '/pub?output=csv';
@@ -1213,7 +1190,7 @@
                             setAboutData({ 
                                 title: fuzzy(results.data[0], ['title', 'headline', 'name']) || 'About', 
                                 description: fuzzy(results.data[0], ['description', 'text', 'content']),
-                                rawSource: rawSource
+                                rawSource: rawSource === defaultDb ? 'Default Master DB' : rawSource
                             });
 
                             const cleaned = results.data.map((row, index) => {
@@ -1345,7 +1322,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.20.0';
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.21.0';
         
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
         // === [ END APP ORCHESTRATOR ] ===
