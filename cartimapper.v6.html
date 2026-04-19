@@ -170,7 +170,7 @@
 <body>
     <div id="root"></div>
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.45 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.46 ] ===
         import { h, render, Component } from 'https://esm.sh/preact';
         import { useState, useEffect, useRef } from 'https://esm.sh/preact/hooks';
         import htm from 'https://esm.sh/htm';
@@ -178,9 +178,9 @@
 
         const html = htm.bind(h);
         
-        const APP_VERSION = 'v6.0.10';
+        const APP_VERSION = 'v6.0.11';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v4.2.2', Globals: 'v1.0.45' }; 
+        const MODULE_VERSIONS = { Styles: 'v4.2.2', Globals: 'v1.0.46' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
         // === [ END GLOBAL VARIABLES ] ===
         
@@ -267,7 +267,7 @@
         MODULE_VERSIONS['VibeMonitor'] = 'v1.0.0';
         // === [ END VIBE MONITOR ] ===
 
-        // === [ MAP VIEWER v3.7.0 ] ===
+        // === [ MAP VIEWER v3.8.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog }) => {
             const mapDomRef = useRef(null);
             const mapInstance = useRef(null);
@@ -447,7 +447,8 @@
                     try {
                         if (mapInstance.current) {
                             mapInstance.current.invalidateSize(); 
-                            if (validMarkers > 0 && !hasFitBounds.current && !newSearchParams(window.location.search).get('mapzoom')) {
+                            // SYNTAX HOTFIX: Corrected newSearchParams to new URLSearchParams
+                            if (validMarkers > 0 && !hasFitBounds.current && !new URLSearchParams(window.location.search).get('mapzoom')) {
                                 const bounds = L.latLngBounds();
                                 markerLayer.current.eachLayer(l => { if (l.getLatLng) bounds.extend(l.getLatLng()); else if (l.getBounds) bounds.extend(l.getBounds()); });
                                 clusterLayer.current.eachLayer(l => bounds.extend(l.getLatLng()));
@@ -551,7 +552,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.7.0';
+        MODULE_VERSIONS['MapViewer'] = 'v3.8.0';
         // === [ END MAP VIEWER ] ===
 
         // === [ MEDIA VIEWER v2.1.0 ] ===
