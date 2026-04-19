@@ -1,7 +1,15 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
-## [v6.0.9] - April 2026
+## [v6.0.10] - April 2026
+### Code Engine (`index.html`)
+* **Data Schema:** Expanded the CSV ingestor to capture the explicit `Place` column (Column J) from the upstream Google Sheet. 
+* **Map Engine:** Overhauled Map Tooltip UI. Instead of blindly pasting full, paragraph-length Event Titles over single pins, the engine now utilizes a strict labeling hierarchy: `Sub-Label` (if MultiPoint) -> `Place Name` (e.g., "Omaha Beach") -> `Event Title` (Fallback).
+* **UI/UX:** Added a dedicated `📍 [Place Name]` spatial context badge directly into the Content Slider layout beneath the active date.
+
+---
+
+* ## [v6.0.9] - April 2026
 ### Code Engine (`index.html`)
 * **Architecture:** Bumped `APP_VERSION` to `v6.0.9`.
 * **Map Engine:** Diagnosed and fixed the catastrophic WKT inversion bug. The core `wicket.min.js` library was omitted from the `<head>` in `v6.0.0`, causing silent failures that forced the engine to rely on a primitive Regex fallback (which dutifully inverted OGC standard coordinates). Restoring the core library allows native, flawless WKT-to-Leaflet translation.
