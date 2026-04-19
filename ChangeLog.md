@@ -1,6 +1,13 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+## [v6.0.14] - April 2026
+### Code Engine (`index.html`)
+* **Map Engine:** Resolved the Multipoint Sub-Label duplication bug `[REF: MAP-06]`. Implemented recursive geometry tunneling (`extractLayers`) to shatter nested Wicket `LayerGroups` into flat arrays of individual pins. This prevents Leaflet from improperly cascading identical tooltips across entire spatial groups.
+* **Map Engine:** Increased the vertical Y-offset of custom map tooltips from `-38px` to `-48px`, providing 10 additional pixels of "breathing room" to prevent the tooltip box from overlapping with the custom Map Pin UI.
+
+---
+
 ## [v6.0.13] - April 2026
 ### UI/UX Engine
 * **Map Engine:** Permanently resolved a double-offset CSS bug (`[REF: UI-12]`). Previously, overlapping negative margins between custom CSS and Leaflet's native `iconAnchor` pushed visual map pins away from their mathematical coordinates, causing Tooltips to improperly cover the icons and default to the right side.
