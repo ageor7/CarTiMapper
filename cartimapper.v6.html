@@ -145,13 +145,32 @@
         .custom-div-icon { background: transparent !important; border: none !important; }
         .centered-tooltip { text-align: center; }
         .map-zoom-indicator { position: absolute; bottom: 15px; left: 15px; z-index: 1000; background: rgba(255,255,255,0.85); padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; color: #333; pointer-events: none; border: 1px solid #ccc; }
+        
+        /* [REF: UI-06] Custom MarkerCluster Density Palette */
+        /* Overrides Leaflet's default Yellow/Green/Red to avoid clashing with Active(Green) and Inactive(Blue) pins */
+        
+        /* Small Clusters (< 10 pins): Warm Orange */
+        .marker-cluster-small { background-color: rgba(255, 183, 77, 0.6) !important; }
+        .marker-cluster-small div { background-color: rgba(255, 152, 0, 0.9) !important; color: white !important; font-weight: bold; }
+        
+        /* Medium Clusters (10 - 99 pins): Deep Magenta */
+        .marker-cluster-medium { background-color: rgba(240, 98, 146, 0.6) !important; }
+        .marker-cluster-medium div { background-color: rgba(233, 30, 99, 0.9) !important; color: white !important; font-weight: bold; }
+        
+        /* Large Clusters (100+ pins): Deep Purple */
+        .marker-cluster-large { background-color: rgba(149, 117, 205, 0.6) !important; }
+        .marker-cluster-large div { background-color: rgba(103, 58, 183, 0.9) !important; color: white !important; font-weight: bold; }
+        
+        /* [REF: UI-07] Place Badge Styling */
+        .slide-place-badge { display: inline-flex; align-items: center; gap: 4px; background: rgba(0, 122, 204, 0.1); color: #007acc; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; border: 1px solid rgba(0, 122, 204, 0.2); margin-top: 0.5rem; width: fit-content; }
+        
         /* === [ END GLOBAL STYLES ] === */
     </style>
 </head>
 <body>
     <div id="root"></div>
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.44 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.45 ] ===
         import { h, render, Component } from 'https://esm.sh/preact';
         import { useState, useEffect, useRef } from 'https://esm.sh/preact/hooks';
         import htm from 'https://esm.sh/htm';
@@ -159,9 +178,9 @@
 
         const html = htm.bind(h);
         
-        const APP_VERSION = 'v6.0.9';
+        const APP_VERSION = 'v6.0.10';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v4.2.1', Globals: 'v1.0.44' }; 
+        const MODULE_VERSIONS = { Styles: 'v4.2.2', Globals: 'v1.0.45' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
         // === [ END GLOBAL VARIABLES ] ===
         
@@ -248,7 +267,7 @@
         MODULE_VERSIONS['VibeMonitor'] = 'v1.0.0';
         // === [ END VIBE MONITOR ] ===
 
-        // === [ MAP VIEWER v3.6.0 ] ===
+        // === [ MAP VIEWER v3.7.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog }) => {
             const mapDomRef = useRef(null);
             const mapInstance = useRef(null);
@@ -396,7 +415,9 @@
                                 } catch(e) {}
                             }
 
-                            const labelText = subLabels[layerIdx] ? subLabels[layerIdx].trim() : stripHTML(item.title);
+                            // [REF: MAP-04] Hierarchical Tooltip Assignment
+                            const labelText = subLabels[layerIdx] ? subLabels[layerIdx].trim() : (item.place ? stripHTML(item.place) : stripHTML(item.title));
+                            
                             layer.bindTooltip(labelText, { direction: 'top', offset: [0, -38], className: 'centered-tooltip' });
                             layer.on('click', () => setActiveIndex(idx));
 
@@ -426,7 +447,7 @@
                     try {
                         if (mapInstance.current) {
                             mapInstance.current.invalidateSize(); 
-                            if (validMarkers > 0 && !hasFitBounds.current && !new URLSearchParams(window.location.search).get('mapzoom')) {
+                            if (validMarkers > 0 && !hasFitBounds.current && !newSearchParams(window.location.search).get('mapzoom')) {
                                 const bounds = L.latLngBounds();
                                 markerLayer.current.eachLayer(l => { if (l.getLatLng) bounds.extend(l.getLatLng()); else if (l.getBounds) bounds.extend(l.getBounds()); });
                                 clusterLayer.current.eachLayer(l => bounds.extend(l.getLatLng()));
@@ -530,7 +551,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.6.0';
+        MODULE_VERSIONS['MapViewer'] = 'v3.7.0';
         // === [ END MAP VIEWER ] ===
 
         // === [ MEDIA VIEWER v2.1.0 ] ===
@@ -583,7 +604,7 @@
         };
         // === [ END MEDIA VIEWER ] ===
 
-        // === [ CONTENT SLIDER v3.3.0 ] ===
+        // === [ CONTENT SLIDER v3.4.0 ] ===
         const ContentSlider = ({ data, activeIndex, setActiveIndex, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen }) => {
             const slide = data[activeIndex];
             if (!slide) return null;
@@ -632,7 +653,10 @@
                     <div class="content-scroll-area">
                         <div class="slide-container">
                             <div class="slide-header-row">
-                                <div class="slide-date">${formatSmartDate(slide.startDate, slide.endDate)}</div>
+                                <div style="display: flex; flex-direction: column;">
+                                    <div class="slide-date">${formatSmartDate(slide.startDate, slide.endDate)}</div>
+                                    ${slide.place ? html`<div class="slide-place-badge">📍 ${slide.place}</div>` : ''}
+                                </div>
                                 <div class="tags-container">
                                     ${slide.tags.map(t => html`<span class="tag-badge">${t}</span>`)}
                                 </div>
@@ -660,7 +684,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['ContentSlider'] = 'v3.3.0';
+        MODULE_VERSIONS['ContentSlider'] = 'v3.4.0';
         // === [ END CONTENT SLIDER ] ===
 
         // === [ TIMELINE SCRUBBER v23.0.0 ] ===
@@ -1052,7 +1076,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.0.0';
         // === [ END TIMELINE SCRUBBER ] ===
 
-        // === [ APP ORCHESTRATOR v1.21.0 ] ===
+        // === [ APP ORCHESTRATOR v1.22.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [data, setData] = useState([]);
@@ -1152,7 +1176,6 @@
                 
                 const gid = urlParams.get('gid') || '0'; 
                 
-                // [REF: URL-01] Data Fallback
                 const defaultDb = '1kdgGiHNDsIZrn8Z1aqWXrEEYKMGxLAqFiwATx3aqbJI';
                 const rawSource = urlParams.get('source') || defaultDb;
                 let fetchUrl = rawSource;
@@ -1211,7 +1234,8 @@
                                 return {
                                     id: index, title: fuzzy(row, ['title', 'headline', 'name']) || `Event ${index + 1}`,
                                     startDate: (pS && !isNaN(pS.getTime())) ? pS : null, endDate: (pE && !isNaN(pE.getTime())) ? pE : null,
-                                    description: fuzzy(row, ['description', 'text', 'content']), 
+                                    description: fuzzy(row, ['description', 'text', 'content']),
+                                    place: fuzzy(row, ['place', 'location name', 'city', 'region']), // New Place Ingestion
                                     location: fuzzy(row, ['location', 'latlon', 'coordinates', 'clean_geo', 'geo']),
                                     subLabels: fuzzy(row, ['sub_labels', 'sub labels', 'sublabels']),
                                     priority: fuzzy(row, ['map_priority', 'priority', 'vip']),
@@ -1322,9 +1346,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.21.0';
-        
-        render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.22.0';
         // === [ END APP ORCHESTRATOR ] ===
     </script>
 </body>
