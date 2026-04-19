@@ -1,15 +1,15 @@
 # CarTiMapper Engine Master Blueprint
-**Version:** v6.0.3 | **Date:** April 2026
+**Version:** v6.0.5 | **Date:** April 2026
 
 ## I. Engineering Protocols & Coding Rules
 
 1. **[REF: DOC-01] Two-Tier Documentation (REF-TAGS):** Documentation is strictly bifurcated. The Master Blueprint contains the "Why" and "What" (Architecture, UI/UX Rules, Physics). The inline code comments contain the "How" (Mechanics, Loops, Variables). They are permanently interlinked using `[REF: TAG-NAME]` semantic anchors. **Zero duplication.**
 2. **Spreadsheet REF-TAGS:** Because Google Sheets does not support native code comments, REF-TAGs are securely injected into the ETL formula using `LET()` dummy variables (e.g., `_ref_map01, "[REF: MAP-01]..."`) to preserve the documentation pipeline without breaking mathematical execution.
 3. **Discuss First, Implement Later:** All bugs, physics, and UI/UX behaviors must be mathematically diagnosed and agreed upon before any code is generated.
-4. **Strict Bottom-to-Top Patching:** To protect line structure and prevent cascading offsets, patches are always delivered in strictly reverse order (from the bottom of `index.html` to the top). <mark>The typical sequence is: AppOrchestrator -> TimelineScrubber -> ContentSlider -> Global Variables -> Global Styles.</mark>
+4. **Strict Bottom-to-Top Patching:** To protect line structure and prevent cascading offsets, patches are always delivered in strictly reverse order (from the bottom of `index.html` to the top). The typical sequence is: `AppOrchestrator -> TimelineScrubber -> ContentSlider -> Global Variables -> Global Styles`.
 5. **Semantic Boundary Replacements:** We rely exclusively on the indestructible `// === [ BLOCK NAME vX.X.X ] ===` boundary markers instead of fragile, hardcoded line numbers.
 6. **No Default Bold/Capitalize:** We do not enforce `font-weight: bold` or `text-transform: uppercase` on narrative text through global CSS. The interface relies entirely on explicit manual HTML tags (e.g., `<b>`, `<strong>`) for emphasis.
-7. **True Font Loading:** <mark>When utilizing Google Fonts (especially for Greek Polytonic characters), we explicitly download all Regular (400) and Bold (700) weights and Italics etc. variations to ensure the browser never generates jagged "faux-bolds", “faux-italics” etc.</mark>
+7. **True Font Loading:** When utilizing Google Fonts (especially for Greek Polytonic characters), we explicitly download all Regular (400) and Bold (700) weights and Italics etc. variations to ensure the browser never generates jagged "faux-bolds", "faux-italics" etc.
 
 ---
 
@@ -67,5 +67,6 @@
 * **1. Spatial Indexing (The R-Tree Engine):** Rather than measuring point-to-point distance (which freezes the browser), `MarkerCluster` uses `RBush` to divide the map into nested rectangular grids. It measures point-to-grid, allowing instant, `O(log n)` collision detection.
 * **2. State-Based Layer Swapping & The O(1) Dictionary:** To bypass Leaflet's internal `_leaflet_id` amnesia, the engine builds a global dictionary (`markersRef`). Slide changes execute an `O(1)` instant lookup to swap layers in and out of the cluster bucket seamlessly.
 * **3. The Dual-Heuristic Density Math (Timeline Auto-Zoom):** Solves the "Outer Space" problem by evaluating two vectors: `collisionZoom` (The 10px Rule for preventing overlap on the same lane) and `contextZoom` (The 150px Rule for keeping the nearest event visible). Executes `Math.max()` to adopt the safest zoom.
-* **4. The Visual-Center Scrolling Algorithm:** Calculates `blockPixelWidth` dynamically. Plots the geometric center (`StartPx + Width/2`). Commands the scrollbar to target `visualCenterPx - (Screen Width / 2)` to perfectly center wide text blocks.
-* **5. HTML Filter Bifurcation:** Timeline Hexagons are processed through `stripHTML()` to guarantee layout breaks (`<br>`) do not physically break geometric rendering. Content Pane Titles are processed through `dangerouslySetInnerHTML` to permit manual formatting.
+* **4. The URL Routing Engine:** `[REF: URL-01]` Upon data load, the engine intercepts CLI/URL parameters. If `?date=YYYY-MM-DD` is provided, it executes a mathematical distance calculation across the entire `valid` chronological array to locate the closest absolute time-node and injects it as the `activeIndex`. `?slide=X` overrides chronology to focus on a specific narrative slide. `?theme=dark` manipulates root CSS properties prior to physical DOM render.
+* **5. The Visual-Center Scrolling Algorithm:** Calculates `blockPixelWidth` dynamically. Plots the geometric center (`StartPx + Width/2`). Commands the scrollbar to target `visualCenterPx - (Screen Width / 2)` to perfectly center wide text blocks.
+* **6. HTML Filter Bifurcation:** Timeline Hexagons are processed through `stripHTML()` to guarantee layout breaks (`<br>`) do not physically break geometric rendering. Content Pane Titles are processed through `dangerouslySetInnerHTML` to permit manual formatting.
