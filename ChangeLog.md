@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [v6.0.7] - April 2026
+### Code Engine (`index.html`)
+* **Architecture:** Bumped `APP_VERSION` to `v6.0.7`.
+* **Map Engine:** Removed the `v6.0.6` Regex coordinate flipper. Because the upstream Google Sheets ETL (`v6.0.3`) guarantees strict OGC standard WKT (`POINT(Lon Lat)`), `Wicket` parses and translates the coordinates into Leaflet natively without requiring manual manipulation.
+* **UI/UX:** Added `?source=URL` parameter documentation into the "About" modal. Clarified standard web URL syntax for end-users, explaining that query chains must be linked using ampersands (`&`) rather than multiple question marks.
+
+---
+
 ## [v6.0.6] - April 2026
 ### Code Engine (`index.html`)
 * **Architecture:** Bumped `APP_VERSION` to `v6.0.6`.
