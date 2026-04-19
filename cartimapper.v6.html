@@ -155,7 +155,7 @@
 <body>
     <div id="root"></div>
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.40 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.41 ] ===
         import { h, render, Component } from 'https://esm.sh/preact';
         import { useState, useEffect, useRef } from 'https://esm.sh/preact/hooks';
         import htm from 'https://esm.sh/htm';
@@ -163,9 +163,9 @@
 
         const html = htm.bind(h);
         
-        const APP_VERSION = 'v6.0.4';
+        const APP_VERSION = 'v6.0.5';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v4.2.0', Globals: 'v1.17.2' }; 
+        const MODULE_VERSIONS = { Styles: 'v4.2.0', Globals: 'v1.0.41' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
         // === [ END GLOBAL VARIABLES ] ===
         
@@ -253,17 +253,14 @@
         MODULE_VERSIONS['VibeMonitor'] = 'v1.0.0';
         // === [ END VIBE MONITOR ] ===
 
-        // === [ MAP VIEWER v3.1.1 ] ===
+        // === [ MAP VIEWER v3.2.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog }) => {
             const mapDomRef = useRef(null);
             const mapInstance = useRef(null);
             const [mapZoom, setMapZoom] = useState(2); 
             
-            // [REF: MAP-02] Spatial Decluttering - Layer buckets
             const markerLayer = useRef(null); 
             const clusterLayer = useRef(null); 
-            
-            // [REF: MAP-03] Dynamic VIP Slide Focus - O(1) Memory Dictionary
             const markersRef = useRef({}); 
             const hasFitBounds = useRef(false);
 
@@ -287,10 +284,14 @@
             useEffect(() => {
                 try {
                     if (mapDomRef.current && !mapInstance.current && window.L) {
-                        const map = L.map(mapDomRef.current, { zoomControl: false }).setView([20, 0], 2);
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const initialZoom = urlParams.get('mapzoom') ? parseInt(urlParams.get('mapzoom')) : 2;
+
+                        const map = L.map(mapDomRef.current, { zoomControl: false }).setView([20, 0], initialZoom);
                         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM' }).addTo(map);
                         L.control.zoom({ position: 'topright' }).addTo(map);
                         
+                        setMapZoom(initialZoom);
                         map.on('zoomend', () => setMapZoom(map.getZoom()));
 
                         markerLayer.current = L.featureGroup().addTo(map);
@@ -334,12 +335,31 @@
                         if (window.Wkt && (locStr.match(/^[A-Z]+\s*\(/) || locStr.match(/^GEOMETRYCOLLECTION/))) {
                             const wkt = new window.Wkt.Wkt();
                             wkt.read(locStr);
+                            const wktObj = wkt.toObject();
                             
-                            // [REF: MAP-01] The GeoJSON Bridge (Fixes Wicket coordinate inversion)
-                            const geojson = wkt.toJson();
-                            const geoLayer = L.geoJSON(geojson);
-                            geoLayer.eachLayer(l => featureLayers.push(l));
+                            let rawLayers = Array.isArray(wktObj) ? wktObj : (wktObj instanceof L.LayerGroup ? wktObj.getLayers() : [wktObj]);
                             
+                            // [REF: MAP-01] Recursive Flipper for Wicket Inversion Bug
+                            rawLayers.forEach(layer => {
+                                if (layer.getLatLng) {
+                                    const ll = layer.getLatLng();
+                                    layer.setLatLng([ll.lng, ll.lat]);
+                                } else if (layer.getLatLngs) {
+                                    const flipArray = (arr) => {
+                                        if (Array.isArray(arr)) {
+                                            if (arr[0] instanceof L.LatLng) {
+                                                arr.forEach(ll => { const t = ll.lat; ll.lat = ll.lng; ll.lng = t; });
+                                            } else {
+                                                arr.forEach(flipArray);
+                                            }
+                                        }
+                                    };
+                                    const lls = layer.getLatLngs();
+                                    flipArray(lls);
+                                    layer.setLatLngs(lls);
+                                }
+                                featureLayers.push(layer);
+                            });
                         } 
                         else if (locStr.startsWith('{') && locStr.includes('"type"')) {
                             const geoLayer = L.geoJSON(JSON.parse(locStr));
@@ -410,7 +430,7 @@
                     try {
                         if (mapInstance.current) {
                             mapInstance.current.invalidateSize(); 
-                            if (validMarkers > 0 && !hasFitBounds.current) {
+                            if (validMarkers > 0 && !hasFitBounds.current && !new URLSearchParams(window.location.search).get('mapzoom')) {
                                 const bounds = L.latLngBounds();
                                 markerLayer.current.eachLayer(l => { if (l.getLatLng) bounds.extend(l.getLatLng()); else if (l.getBounds) bounds.extend(l.getBounds()); });
                                 clusterLayer.current.eachLayer(l => bounds.extend(l.getLatLng()));
@@ -433,7 +453,7 @@
 
                 Object.values(markers).forEach(layerArray => {
                     layerArray.forEach(l => {
-                        if (l.setStyle) l.setStyle({ color: '#007acc', weight: 4 }); // Blue Inactive
+                        if (l.setStyle) l.setStyle({ color: '#007acc', weight: 4 });
                         if (l instanceof L.Marker) {
                             if (l.isArrow) l.setIcon(createArrowIcon(l.arrowAngle, false));
                             else l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
@@ -453,7 +473,7 @@
                     const activeFeatureGroup = L.featureGroup(activeLayers);
                     
                     activeLayers.forEach(l => {
-                        if (l.setStyle) l.setStyle({ color: '#28a745', weight: 5 }); // Green Active
+                        if (l.setStyle) l.setStyle({ color: '#28a745', weight: 5 }); 
                         if (l instanceof L.Marker) {
                             
                             if (!l.isVip && !l.isArrow) {
@@ -514,7 +534,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.1.1';
+        MODULE_VERSIONS['MapViewer'] = 'v3.2.0';
         // === [ END MAP VIEWER ] ===
         
         // === [ MEDIA VIEWER v2.1.0 ] ===
@@ -567,7 +587,7 @@
         };
         // === [ END MEDIA VIEWER ] ===
 
-        // === [ CONTENT SLIDER v3.2.0 ] ===
+        // === [ CONTENT SLIDER v3.3.0 ] ===
         const ContentSlider = ({ data, activeIndex, setActiveIndex, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen }) => {
             const slide = data[activeIndex];
             if (!slide) return null;
@@ -628,7 +648,7 @@
 
                     <div class="unified-status-bar">
                         <div class="status-left">
-                            ${aboutData ? html`<button class="status-btn ${isAboutOpen ? 'active' : ''}" onClick=${() => setIsAboutOpen(!isAboutOpen)}>About</button>` : ''}
+                            ${aboutData ? html`<button class="status-btn ${isAboutOpen ? 'active' : ''}" onClick=${() => setIsAboutOpen(!isAboutOpen)}>ℹ️ CarTiMapper ${APP_VERSION}</button>` : ''}
                             <button class="status-btn ${isMonitorOpen ? 'active' : ''}" onClick=${() => setIsMonitorOpen(!isMonitorOpen)}>Monitor</button>
                         </div>
                         
@@ -644,7 +664,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['ContentSlider'] = 'v3.2.0';
+        MODULE_VERSIONS['ContentSlider'] = 'v3.3.0';
         // === [ END CONTENT SLIDER ] ===
 
         // === [ TIMELINE SCRUBBER v23.0.0 ] ===
@@ -1038,7 +1058,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.0.0';
         // === [ END TIMELINE SCRUBBER ] ===
         
-        // === [ APP ORCHESTRATOR v1.17.0 ] ===
+        // === [ APP ORCHESTRATOR v1.18.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [data, setData] = useState([]);
@@ -1121,12 +1141,25 @@
             };
 
             useEffect(() => {
+                
+                // [REF: URL-01] Parse URL Parameters
+                const urlParams = new URLSearchParams(window.location.search);
+                const paramTheme = urlParams.get('theme');
+                const paramSlide = urlParams.get('slide');
+                const paramDate = urlParams.get('date');
+                
+                if (paramTheme === 'dark') {
+                    document.documentElement.style.setProperty('--bg', '#121212');
+                    document.documentElement.style.setProperty('--text', '#fcfcfc');
+                    document.documentElement.style.setProperty('--paneBg', '#222');
+                    TM_CONFIG.paneBackground = '#222';
+                }
+
                 document.documentElement.style.setProperty('--paneBg', TM_CONFIG.paneBackground);
                 addLog(`CarTiMapper Engine Boot Sequence Initiated.`, 'info');
                 
-                const params = new URLSearchParams(window.location.search);
-                const gid = params.get('gid') || '0'; 
-                const rawSource = params.get('source');
+                const gid = urlParams.get('gid') || '0'; 
+                const rawSource = urlParams.get('source');
                 let fetchUrl = rawSource;
                 
                 if (!fetchUrl) return setStatus({ text: 'Awaiting Source URL', progress: 0, isFading: false, active: false });
@@ -1186,12 +1219,9 @@
                                     id: index, title: fuzzy(row, ['title', 'headline', 'name']) || `Event ${index + 1}`,
                                     startDate: (pS && !isNaN(pS.getTime())) ? pS : null, endDate: (pE && !isNaN(pE.getTime())) ? pE : null,
                                     description: fuzzy(row, ['description', 'text', 'content']), 
-                                    
-                                    // [REF: ETL-01] Upstream Spatial ETL (Google Sheets Mapping)
                                     location: fuzzy(row, ['location', 'latlon', 'coordinates', 'clean_geo', 'geo']),
                                     subLabels: fuzzy(row, ['sub_labels', 'sub labels', 'sublabels']),
                                     priority: fuzzy(row, ['map_priority', 'priority', 'vip']),
-                                    
                                     media: fuzzy(row, ['media', 'image', 'photo', 'url']) ? fuzzy(row, ['media', 'image', 'photo', 'url']).split(',').map(x=>x.trim()) : [],
                                     mediaCaption: fuzzy(row, ['media caption', 'caption']), mediaCredit: fuzzy(row, ['media credit', 'credit']),
                                     tags: fuzzy(row, ['tags', 'category', 'type', 'group']) ? fuzzy(row, ['tags', 'category', 'type', 'group']).split(',').map(t=>t.trim()).filter(t=>t) : []
@@ -1203,8 +1233,26 @@
                                 return timeDiff !== 0 ? timeDiff : a.id - b.id;
                             });
 
-                            setData([...valid, ...cleaned.filter(r => !r.startDate)]);
-                            setActiveIndex(0); 
+                            const finalData = [...valid, ...cleaned.filter(r => !r.startDate)];
+                            setData(finalData);
+
+                            // [REF: URL-01] Execute URL Initial State Logic
+                            let initialIdx = 0;
+                            if (paramSlide && !isNaN(parseInt(paramSlide))) {
+                                initialIdx = Math.max(0, Math.min(finalData.length - 1, parseInt(paramSlide) - 1));
+                            } else if (paramDate) {
+                                const targetTime = new Date(paramDate).getTime();
+                                if (!isNaN(targetTime)) {
+                                    let minDiff = Infinity;
+                                    valid.forEach((d, i) => {
+                                        if (d.startDate) {
+                                            const diff = Math.abs(d.startDate.getTime() - targetTime);
+                                            if (diff < minDiff) { minDiff = diff; initialIdx = i; }
+                                        }
+                                    });
+                                }
+                            }
+                            setActiveIndex(initialIdx); 
                             
                             setStatus({ text: `Success! Loaded ${cleaned.length} records.`, progress: 100, isFading: true, active: false });
                             setTimeout(() => {
@@ -1272,7 +1320,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.17.0';
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.18.0';
         
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
         // === [ END APP ORCHESTRATOR ] ===
