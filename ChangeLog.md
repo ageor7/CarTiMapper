@@ -1,6 +1,15 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+## [v6.0.15] - April 2026
+### Code Engine (`index.html`)
+* **Map Engine:** Removed the redundant `flipLeafletGeometry` function. Since v6.0.9's dependency fix, Wicket correctly handles OGC standards; the manual flipper was causing a re-inversion.
+* **Map Engine:** Fixed Sub-Label mapping. Sub-labels now correctly iterate through flattened geometry layers even when nested in WKT LayerGroups.
+* **UI/UX:** Increased Splash Screen logo width to 300px to match text width.
+* **UI/UX:** Re-introduced the full-size branding logo into the Info/About modal.
+
+---
+
 ## [v6.0.14] - April 2026
 ### Code Engine (`index.html`)
 * **Map Engine:** Resolved the Multipoint Sub-Label duplication bug `[REF: MAP-06]`. Implemented recursive geometry tunneling (`extractLayers`) to shatter nested Wicket `LayerGroups` into flat arrays of individual pins. This prevents Leaflet from improperly cascading identical tooltips across entire spatial groups.
