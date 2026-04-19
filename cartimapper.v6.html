@@ -1348,6 +1348,10 @@
             `;
         };
         MODULE_VERSIONS['AppOrchestrator'] = 'v1.22.0';
+        
+        // The Start Button!
+        render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
+        
         // === [ END APP ORCHESTRATOR ] ===
     </script>
 </body>
