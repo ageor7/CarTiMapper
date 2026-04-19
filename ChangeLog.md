@@ -1,6 +1,15 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+## [v6.0.12] - April 2026
+### Code Engine (`index.html`)
+* **Branding:** Officially integrated the final CarTiMapper branding system. 
+* **Design Metaphor:** Replaced the legacy text title with the new Dark Film Hex-Frame logo—combining a 16:9 cinematic frame with pure white sprockets (Carousel), an off-axis timeline label shape (Timeline), and a glowing Chrono-Compass dial featuring Engine Blue and Active Green map pins as clock hands (Mapper).
+* **UI/UX:** Dynamically embedded the engine version (`v6.0.12`) natively into the splash screen loader.
+* **Favicon:** Replaced the generic icon lookup with a pure, URL-encoded Hex-Frame SVG directly inside the HTML `<head>`.
+
+---
+
 ## [v6.0.11] - April 2026
 ### Code Engine (`index.html`)
 * **Map Engine:** Deployed hotfix for a fatal `ReferenceError` (`new URLSearchParams` typo) in the `MapViewer` component that was preventing the application from mounting, resulting in a blank screen.
