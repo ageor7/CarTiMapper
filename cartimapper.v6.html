@@ -169,7 +169,7 @@
 <body>
     <div id="root"></div>
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.48 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.49 ] ===
         import { h, render, Component } from 'https://esm.sh/preact';
         import { useState, useEffect, useRef } from 'https://esm.sh/preact/hooks';
         import htm from 'https://esm.sh/htm';
@@ -177,9 +177,9 @@
 
         const html = htm.bind(h);
         
-        const APP_VERSION = 'v6.0.13';
+        const APP_VERSION = 'v6.0.14';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v4.5.0', Globals: 'v1.0.48' }; 
+        const MODULE_VERSIONS = { Styles: 'v4.5.0', Globals: 'v1.0.49' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
         // === [ END GLOBAL VARIABLES ] ===
         
@@ -266,7 +266,7 @@
         MODULE_VERSIONS['VibeMonitor'] = 'v1.0.0';
         // === [ END VIBE MONITOR ] ===
 
-        // === [ MAP VIEWER v3.8.0 ] ===
+        // === [ MAP VIEWER v3.10.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog }) => {
             const mapDomRef = useRef(null);
             const mapInstance = useRef(null);
@@ -276,7 +276,6 @@
             const clusterLayer = useRef(null); 
             const markersRef = useRef({}); 
             const hasFitBounds = useRef(false);
-            const wktDebugLogFired = useRef(false);
 
             const createPinHtml = (isActive, isVip) => {
                 const color = isActive ? '#28a745' : (isVip ? '#ffb300' : '#007acc');
@@ -294,6 +293,47 @@
                 iconSize: [16, 16],
                 iconAnchor: [8, 8]
             });
+
+            const flipLeafletGeometry = (layer) => {
+                if (layer.getLatLng) {
+                    const ll = layer.getLatLng();
+                    layer.setLatLng([ll.lng, ll.lat]);
+                } else if (layer.getLatLngs) {
+                    const flipArray = (arr) => {
+                        if (Array.isArray(arr)) {
+                            if (arr.length > 0 && arr[0] instanceof window.L.LatLng) {
+                                arr.forEach(ll => { const t = ll.lat; ll.lat = ll.lng; ll.lng = t; });
+                            } else {
+                                arr.forEach(flipArray);
+                            }
+                        }
+                    };
+                    const lls = layer.getLatLngs();
+                    flipArray(lls);
+                    layer.setLatLngs(lls);
+                }
+            };
+
+            // [REF: MAP-06] Deep Flattening for LayerGroups
+            const extractLayers = (layerObj) => {
+                let layers = [];
+                if (Array.isArray(layerObj)) {
+                    layerObj.forEach(l => layers = layers.concat(extractLayers(l)));
+                } else if (layerObj && layerObj.eachLayer) {
+                    layerObj.eachLayer(l => layers = layers.concat(extractLayers(l)));
+                } else if (layerObj) {
+                    layers.push(layerObj);
+                }
+                return layers;
+            };
+
+            // Smart Splitter for Sub-Labels
+            const splitLabels = (str) => {
+                if (!str) return [];
+                if (str.includes('|')) return str.split('|').map(s=>s.trim());
+                if (str.includes(';')) return str.split(';').map(s=>s.trim());
+                return [str.trim()];
+            };
 
             useEffect(() => {
                 try {
@@ -348,30 +388,21 @@
                     try {
                         if (locStr.match(/^[A-Z]+\s*\(/) || locStr.match(/^GEOMETRYCOLLECTION/)) {
                             
-                            if (!window.Wkt) {
-                                if (!wktDebugLogFired.current) { addLog(`[FATAL] Wicket Core Library is missing. Cannot parse WKT strings!`, 'error'); wktDebugLogFired.current = true; }
-                                throw new Error("Wicket Library Not Loaded");
-                            }
-
-                            if (!wktDebugLogFired.current) { addLog(`[WKT INGEST] ${locStr.substring(0, 45)}...`, 'info'); }
-
                             const wkt = new window.Wkt.Wkt();
                             wkt.read(locStr);
                             const wktObj = wkt.toObject();
-                            let rawLayers = Array.isArray(wktObj) ? wktObj : (wktObj instanceof L.LayerGroup ? wktObj.getLayers() : [wktObj]);
                             
-                            if (!wktDebugLogFired.current && rawLayers[0] && rawLayers[0].getLatLng) {
-                                const mapped = rawLayers[0].getLatLng();
-                                addLog(`[WKT PARSED] Leaflet Object -> Lat: ${mapped.lat.toFixed(4)}, Lng: ${mapped.lng.toFixed(4)}`, 'success');
-                                wktDebugLogFired.current = true;
-                            }
-
-                            rawLayers.forEach(layer => featureLayers.push(layer));
+                            let rawLayers = extractLayers(wktObj);
+                            
+                            rawLayers.forEach(layer => {
+                                flipLeafletGeometry(layer);
+                                featureLayers.push(layer);
+                            });
 
                         } 
                         else if (locStr.startsWith('{') && locStr.includes('"type"')) {
                             const geoLayer = L.geoJSON(JSON.parse(locStr));
-                            geoLayer.eachLayer(l => featureLayers.push(l));
+                            extractLayers(geoLayer).forEach(l => featureLayers.push(l));
                         } 
                         else {
                             const coordMatch = locStr.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
@@ -382,7 +413,8 @@
                             }
                         }
 
-                        const subLabels = item.subLabels ? item.subLabels.split('|') : [];
+                        const subLabels = splitLabels(item.subLabels);
+                        const fallbackLabels = splitLabels(item.title);
                         const isVip = String(item.priority).trim().toUpperCase() === 'VIP';
 
                         featureLayers.forEach((layer, layerIdx) => {
@@ -415,9 +447,13 @@
                             }
 
                             // [REF: MAP-04] Hierarchical Tooltip Assignment
-                            const labelText = subLabels[layerIdx] ? subLabels[layerIdx].trim() : (item.place ? stripHTML(item.place) : stripHTML(item.title));
+                            let labelText = '';
+                            if (subLabels[layerIdx]) labelText = subLabels[layerIdx];
+                            else if (item.place) labelText = stripHTML(item.place);
+                            else if (fallbackLabels[layerIdx]) labelText = stripHTML(fallbackLabels[layerIdx]);
+                            else labelText = stripHTML(item.title);
                             
-                            layer.bindTooltip(labelText, { direction: 'top', offset: [0, -38], className: 'centered-tooltip' });
+                            layer.bindTooltip(labelText, { direction: 'top', offset: [0, -48], className: 'centered-tooltip' });
                             layer.on('click', () => setActiveIndex(idx));
 
                             if (layer instanceof L.Marker && !isVip && !layer.isArrow) {
@@ -435,10 +471,7 @@
                         }
 
                     } catch(e) {
-                        if (!wktDebugLogFired.current) {
-                            addLog(`[WKT FATAL ERROR] Row ${idx}: ${e.message}`, 'error');
-                            wktDebugLogFired.current = true;
-                        }
+                        addLog(`[WKT FATAL ERROR] Row ${idx}: ${e.message}`, 'error');
                     }
                 });
 
@@ -446,7 +479,6 @@
                     try {
                         if (mapInstance.current) {
                             mapInstance.current.invalidateSize(); 
-                            // SYNTAX HOTFIX: Corrected newSearchParams to new URLSearchParams
                             if (validMarkers > 0 && !hasFitBounds.current && !new URLSearchParams(window.location.search).get('mapzoom')) {
                                 const bounds = L.latLngBounds();
                                 markerLayer.current.eachLayer(l => { if (l.getLatLng) bounds.extend(l.getLatLng()); else if (l.getBounds) bounds.extend(l.getBounds()); });
@@ -551,7 +583,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.8.0';
+        MODULE_VERSIONS['MapViewer'] = 'v3.10.0';
         // === [ END MAP VIEWER ] ===
 
         // === [ MEDIA VIEWER v2.1.0 ] ===
