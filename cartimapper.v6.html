@@ -155,7 +155,7 @@
 <body>
     <div id="root"></div>
     <script type="module">
-        // === [ GLOBAL VARIABLES & MANIFEST v1.0.41 ] ===
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.42 ] ===
         import { h, render, Component } from 'https://esm.sh/preact';
         import { useState, useEffect, useRef } from 'https://esm.sh/preact/hooks';
         import htm from 'https://esm.sh/htm';
@@ -163,9 +163,9 @@
 
         const html = htm.bind(h);
         
-        const APP_VERSION = 'v6.0.5';
+        const APP_VERSION = 'v6.0.6';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v4.2.0', Globals: 'v1.0.41' }; 
+        const MODULE_VERSIONS = { Styles: 'v4.2.0', Globals: 'v1.0.42' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
         // === [ END GLOBAL VARIABLES ] ===
         
@@ -253,7 +253,7 @@
         MODULE_VERSIONS['VibeMonitor'] = 'v1.0.0';
         // === [ END VIBE MONITOR ] ===
 
-        // === [ MAP VIEWER v3.2.0 ] ===
+        // === [ MAP VIEWER v3.3.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog }) => {
             const mapDomRef = useRef(null);
             const mapInstance = useRef(null);
@@ -333,33 +333,17 @@
 
                     try {
                         if (window.Wkt && (locStr.match(/^[A-Z]+\s*\(/) || locStr.match(/^GEOMETRYCOLLECTION/))) {
+                            // [REF: MAP-01] Pre-Parser Regex String Flip (Bypasses Leaflet Projection Bugs)
+                            // Mathematically intercepts any "NUMBER NUMBER" inside the WKT string and swaps their positions
+                            const flippedWktStr = locStr.replace(/(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)/g, '$2 $1');
+                            
                             const wkt = new window.Wkt.Wkt();
-                            wkt.read(locStr);
+                            wkt.read(flippedWktStr);
                             const wktObj = wkt.toObject();
                             
                             let rawLayers = Array.isArray(wktObj) ? wktObj : (wktObj instanceof L.LayerGroup ? wktObj.getLayers() : [wktObj]);
                             
-                            // [REF: MAP-01] Recursive Flipper for Wicket Inversion Bug
-                            rawLayers.forEach(layer => {
-                                if (layer.getLatLng) {
-                                    const ll = layer.getLatLng();
-                                    layer.setLatLng([ll.lng, ll.lat]);
-                                } else if (layer.getLatLngs) {
-                                    const flipArray = (arr) => {
-                                        if (Array.isArray(arr)) {
-                                            if (arr[0] instanceof L.LatLng) {
-                                                arr.forEach(ll => { const t = ll.lat; ll.lat = ll.lng; ll.lng = t; });
-                                            } else {
-                                                arr.forEach(flipArray);
-                                            }
-                                        }
-                                    };
-                                    const lls = layer.getLatLngs();
-                                    flipArray(lls);
-                                    layer.setLatLngs(lls);
-                                }
-                                featureLayers.push(layer);
-                            });
+                            rawLayers.forEach(layer => featureLayers.push(layer));
                         } 
                         else if (locStr.startsWith('{') && locStr.includes('"type"')) {
                             const geoLayer = L.geoJSON(JSON.parse(locStr));
@@ -534,7 +518,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.2.0';
+        MODULE_VERSIONS['MapViewer'] = 'v3.3.0';
         // === [ END MAP VIEWER ] ===
         
         // === [ MEDIA VIEWER v2.1.0 ] ===
@@ -1058,7 +1042,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.0.0';
         // === [ END TIMELINE SCRUBBER ] ===
         
-        // === [ APP ORCHESTRATOR v1.18.0 ] ===
+        // === [ APP ORCHESTRATOR v1.19.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [data, setData] = useState([]);
@@ -1141,8 +1125,6 @@
             };
 
             useEffect(() => {
-                
-                // [REF: URL-01] Parse URL Parameters
                 const urlParams = new URLSearchParams(window.location.search);
                 const paramTheme = urlParams.get('theme');
                 const paramSlide = urlParams.get('slide');
@@ -1236,7 +1218,6 @@
                             const finalData = [...valid, ...cleaned.filter(r => !r.startDate)];
                             setData(finalData);
 
-                            // [REF: URL-01] Execute URL Initial State Logic
                             let initialIdx = 0;
                             if (paramSlide && !isNaN(parseInt(paramSlide))) {
                                 initialIdx = Math.max(0, Math.min(finalData.length - 1, parseInt(paramSlide) - 1));
@@ -1289,7 +1270,15 @@
                                 
                                 <div class="about-meta-footer">
                                     <div style="margin-bottom: 6px;"><b style="color: #333;">Engine:</b> CarTiMapper Core ${APP_VERSION}</div>
-                                    <div><b style="color: #333;">Source:</b> <a href="${aboutData.rawSource && aboutData.rawSource.startsWith('http') ? aboutData.rawSource : `https://docs.google.com/spreadsheets/d/${aboutData.rawSource}`}" target="_blank">${aboutData.rawSource || 'Local/Unknown Data'}</a></div>
+                                    <div style="margin-bottom: 15px;"><b style="color: #333;">Source:</b> <a href="${aboutData.rawSource && aboutData.rawSource.startsWith('http') ? aboutData.rawSource : `https://docs.google.com/spreadsheets/d/${aboutData.rawSource}`}" target="_blank" style="word-break: break-all;">${aboutData.rawSource || 'Local/Unknown Data'}</a></div>
+                                    
+                                    <div style="background: #f0f0f0; padding: 12px; border-radius: 6px; border: 1px solid #ddd; font-family: monospace;">
+                                        <b style="color: #333; display: block; margin-bottom: 8px; font-family: 'Noto Sans', sans-serif;">URL Routing Parameters:</b>
+                                        <div style="margin-bottom: 6px;"><span style="color: #d32f2f; font-weight: bold;">?slide=5</span> <span style="font-size: 0.85rem; color: #555;">Jump directly to slide index</span></div>
+                                        <div style="margin-bottom: 6px;"><span style="color: #d32f2f; font-weight: bold;">?date=1945-05-08</span> <span style="font-size: 0.85rem; color: #555;">Jump to closest timeline event</span></div>
+                                        <div style="margin-bottom: 6px;"><span style="color: #d32f2f; font-weight: bold;">?mapzoom=8</span> <span style="font-size: 0.85rem; color: #555;">Force initial camera zoom level</span></div>
+                                        <div><span style="color: #d32f2f; font-weight: bold;">?theme=dark</span> <span style="font-size: 0.85rem; color: #555;">Enable experimental dark mode</span></div>
+                                    </div>
                                 </div>
                             </div>
                         ` : ''}
@@ -1320,10 +1309,9 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.18.0';
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.19.0';
         
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
         // === [ END APP ORCHESTRATOR ] ===
-    </script>
 </body>
 </html>
