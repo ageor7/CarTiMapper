@@ -1,6 +1,10 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+fix(ui): v6.0.16 - Restore Master CSS, fix date inversion, and finalize sub-label linear mapping.
+
+---
+
 ## [v6.0.15] - April 2026
 ### Code Engine (`index.html`)
 * **Map Engine:** Removed the redundant `flipLeafletGeometry` function. Since v6.0.9's dependency fix, Wicket correctly handles OGC standards; the manual flipper was causing a re-inversion.
