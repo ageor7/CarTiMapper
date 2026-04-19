@@ -158,7 +158,7 @@
 
         const html = htm.bind(h);
         
-        const APP_VERSION = 'v6.0.7';
+        const APP_VERSION = 'v6.0.8';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.2.1', Globals: 'v1.0.43' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -247,7 +247,7 @@
         MODULE_VERSIONS['VibeMonitor'] = 'v1.0.0';
         // === [ END VIBE MONITOR ] ===
 
-        // === [ MAP VIEWER v3.4.0 ] ===
+        // === [ MAP VIEWER v3.5.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog }) => {
             const mapDomRef = useRef(null);
             const mapInstance = useRef(null);
@@ -257,6 +257,7 @@
             const clusterLayer = useRef(null); 
             const markersRef = useRef({}); 
             const hasFitBounds = useRef(false);
+            const debugFired = useRef(false); // Ensures we only spam the monitor once
 
             const createPinHtml = (isActive, isVip) => {
                 const color = isActive ? '#28a745' : (isVip ? '#ffb300' : '#007acc');
@@ -274,6 +275,27 @@
                 iconSize: [16, 16],
                 iconAnchor: [8, 8]
             });
+
+            // [REF: MAP-05] Recursive Leaflet Geometry Flipper
+            const flipLeafletGeometry = (layer) => {
+                if (layer.getLatLng) {
+                    const ll = layer.getLatLng();
+                    layer.setLatLng([ll.lng, ll.lat]);
+                } else if (layer.getLatLngs) {
+                    const flipArray = (arr) => {
+                        if (Array.isArray(arr)) {
+                            if (arr[0] instanceof window.L.LatLng) {
+                                arr.forEach(ll => { const t = ll.lat; ll.lat = ll.lng; ll.lng = t; });
+                            } else {
+                                arr.forEach(flipArray);
+                            }
+                        }
+                    };
+                    const lls = layer.getLatLngs();
+                    flipArray(lls);
+                    layer.setLatLngs(lls);
+                }
+            };
 
             useEffect(() => {
                 try {
@@ -327,13 +349,36 @@
 
                     try {
                         if (window.Wkt && (locStr.match(/^[A-Z]+\s*\(/) || locStr.match(/^GEOMETRYCOLLECTION/))) {
-                            // [REF: MAP-01] Pure Wicket Parsing (Relies on ETL Google Sheet v6.0.3 outputting POINT(Lon Lat))
+                            
                             const wkt = new window.Wkt.Wkt();
                             wkt.read(locStr);
                             const wktObj = wkt.toObject();
-                            
                             let rawLayers = Array.isArray(wktObj) ? wktObj : (wktObj instanceof L.LayerGroup ? wktObj.getLayers() : [wktObj]);
-                            rawLayers.forEach(layer => featureLayers.push(layer));
+                            
+                            // === DIAGNOSTIC TELEMETRY ===
+                            if (!debugFired.current) {
+                                addLog(`[WKT-DEBUG] Found WKT: ${locStr.substring(0, 40)}...`, 'info');
+                                if (rawLayers[0] && rawLayers[0].getLatLng) {
+                                    const preFlip = rawLayers[0].getLatLng();
+                                    addLog(`[WKT-DEBUG] Wicket Output -> Lat: ${preFlip.lat.toFixed(4)}, Lng: ${preFlip.lng.toFixed(4)}`, 'warn');
+                                }
+                            }
+
+                            // Physically flip the coordinates in Leaflet memory
+                            rawLayers.forEach(layer => {
+                                flipLeafletGeometry(layer);
+                                featureLayers.push(layer);
+                            });
+
+                            if (!debugFired.current) {
+                                if (rawLayers[0] && rawLayers[0].getLatLng) {
+                                    const postFlip = rawLayers[0].getLatLng();
+                                    addLog(`[WKT-DEBUG] Flipped Output -> Lat: ${postFlip.lat.toFixed(4)}, Lng: ${postFlip.lng.toFixed(4)}`, 'success');
+                                }
+                                debugFired.current = true;
+                            }
+                            // === END TELEMETRY ===
+
                         } 
                         else if (locStr.startsWith('{') && locStr.includes('"type"')) {
                             const geoLayer = L.geoJSON(JSON.parse(locStr));
@@ -420,6 +465,7 @@
 
             }, [data]);
 
+            // ... (Keep the rest of the file EXACTLY the same, activeIndex useEffect and HTML return)
             useEffect(() => {
                 const map = mapInstance.current;
                 const markers = markersRef.current;
@@ -508,7 +554,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.4.0';
+        MODULE_VERSIONS['MapViewer'] = 'v3.5.0';
         // === [ END MAP VIEWER ] ===
 
         // === [ MEDIA VIEWER v2.1.0 ] ===
