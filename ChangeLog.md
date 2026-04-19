@@ -3,10 +3,18 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [v6.0.8] - April 2026
+### Code Engine (`index.html`)
+* **Architecture:** Bumped `APP_VERSION` to `v6.0.8`.
+* **Map Engine:** Deployed `[REF: MAP-05]` Recursive Leaflet Geometry Flipper (`flipLeafletGeometry`). Intercepts `wkt.toObject()` arrays and safely iterates through deep Polylines and Polygons to forcibly mutate `layer.setLatLngs()` in Leaflet memory, permanently resolving the `Wicket` translation inversion.
+* **Diagnostics:** Wired the map parser directly into the `VibeMonitor`. The engine now outputs verbose telemetry on the very first WKT object it reads (Raw String -> Wicket Translation -> Post-Flip Correction) to prove spatial accuracy.
+
+---
+
 ## [v6.0.7] - April 2026
 ### Code Engine (`index.html`)
 * **Architecture:** Bumped `APP_VERSION` to `v6.0.7`.
-* **Map Engine:** Removed the `v6.0.6` Regex coordinate flipper. Because the upstream Google Sheets ETL (`v6.0.3`) guarantees strict OGC standard WKT (`POINT(Lon Lat)`), `Wicket` parses and translates the coordinates into Leaflet natively without requiring manual manipulation.
+* **Map Engine:** Removed the `v6.0.6` Regex coordinate flipper. Because the upstream Google Sheets ETL (`v6.0.3`) guarantees strict OGC standard WKT (`POINT(Lon Lat)`), `Wicket` parses and translates the coordinates into Leaflet natively without requiring manual manipulation (Note: Replaced by deeper memory intervention in v6.0.8).
 * **UI/UX:** Added `?source=URL` parameter documentation into the "About" modal. Clarified standard web URL syntax for end-users, explaining that query chains must be linked using ampersands (`&`) rather than multiple question marks.
 
 ---
@@ -14,7 +22,7 @@ All notable changes to this project will be documented in this file.
 ## [v6.0.6] - April 2026
 ### Code Engine (`index.html`)
 * **Architecture:** Bumped `APP_VERSION` to `v6.0.6`.
-* **Map Engine:** Scrapped post-creation Leaflet geometry manipulation. Deployed an ultra-fast Regex Pre-Parser string flipper (`locStr.replace(/(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)/g, '$2 $1')`) that mathematically intercepts and swaps all `[Lon Lat]` coordinates inside the WKT string into `[Lat Lon]` *before* it reaches the parser. Completely bulletproofs the engine against Leaflet's internal `_pxBounds` projection amnesia.
+* **Map Engine:** Deployed an ultra-fast Regex Pre-Parser string flipper (`locStr.replace(/.../g, '$2 $1')`) to mathematically intercept and swap WKT coordinates (Reverted in v6.0.7).
 * **UI/UX:** Rebuilt the `about-modal` JSX to render a stylized, technical reference card explaining all active `[REF: URL-01]` routing parameters.
 
 ### Master Blueprint
@@ -34,7 +42,7 @@ All notable changes to this project will be documented in this file.
 
 ## [v6.0.4] - April 2026
 ### Code Engine (`index.html`)
-* **Architecture:** Bypassed Wicket `.toObject()` inversion bug by routing parsed WKT through `.toJson()` into Leaflet's highly compliant `.geoJSON()` engine natively.
+* **Architecture:** Bypassed Wicket `.toObject()` inversion bug by routing parsed WKT through `.toJson()` into Leaflet's highly compliant `.geoJSON()` engine natively (Reverted in v6.0.7).
 * **UI/UX:** Added `.custom-div-icon` CSS override to strip away Leaflet's forced white bounding boxes on SVG pins.
 * **UI/UX:** Repositioned map tooltips strictly above the pin head `[0, -38]` using `.centered-tooltip`.
 * **Physics:** Hardened spatial math. Raised bounding box max-zoom tolerances to `16`, allowing the camera to reach Acropolis/neighborhood-level fidelity in dense clusters. Added live zoom-state UI tracker.
@@ -85,7 +93,4 @@ All notable changes to this project will be documented in this file.
 ## [v1.0.0 – v5.13.0] - Legacy Foundation Rollup
 *(Note: Granular commit history prior to v5.23.0 is consolidated to reflect the architectural baseline established in Blueprint v5.13.0).*
 * **Core Layout:** Established strict Flexbox boundaries with a Unified Status Bar and 15% Ergonomic Touch Zones for mobile navigation.
-* **Timeline Engine:** Deployed SVG clip-path Hexagon labels and the Dual-Heuristic Density Math engine (collisionZoom vs. contextZoom) to prevent text overlap.
-* **Scrolling Physics:** Implemented the Visual-Center Scrolling Algorithm to automatically center wide text blocks on slide transition.
-* **ETL Ingestion:** Integrated `PapaParse` via `esm.sh` for runtime CSV ingestion from Google Sheets.
-* **Component Architecture:** Established the Preact component tree (`AppOrchestrator` -> `TimelineScrubber` -> `ContentSlider` -> `MapViewer`) utilizing native ESM imports to bypass Node.js build steps.
+* **Timeline
