@@ -1,5 +1,5 @@
 # CarTiMapper Engine Master Blueprint
-**Version:** v6.0.5 | **Date:** April 2026
+**Version:** v6.0.6| **Date:** April 2026
 
 ## I. Engineering Protocols & Coding Rules
 
@@ -59,6 +59,7 @@
 * **Tag Lane "Sticky" Shielding:** Detached swimlanes from `overflow: hidden` wrappers and explicitly anchored their bottom bounds to `bottom: 28px` to prevent downward bleeding into the X-Axis.
 * **Typography Hierarchy:** `EB Garamond` (or similar serif) used for Titles/Descriptions. `Fira Sans` (or similar sans-serif) used for UI elements.
 * **[REF: UI-05] Visual Hierarchy (Map Pins):** Permanent geographical anchors (VIPs) bypass the cluster engine and render as distinct Gold pins. Active slide elements render as oversized Green pins. Inactive clustered elements render as standard Blue pins.
+* **Info Window URL Reference:** To ensure end-user visibility of deep-linking capabilities, the frontend "About" modal must explicitly mirror and document all active `[REF: URL-01]` routing parameters (e.g., `?slide=`, `?date=`, `?theme=`, `?mapzoom=`) as a stylized technical reference card.
 
 ---
 
@@ -68,5 +69,5 @@
 * **2. State-Based Layer Swapping & The O(1) Dictionary:** To bypass Leaflet's internal `_leaflet_id` amnesia, the engine builds a global dictionary (`markersRef`). Slide changes execute an `O(1)` instant lookup to swap layers in and out of the cluster bucket seamlessly.
 * **3. The Dual-Heuristic Density Math (Timeline Auto-Zoom):** Solves the "Outer Space" problem by evaluating two vectors: `collisionZoom` (The 10px Rule for preventing overlap on the same lane) and `contextZoom` (The 150px Rule for keeping the nearest event visible). Executes `Math.max()` to adopt the safest zoom.
 * **4. The URL Routing Engine:** `[REF: URL-01]` Upon data load, the engine intercepts CLI/URL parameters. If `?date=YYYY-MM-DD` is provided, it executes a mathematical distance calculation across the entire `valid` chronological array to locate the closest absolute time-node and injects it as the `activeIndex`. `?slide=X` overrides chronology to focus on a specific narrative slide. `?theme=dark` manipulates root CSS properties prior to physical DOM render.
-* **5. The Visual-Center Scrolling Algorithm:** Calculates `blockPixelWidth` dynamically. Plots the geometric center (`StartPx + Width/2`). Commands the scrollbar to target `visualCenterPx - (Screen Width / 2)` to perfectly center wide text blocks.
+* **Info Window URL Reference:** To ensure end-user visibility of deep-linking capabilities, the frontend "About" modal must explicitly mirror and document all active `[REF: URL-01]` routing parameters (e.g., `?slide=`, `?date=`, `?theme=`, `?mapzoom=`) as a stylized technical reference card.* **5. The Visual-Center Scrolling Algorithm:** Calculates `blockPixelWidth` dynamically. Plots the geometric center (`StartPx + Width/2`). Commands the scrollbar to target `visualCenterPx - (Screen Width / 2)` to perfectly center wide text blocks.
 * **6. HTML Filter Bifurcation:** Timeline Hexagons are processed through `stripHTML()` to guarantee layout breaks (`<br>`) do not physically break geometric rendering. Content Pane Titles are processed through `dangerouslySetInnerHTML` to permit manual formatting.
