@@ -17,152 +17,108 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/wicket/1.3.8/wicket.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/wicket/1.3.8/wicket-leaflet.min.js"></script>
     <style>
-        /* === [ GLOBAL STYLES v4.5.0 ] === */
+        /* === [ GLOBAL STYLES v4.8.0 ] === */
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
         :root { --bg: #121212; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; --coral: #f36c56; }
         body { margin: 0; font-family: 'Noto Sans', system-ui, sans-serif; font-weight: 400; overflow: hidden; background: var(--bg); color: var(--text); }
         
-        .loading-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--paneBg); color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease; opacity: 1; }
+        /* [UI] Loading Screen */
+        .loading-screen { position: fixed; inset: 0; background: var(--paneBg); color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease; opacity: 1; }
         .loading-screen.fade-out { opacity: 0; pointer-events: none; }
-        
-        /* [REF: UI-08] Splash Screen Vertical Layout */
         .logo-stack-splash { display: flex; flex-direction: column; align-items: center; margin-bottom: 2rem; }
-        .splash-icon-wrapper { width: 300px; height: auto; margin-bottom: 15px; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.15)); }
-        .splash-text { font-size: 2.8rem; color: #333; font-weight: 700; letter-spacing: -1px; line-height: 1; margin: 0; }
-        .splash-version { font-size: 1rem; color: #888; font-family: monospace; font-weight: bold; margin-top: 5px; letter-spacing: 1px; }
-
-        .loading-status { font-size: 1.1rem; margin-bottom: 1.5rem; color: #666; font-weight: bold;}
+        .splash-icon-wrapper { width: 300px; height: auto; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.15)); }
+        .splash-text { font-size: 2.8rem; color: #333; font-weight: 700; letter-spacing: -1px; margin-top: 10px; }
+        .splash-version { font-size: 1rem; color: #888; font-family: monospace; font-weight: bold; margin-top: 5px; }
         .loading-bar-container { width: 250px; height: 4px; background: #ddd; border-radius: 2px; overflow: hidden; }
-        .loading-bar-fill { height: 100%; background: #007acc; transition: width 0.4s ease; }
+        .loading-bar-fill { height: 100%; background: var(--accent); transition: width 0.4s ease; }
 
-        #tm-root { position: fixed; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; display: flex; flex-direction: column; }
+        /* [UI] Layout Engine */
+        #tm-root { position: fixed; inset: 0; overflow: hidden; display: flex; flex-direction: column; }
         #app-layout { --top-height: 35%; --map-width: 50%; --timeline-height: 15%; display: flex; flex-direction: column; flex: 1; width: 100vw; height: 100%; }
         
-        .top-row { flex: 0 0 var(--top-height); height: var(--top-height); max-height: var(--top-height); display: flex; background: #fff; overflow: hidden; min-height: 0; min-width: 0; }
-        .map-pane { width: var(--map-width); flex-shrink: 0; background: #e0e0e0; position: relative; min-height: 0; min-width: 0; }
-        .map-pane.no-media { width: 100% !important; }
-        
+        .top-row { flex: 0 0 var(--top-height); display: flex; background: #fff; overflow: hidden; }
+        .map-pane { width: var(--map-width); flex-shrink: 0; position: relative; }
         .resizer-v { height: 6px; background: #999; cursor: row-resize; flex-shrink: 0; z-index: 100; transition: background 0.2s; }
-        .resizer-v:hover, .resizer-v:active { background: #007acc; }
         .resizer-h { width: 6px; background: #999; cursor: col-resize; flex-shrink: 0; z-index: 100; transition: background 0.2s; }
-        .resizer-h:hover, .resizer-h:active { background: #007acc; }
+        .resizer-v:hover, .resizer-h:hover { background: var(--accent); }
 
-        .media-pane { flex: 1; position: relative; padding: 0; overflow: hidden; background: #111; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
-        .content-pane-wrapper { flex: 1 1 0%; position: relative; display: flex; flex-direction: column; background: var(--paneBg); overflow: hidden; min-height: 0; min-width: 0; }
-        .timeline-pane { flex: 0 0 var(--timeline-height); height: var(--timeline-height); max-height: var(--timeline-height); padding: 0; background: #ececec; display: flex; flex-direction: column; position: relative; overflow: hidden; min-width: 0; min-height: 0;}
+        .media-pane { flex: 1; position: relative; overflow: hidden; background: #111; display: flex; flex-direction: column; }
+        .content-pane-wrapper { flex: 1; position: relative; display: flex; flex-direction: column; background: var(--paneBg); overflow: hidden; }
+        .timeline-pane { flex: 0 0 var(--timeline-height); background: #ececec; display: flex; flex-direction: column; position: relative; overflow: hidden; }
 
-        #map-container { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; }
-        .leaflet-tooltip { white-space: normal !important; word-wrap: break-word !important; width: max-content !important; max-width: 300px !important; text-align: left !important; font-size: 0.85rem; font-weight: 400 !important; line-height: 1.4; padding: 6px 10px !important; text-wrap: balance !important; }
-
-        /* [REF: UI-12] Map Tooltip Anchor Fix: Removed double-negative margins. Leaflet's iconAnchor now natively centers the pin! */
-        .custom-map-pin { display: flex; align-items: flex-end; justify-content: center; width: 24px; height: 34px; }
-        .pin-head { width: 14px; height: 14px; border-radius: 50%; background: #d32f2f; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.4); position: absolute; top: 0; transition: all 0.2s ease; }
-        .pin-stem { width: 2px; height: 20px; background: #333; position: absolute; bottom: 0; }
-        .custom-map-pin.active .pin-head { background: #28a745; transform: scale(1.3); z-index: 1000; }
-        .custom-map-pin.active .pin-stem { background: #28a745; width: 3px; }
-
+        /* [UI] Media Carousel */
         .media-carousel { flex: 1; display: flex; width: 100%; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scroll-behavior: smooth; }
         .media-item { width: 100%; height: 100%; flex-shrink: 0; scroll-snap-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
         .media-content-wrapper { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         .media-item img { max-width: 100%; max-height: 100%; object-fit: contain; }
         .media-item iframe { width: 100%; height: 100%; border: none; }
-        .media-meta-box { width: 100%; background: #222; color: #eee; padding: 8px 15px; box-sizing: border-box; font-size: 0.8rem; border-top: 1px solid #444; }
-        .media-caption { font-style: italic; margin-bottom: 4px; }
-        .media-credit { color: #aaa; font-size: 0.7rem; }
+        .media-meta-box { width: 100%; background: #222; color: #eee; padding: 8px 15px; font-size: 0.8rem; border-top: 1px solid #444; }
         .media-counter { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; pointer-events: none; }
 
-        .content-scroll-area { flex: 1; overflow-y: auto; padding: 2rem 4rem; display: flex; flex-direction: column; z-index: 5; }
-        .slide-container { width: 100%; max-width: 1000px; margin: 0 auto; flex: 1; box-sizing: border-box; }
-        
-        .logo-horizontal-about { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; padding-bottom: 15px; border-bottom: 1px solid #eee; }
-        .horizontal-icon-wrapper-about { width: 60px; height: auto; flex-shrink: 0; }
-        .horizontal-text-title { font-size: 1.8rem; font-weight: 700; color: #333; margin: 0; letter-spacing: -0.5px; line-height: 1.1; }
-        
+        /* [UI] Content Slider & Header */
+        .content-scroll-area { flex: 1; overflow-y: auto; padding: 2rem 4rem; }
+        .slide-container { width: 100%; max-width: 1000px; margin: 0 auto; }
         .slide-header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.8rem; }
-        .slide-date { color: #007acc; font-size: 1.1rem; letter-spacing: 0.5px; font-weight: bold; }
+        .slide-date { color: var(--accent); font-size: 1.1rem; font-weight: bold; }
+        .slide-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
         
-        /* [REF: UI-13] Right-Aligned Metadata Structure */
-        .slide-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; max-width: 50%; }
-        
-        /* Unified Tag & Place Aesthetic */
-        .tag-badge, .slide-place-badge { background: #e0e0e0; color: #444; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; white-space: nowrap; border: 1px solid #ccc; font-weight: 400; }
+        .tag-badge, .slide-place-badge { background: #e0e0e0; color: #444; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; border: 1px solid #ccc; white-space: nowrap; }
         .slide-place-badge { display: inline-flex; align-items: center; gap: 4px; }
         .tags-container { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
         
         .slide-title { margin: 0 0 1.5rem 0; font-size: 2.5rem; color: #111; line-height: 1.1; font-weight: 400; }
-        .slide-desc { line-height: 1.6; font-size: 1.15rem; color: #333; width: 100%; font-weight: 400; }
+        .slide-desc { line-height: 1.6; font-size: 1.15rem; color: #333; }
         
         .click-zone { position: absolute; top: 0; bottom: 40px; width: 15%; z-index: 10; cursor: pointer; }
         .click-zone-left { left: 0; }
         .click-zone-right { right: 0; }
 
-        .unified-status-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 40px; background: #fff; border-top: 1px solid #ddd; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; box-shadow: 0 -2px 5px rgba(0,0,0,0.02); z-index: 20; }
-        .status-left { display: flex; gap: 10px; flex: 1; justify-content: flex-start; align-items: center; }
-        .status-btn { background: #eee; color: #444; border: 1px solid #ccc; border-radius: 12px; padding: 4px 12px; cursor: pointer; font-size: 0.75rem; transition: all 0.2s; font-weight: 400; font-family: inherit; }
+        /* [UI] Status Bar */
+        .unified-status-bar { height: 40px; background: #fff; border-top: 1px solid #ddd; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; position: relative; z-index: 20; }
+        .status-left { display: flex; gap: 10px; align-items: center; }
+        .status-btn { background: #eee; border: 1px solid #ccc; border-radius: 12px; padding: 4px 12px; cursor: pointer; font-size: 0.75rem; transition: background 0.2s; }
         .status-btn:hover { background: #ddd; }
-        .status-btn.active { background: #007acc; color: white; border-color: #005f9e; }
-        
-        .status-center { display: flex; gap: 5px; flex: 1; justify-content: center; }
-        .nav-btn-bottom { background: #f8f8f8; color: #333; border: 1px solid #ccc; border-radius: 4px; padding: 4px 15px; cursor: pointer; font-size: 0.85rem; transition: background 0.2s; font-weight: 400; font-family: inherit; }
-        .nav-btn-bottom:hover:not(:disabled) { background: #e0e0e0; }
-        .nav-btn-bottom:disabled { opacity: 0.3; cursor: not-allowed; }
+        .status-btn.active { background: var(--accent); color: white; }
 
-        .status-right { font-size: 0.85rem; color: #666; flex: 1; display: flex; justify-content: flex-end; }
-
-        #about-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; max-width: 800px; max-height: 80vh; overflow-y: auto; background: #fff; z-index: 9999; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); padding: 2rem; display: none; border: 1px solid #ccc; color: #222; font-size: 1.1rem; }
-        #about-modal.open { display: block; }
-        .about-close { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5rem; cursor: pointer; font-family: inherit; }
-
-        .about-meta-footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #eee; font-size: 0.85rem; color: #666; background: #fdfdfd; padding: 1rem; border-radius: 6px;}
-        .about-meta-footer a { color: #007acc; text-decoration: none; word-break: break-all; }
-        .about-meta-footer a:hover { text-decoration: underline; }
-
-        .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-y: hidden; overflow-x: auto; position: relative; display: flex; align-items: flex-start; cursor: grab; touch-action: pan-x; -webkit-overflow-scrolling: touch; }
-        .timeline-scroll-wrapper.is-dragging { cursor: grabbing; }
-        .timeline-track-container { position: relative; height: 100%; }
+        /* [UI] Timeline Engine */
+        .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-x: auto; overflow-y: hidden; position: relative; cursor: grab; }
+        .timeline-scroll-wrapper:active { cursor: grabbing; }
+        .timeline-track-container { position: relative; height: 100%; min-width: 100%; }
+        .tag-lane { position: absolute; left: 0; right: 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .tag-lane-label { position: sticky; left: 0; z-index: 100; padding: 0 10px; font-size: 0.7rem; color: #888; background: inherit; height: 100%; display: flex; align-items: center; border-right: 1px solid #ddd; }
         
-        .tag-lane { border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; box-sizing: border-box; width: 100%; position: absolute; left: 0; right: 0; }
-        .tag-lane-label { position: sticky; left: 0; z-index: 100; padding: 0 10px; font-size: 0.75rem; color: #555; display: flex; align-items: center; white-space: nowrap; box-shadow: 2px 0 4px rgba(0,0,0,0.05); border-right: 1px solid #ccc; font-weight: 400; }
-        
-        .event-group { position: absolute; z-index: 10; transition: z-index 0.2s; display: flex; align-items: flex-start; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.15)); }
-        .event-group.active { z-index: 30; filter: drop-shadow(0 4px 6px rgba(0,122,204,0.4)); }
-        
+        .event-group { position: absolute; transition: z-index 0.2s; display: flex; align-items: center; }
+        .event-group.active { z-index: 50; }
         .event-block { 
-            display: flex; flex-direction: column; align-items: flex-start; justify-content: center; text-align: left; font-size: 0.75rem; cursor: pointer; transition: filter 0.2s ease; box-sizing: border-box;
-            --diag-w: 10px; min-height: var(--lane-h); padding: 6px 12px 6px calc(var(--diag-w) + 8px); 
-            clip-path: polygon( 0 calc(50% - (var(--lane-h) / 2) + 0.5px), var(--diag-w) 0, 100% 0, 100% 100%, var(--diag-w) 100%, 0 calc(50% + (var(--lane-h) / 2) - 0.5px) );
+            display: flex; align-items: center; font-size: 0.75rem; cursor: pointer; padding: 4px 12px 4px 18px; white-space: nowrap; 
+            clip-path: polygon(0 50%, 10px 0, 100% 0, 100% 100%, 10px 100%); 
         }
-        .event-block:hover { filter: brightness(1.05); z-index: 40; }
-        .event-text { display: flex; flex-direction: column; line-height: 1.3; font-weight: 400; width: 100%; }
-        
-        .timeline-axis { position: absolute; bottom: 0; left: 0; right: 0; height: 28px; background: #e0e0e0; border-top: 2px solid #999; z-index: 5; }
-        .timeline-ruler-tick { position: absolute; bottom: 3px; display: flex; flex-direction: column; align-items: center; z-index: 5; transform: translateX(-50%); }
+        .timeline-axis { position: absolute; bottom: 0; left: 0; right: 0; height: 28px; background: #e0e0e0; border-top: 2px solid #999; }
+        .timeline-ruler-tick { position: absolute; bottom: 3px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; }
 
-        .timeline-controls { position: sticky; top: 10px; left: 10px; display: flex; gap: 5px; z-index: 50; width: fit-content; float: right; margin-right: 20px;}
-        .timeline-btn { background: #fff; border: 1px solid #ccc; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; color: #333; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-weight: 400; font-family: inherit;}
-        .timeline-btn:hover { background: #eee; }
-
-        #vibe-monitor { position: absolute; bottom: 10px; left: 10px; width: 400px; height: 300px; background: rgba(10, 10, 15, 0.95); border: 1px solid #444; border-radius: 8px; display: flex; flex-direction: column; z-index: 9999; color: #eee; box-shadow: 0 8px 32px rgba(0,0,0,0.9); resize: both; overflow: hidden; font-family: 'Courier New', monospace; }
-        #vibe-header { background: #222; padding: 8px; cursor: move; border-bottom: 1px solid #444; display: flex; justify-content: space-between; align-items: center; user-select: none; }
-        .vibe-close-btn { background: #ff5555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; padding: 2px 6px; font-family: inherit;}
-        #vibe-logs { flex: 1; overflow-y: auto; padding: 10px; font-size: 12px; line-height: 1.4; word-wrap: break-word; }
-        .log-info { color: #8be9fd; }
-        .log-success { color: #50fa7b; }
-        .log-warn { color: #ffb86c; }
-        .log-error { color: #ff5555; }
-        .log-time { color: #6272a4; margin-right: 5px; }
-
+        /* [UI] Map Overlays */
         .custom-div-icon { background: transparent !important; border: none !important; }
+        .custom-map-pin { display: flex; align-items: flex-end; justify-content: center; width: 24px; height: 34px; transition: transform 0.2s; }
+        .pin-head { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        .pin-stem { width: 2px; height: 20px; background: #333; }
+        .leaflet-tooltip { padding: 6px 10px !important; border-radius: 4px !important; font-size: 0.85rem !important; border: 1px solid #ccc !important; box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important; }
         .centered-tooltip { text-align: center; }
-        .map-zoom-indicator { position: absolute; bottom: 15px; left: 15px; z-index: 1000; background: rgba(255,255,255,0.85); padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; color: #333; pointer-events: none; border: 1px solid #ccc; }
+        .map-zoom-indicator { position: absolute; bottom: 15px; left: 15px; z-index: 1000; background: rgba(255,255,255,0.8); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; border: 1px solid #ccc; }
 
-        .marker-cluster-small { background-color: rgba(255, 183, 77, 0.6) !important; }
-        .marker-cluster-small div { background-color: rgba(255, 152, 0, 0.9) !important; color: white !important; font-weight: bold; }
-        .marker-cluster-medium { background-color: rgba(240, 98, 146, 0.6) !important; }
-        .marker-cluster-medium div { background-color: rgba(233, 30, 99, 0.9) !important; color: white !important; font-weight: bold; }
-        .marker-cluster-large { background-color: rgba(149, 117, 205, 0.6) !important; }
-        .marker-cluster-large div { background-color: rgba(103, 58, 183, 0.9) !important; color: white !important; font-weight: bold; }
+        /* [UI] Modals & Backdrops */
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9000; display: none; backdrop-filter: blur(2px); }
+        .modal-backdrop.open { display: block; }
+        #about-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 600px; max-height: 85vh; background: #fff; z-index: 9001; border-radius: 12px; padding: 30px; overflow-y: auto; display: none; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid #ccc; }
+        #about-modal.open { display: block; }
+        .about-close { position: absolute; top: 15px; right: 15px; border: none; background: none; font-size: 1.5rem; cursor: pointer; color: #999; }
+        .logo-horizontal-about { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 2rem; border-bottom: 1px solid #eee; padding-bottom: 20px; }
+
+        /* [UI] Vibe Monitor (Dark Theme) */
+        #vibe-monitor { position: absolute; bottom: 50px; left: 10px; width: 350px; height: 250px; background: rgba(20, 20, 25, 0.95); border: 1px solid #444; border-radius: 8px; display: flex; flex-direction: column; z-index: 9999; color: #eee; box-shadow: 0 8px 32px rgba(0,0,0,0.5); font-family: monospace; overflow: hidden; }
+        #vibe-header { background: #333; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; border-bottom: 1px solid #444; }
+        #vibe-logs { flex: 1; overflow-y: auto; padding: 10px; font-size: 0.7rem; line-height: 1.4; }
+        .log-info { color: #8be9fd; } .log-success { color: #50fa7b; } .log-error { color: #ff5555; }
         /* === [ END GLOBAL STYLES ] === */
     </style>
 </head>
@@ -266,143 +222,100 @@
         MODULE_VERSIONS['VibeMonitor'] = 'v1.0.0';
         // === [ END VIBE MONITOR ] ===
 
-        // === [ MAP VIEWER v3.11.0 ] ===
+        // === [ MAP VIEWER v3.12.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog }) => {
             const mapDomRef = useRef(null);
             const mapInstance = useRef(null);
-            const [mapZoom, setMapZoom] = useState(2); 
             const markerLayer = useRef(null); 
             const clusterLayer = useRef(null); 
             const markersRef = useRef({}); 
-            const hasFitBounds = useRef(false);
 
             const createPinHtml = (isActive, isVip) => {
                 const color = isActive ? '#28a745' : (isVip ? '#ffb300' : '#007acc');
-                const scale = isActive ? 'scale(1.3)' : 'scale(1)';
-                return `<div class="custom-map-pin" style="transform: ${scale}; z-index: ${isActive ? 1000 : 0};">
+                return `<div class="custom-map-pin" style="transform: ${isActive ? 'scale(1.3)' : 'scale(1)'};">
                             <div class="pin-head" style="background: ${color};"></div>
                             <div class="pin-stem" style="background: ${isActive ? '#28a745' : '#333'};"></div>
                         </div>`;
             };
-            
-            const createArrowIcon = (angle, isActive) => L.divIcon({
-                className: 'geo-arrow custom-div-icon',
-                html: `<div style="transform: rotate(${angle}deg); font-size: 16px; color: ${isActive ? '#28a745' : '#007acc'}; text-shadow: 0 0 2px #fff;">▲</div>`,
-                iconSize: [16, 16], iconAnchor: [8, 8]
-            });
 
-            const extractLayers = (layerObj) => {
-                let layers = [];
-                if (Array.isArray(layerObj)) { layerObj.forEach(l => layers = layers.concat(extractLayers(l))); }
-                else if (layerObj && layerObj.eachLayer) { layerObj.eachLayer(l => layers = layers.concat(extractLayers(l))); }
-                else if (layerObj) { layers.push(layerObj); }
-                return layers;
-            };
-
-            const splitLabels = (str) => {
-                if (!str) return [];
-                const delimiter = str.includes('|') ? '|' : (str.includes(';') ? ';' : null);
-                return delimiter ? str.split(delimiter).map(s=>s.trim()) : [str.trim()];
+            const extractLayers = (obj) => {
+                let flat = [];
+                if (Array.isArray(obj)) obj.forEach(i => flat = flat.concat(extractLayers(i)));
+                else if (obj && obj.eachLayer) obj.eachLayer(i => flat = flat.concat(extractLayers(i)));
+                else if (obj) flat.push(obj);
+                return flat;
             };
 
             useEffect(() => {
-                if (mapDomRef.current && !mapInstance.current && window.L) {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const initialZoom = urlParams.get('mapzoom') ? parseInt(urlParams.get('mapzoom')) : 2;
-                    const map = L.map(mapDomRef.current, { zoomControl: false }).setView([20, 0], initialZoom);
-                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM' }).addTo(map);
-                    L.control.zoom({ position: 'topright' }).addTo(map);
-                    setMapZoom(initialZoom);
-                    map.on('zoomend', () => setMapZoom(map.getZoom()));
-                    markerLayer.current = L.featureGroup().addTo(map);
-                    clusterLayer.current = L.markerClusterGroup({ maxClusterRadius: 40, spiderfyOnMaxZoom: true }).addTo(map);
-                    mapInstance.current = map;
+                if (mapDomRef.current && !mapInstance.current) {
+                    const m = L.map(mapDomRef.current, { zoomControl: false }).setView([20, 0], 2);
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(m);
+                    markerLayer.current = L.featureGroup().addTo(m);
+                    clusterLayer.current = L.markerClusterGroup().addTo(m);
+                    mapInstance.current = m;
                 }
             }, []);
 
             useEffect(() => {
-                const map = mapInstance.current;
-                if (!map || data.length === 0) return;
+                if (!mapInstance.current || data.length === 0) return;
                 markerLayer.current.clearLayers();
                 clusterLayer.current.clearLayers();
-                markersRef.current = {};
-                let validMarkers = 0;
-
+                
                 data.forEach((item, idx) => {
-                    const locStr = String(item.location || '').trim();
-                    if (!locStr) return;
-                    let featureLayers = [];
-
+                    const loc = String(item.location || '').trim();
+                    if (!loc) return;
+                    let layers = [];
                     try {
-                        if (locStr.match(/^[A-Z]+\s*\(/) || locStr.match(/^GEOMETRYCOLLECTION/)) {
-                            const wkt = new window.Wkt.Wkt();
-                            wkt.read(locStr);
-                            featureLayers = extractLayers(wkt.toObject());
-                        } else if (locStr.startsWith('{')) {
-                            featureLayers = extractLayers(L.geoJSON(JSON.parse(locStr)));
+                        if (loc.match(/^[A-Z]+\s*\(/)) {
+                            const w = new window.Wkt.Wkt(); w.read(loc);
+                            layers = extractLayers(w.toObject());
                         } else {
-                            const m = locStr.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
-                            if (m) featureLayers.push(L.marker([parseFloat(m[1]), parseFloat(m[2])]));
+                            const m = loc.match(/(-?\d+\.?\d*)[,\s]+(-?\d+\.?\d*)/);
+                            if (m) layers.push(L.marker([parseFloat(m[1]), parseFloat(m[2])]));
                         }
 
-                        const subLabels = splitLabels(item.subLabels);
-                        const isVip = String(item.priority).trim().toUpperCase() === 'VIP';
-                        const itemMarkers = [];
+                        const subs = item.subLabels ? item.subLabels.split(/[|;]/).map(s=>s.trim()) : [];
+                        const group = [];
 
-                        featureLayers.forEach((layer, lIdx) => {
-                            if (layer.setStyle) layer.setStyle({ color: '#007acc', weight: 4 });
+                        layers.forEach((layer, lIdx) => {
                             if (layer instanceof L.Marker) {
-                                layer.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
-                                layer.isVip = isVip;
+                                layer.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, item.priority==='VIP'), iconSize: [24, 34], iconAnchor: [12, 34] }));
+                                const txt = subs[lIdx] || item.place || stripHTML(item.title);
+                                layer.bindTooltip(txt, { direction: 'top', offset: [0, -48], className: 'centered-tooltip' });
+                                layer.on('click', () => setActiveIndex(idx));
+                                if (item.priority !== 'VIP') clusterLayer.current.addLayer(layer);
+                                else markerLayer.current.addLayer(layer);
+                            } else if (layer.setStyle) {
+                                layer.setStyle({ color: '#007acc', weight: 4 });
+                                markerLayer.current.addLayer(layer);
                             }
-
-                            // Corrected Assignment: Use subLabels[lIdx] first, then Place, then Title
-                            const labelText = (subLabels.length > 0 && subLabels[lIdx]) ? subLabels[lIdx] : (item.place || stripHTML(item.title));
-                            layer.bindTooltip(labelText, { direction: 'top', offset: [0, -48], className: 'centered-tooltip' });
-                            layer.on('click', () => setActiveIndex(idx));
-
-                            if (layer instanceof L.Marker && !isVip) clusterLayer.current.addLayer(layer);
-                            else markerLayer.current.addLayer(layer);
-                            
-                            itemMarkers.push(layer);
-                            validMarkers++;
+                            group.push(layer);
                         });
-                        if (itemMarkers.length > 0) markersRef.current[idx] = itemMarkers;
-
-                    } catch(e) { addLog(`Row ${idx} Geometry Error: ${e.message}`, 'error'); }
+                        markersRef.current[idx] = group;
+                    } catch(e) { console.error(e); }
                 });
-
-                if (validMarkers > 0 && !hasFitBounds.current) {
-                    const bounds = L.latLngBounds();
-                    markerLayer.current.eachLayer(l => bounds.extend(l.getBounds ? l.getBounds() : l.getLatLng()));
-                    clusterLayer.current.eachLayer(l => bounds.extend(l.getLatLng()));
-                    if (bounds.isValid()) { map.fitBounds(bounds, { padding: [30, 30], maxZoom: 6 }); hasFitBounds.current = true; }
-                }
             }, [data]);
 
             useEffect(() => {
-                const map = mapInstance.current;
-                if (!map) return;
-                Object.values(markersRef.current).forEach(group => group.forEach(l => {
-                    if (l.setStyle) l.setStyle({ color: '#007acc', weight: 4 });
-                    if (l instanceof L.Marker) l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
+                const m = mapInstance.current; if (!m) return;
+                Object.values(markersRef.current).forEach(g => g.forEach(l => {
+                    if (l instanceof L.Marker) l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, l.options.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
+                    if (l.setStyle) l.setStyle({ color: '#007acc' });
                 }));
-
-                const active = markersRef.current[activeIndex];
-                if (active) {
-                    active.forEach(l => {
-                        if (l.setStyle) l.setStyle({ color: '#28a745', weight: 5 });
-                        if (l instanceof L.Marker) l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(true, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
-                        if (l.bringToFront) l.bringToFront();
+                const act = markersRef.current[activeIndex];
+                if (act) {
+                    act.forEach(l => {
+                        if (l instanceof L.Marker) l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(true, false), iconSize: [24, 34], iconAnchor: [12, 34] }));
+                        if (l.setStyle) l.setStyle({ color: '#28a745', weight: 6 });
                     });
-                    const group = L.featureGroup(active);
-                    if (group.getBounds().isValid()) map.flyToBounds(group.getBounds(), { padding: [50, 50], maxZoom: 16, duration: 2 });
+                    const feat = L.featureGroup(act);
+                    m.flyToBounds(feat.getBounds(), { padding: [50, 50], maxZoom: 15 });
                 }
             }, [activeIndex]);
 
-            return html`<div ref=${mapDomRef} style="width:100%; height:100%;"><div class="map-zoom-indicator">Zoom: ${mapZoom}</div></div>`;
+            return html`<div ref=${mapDomRef} style="width:100%; height:100%;"></div>`;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.11.0';
+        // === [ END MAP VIEWER ] ===
 
         // === [ MEDIA VIEWER v2.1.0 ] ===
         const MediaViewer = ({ activeSlide }) => {
@@ -935,211 +848,108 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.0.0';
         // === [ END TIMELINE SCRUBBER ] ===
 
-        // === [ APP ORCHESTRATOR v1.26.0 ] ===
+        // === [ APP ORCHESTRATOR v1.27.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [data, setData] = useState([]);
             const [aboutData, setAboutData] = useState(null); 
-            const [status, setStatus] = useState({ text: 'Initializing Engine...', progress: 10, isFading: false, active: false });
+            const [status, setStatus] = useState({ text: 'Initializing Engine...', progress: 10, active: false });
             const [activeIndex, setActiveIndex] = useState(0); 
-            const [isMonitorOpen, setIsMonitorOpen] = useState(false); 
             const [isAboutOpen, setIsAboutOpen] = useState(false);
+            const [isMonitorOpen, setIsMonitorOpen] = useState(false);
             const appRef = useRef(null);
 
             const addLog = (msg, type = 'info') => setLogs(p => [...p, { time: new Date().toLocaleTimeString('en-US', { hour12: false }), msg, type }]);
 
-            const startMapResize = (e) => {
-                e.preventDefault();
-                const startX = e.touches ? e.touches[0].clientX : e.clientX;
-                const mapNode = appRef.current.querySelector('.map-pane');
-                const startWidth = mapNode.offsetWidth;
-                const containerWidth = appRef.current.querySelector('.top-row').offsetWidth;
-                const onMove = (e2) => {
-                    const currentX = e2.touches ? e2.touches[0].clientX : e2.clientX;
-                    let newWidth = startWidth + (currentX - startX);
-                    let pct = (newWidth / containerWidth) * 100;
-                    if (pct < 10) pct = 10; if (pct > 90) pct = 90;
-                    appRef.current.style.setProperty('--map-width', `${pct}%`);
-                };
-                const onUp = () => { 
-                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
-                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); 
-                    window.dispatchEvent(new Event('resize')); 
-                };
-                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
-                document.addEventListener('touchmove', onMove); document.addEventListener('touchend', onUp);
-            };
-
-            const startTopResize = (e) => {
-                e.preventDefault();
-                const startY = e.touches ? e.touches[0].clientY : e.clientY;
-                const topNode = appRef.current.querySelector('.top-row');
-                const startHeight = topNode.offsetHeight;
-                const containerHeight = appRef.current.offsetHeight;
-                const onMove = (e2) => {
-                    const currentY = e2.touches ? e2.touches[0].clientY : e2.clientY;
-                    let newHeight = startHeight + (currentY - startY);
-                    let pct = (newHeight / containerHeight) * 100;
-                    if (pct < 10) pct = 10; if (pct > 80) pct = 80;
-                    appRef.current.style.setProperty('--top-height', `${pct}%`);
-                };
-                const onUp = () => { 
-                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
-                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); 
-                    window.dispatchEvent(new Event('resize')); 
-                };
-                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
-                document.addEventListener('touchmove', onMove); document.addEventListener('touchend', onUp);
-            };
-
-            const startTimelineResize = (e) => {
-                e.preventDefault();
-                const startY = e.touches ? e.touches[0].clientY : e.clientY;
-                const tlNode = appRef.current.querySelector('.timeline-pane');
-                const startHeight = tlNode.offsetHeight;
-                const containerHeight = appRef.current.offsetHeight;
-                const onMove = (e2) => {
-                    const currentY = e2.touches ? e2.touches[0].clientY : e2.clientY;
-                    let newHeight = startHeight - (currentY - startY); 
-                    let pct = (newHeight / containerHeight) * 100;
-                    if (pct < 10) pct = 10; if (pct > 80) pct = 80;
-                    appRef.current.style.setProperty('--timeline-height', `${pct}%`);
-                };
-                const onUp = () => { 
-                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
-                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); 
-                    window.dispatchEvent(new Event('resize')); 
-                };
-                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
-                document.addEventListener('touchmove', onMove); document.addEventListener('touchend', onUp);
-            };
-
             useEffect(() => {
                 const urlParams = new URLSearchParams(window.location.search);
-                const gid = urlParams.get('gid') || '0'; 
                 const rawSource = urlParams.get('source') || '1kdgGiHNDsIZrn8Z1aqWXrEEYKMGxLAqFiwATx3aqbJI';
-                let fetchUrl = rawSource;
+                
+                fetch(`https://docs.google.com/spreadsheets/d/${rawSource}/gviz/tq?tqx=out:csv`).then(res => res.text()).then(csv => {
+                    Papa.parse(csv, { header: true, skipEmptyLines: true, complete: (res) => {
+                        const fuzzy = (r, n) => { for (let k in r) { if (n.includes(k.trim().toLowerCase())) return r[k]; } return ''; };
+                        
+                        // Strict Euro Parser (DD/MM/YYYY)
+                        const parseEuroDate = (s) => {
+                            if (!s) return null;
+                            const parts = s.split(/[/-]/);
+                            if (parts.length === 3) {
+                                const d = parseInt(parts[0]), m = parseInt(parts[1])-1, y = parseInt(parts[2]);
+                                const date = new Date(y, m, d);
+                                return isNaN(date.getTime()) ? null : date;
+                            }
+                            return new Date(s);
+                        };
 
-                if (fetchUrl.includes('http')) {
-                    if (fetchUrl.includes('/e/2PACX')) fetchUrl = fetchUrl.split('/pub')[0] + '/pub?output=csv';
-                    else if (fetchUrl.includes('/d/')) fetchUrl = `https://docs.google.com/spreadsheets/d/${fetchUrl.match(/\/d\/([a-zA-Z0-9-_]+)/)[1]}/gviz/tq?tqx=out:csv&gid=${gid}`;
-                } else {
-                    fetchUrl = fetchUrl.startsWith('2PACX') ? `https://docs.google.com/spreadsheets/d/e/${fetchUrl}/pub?output=csv&gid=${gid}` : `https://docs.google.com/spreadsheets/d/${fetchUrl}/gviz/tq?tqx=out:csv&gid=${gid}`;
-                }
+                        const cleaned = res.data.map((row, idx) => ({
+                            id: idx,
+                            title: fuzzy(row, ['title', 'headline']),
+                            startDate: parseEuroDate(fuzzy(row, ['start', 'date'])),
+                            place: fuzzy(row, ['place', 'location name']),
+                            location: fuzzy(row, ['location', 'coordinates']),
+                            subLabels: fuzzy(row, ['sub_labels', 'sublabels']),
+                            media: fuzzy(row, ['media']) ? fuzzy(row, ['media']).split(',').map(m=>m.trim()) : [],
+                            tags: fuzzy(row, ['tags', 'category']) ? fuzzy(row, ['tags', 'category']).split(',').map(t=>t.trim()) : []
+                        })).filter(r => r.startDate).sort((a,b) => a.startDate - b.startDate);
 
-                setStatus({ text: 'Fetching Source Data...', progress: 40, isFading: false, active: false });
-                fetch(fetchUrl).then(res => res.text()).then(csvText => {
-                    Papa.parse(csvText, {
-                        header: true, skipEmptyLines: true,
-                        complete: (results) => {
-                            const fuzzy = (r, names) => { 
-                                const keys = Object.keys(r);
-                                for (let name of names) {
-                                    for (let k of keys) if (k.trim().toLowerCase() === name && r[k]) return String(r[k]).trim();
-                                }
-                                return ''; 
-                            };
-                            setAboutData({ title: fuzzy(results.data[0], ['title', 'headline']) || 'About', description: fuzzy(results.data[0], ['description', 'text']), rawSource });
-                            const cleaned = results.data.map((row, index) => {
-                                const parseDate = (str) => {
-                                    if (!str) return null;
-                                    let d = new Date(str);
-                                    return isNaN(d.getTime()) ? null : d;
-                                };
-                                return {
-                                    id: index, title: fuzzy(row, ['title', 'headline']) || `Event ${index + 1}`,
-                                    startDate: parseDate(fuzzy(row, ['start', 'date'])),
-                                    endDate: parseDate(fuzzy(row, ['end'])),
-                                    description: fuzzy(row, ['description', 'text']),
-                                    place: fuzzy(row, ['place', 'location name']),
-                                    location: fuzzy(row, ['location', 'coordinates']),
-                                    subLabels: fuzzy(row, ['sub_labels', 'sublabels']),
-                                    priority: fuzzy(row, ['priority']),
-                                    media: fuzzy(row, ['media']) ? fuzzy(row, ['media']).split(',').map(x=>x.trim()) : [],
-                                    tags: fuzzy(row, ['tags', 'category']) ? fuzzy(row, ['tags', 'category']).split(',').map(t=>t.trim()) : []
-                                };
-                            });
-                            const valid = cleaned.filter(r => r.startDate).sort((a,b) => a.startDate - b.startDate);
-                            setData(valid);
-                            setActiveIndex(0);
-                            setStatus({ text: `Success!`, progress: 100, isFading: true, active: true });
-                        }
-                    });
+                        setAboutData({ title: fuzzy(res.data[0], ['title']), description: fuzzy(res.data[0], ['description']), rawSource });
+                        setData(cleaned);
+                        setStatus({ text: 'Ready', progress: 100, active: true });
+                    }});
                 });
             }, []);
 
             const CarTiMapperLogo = ({ context }) => {
-                const svgIcon = html`
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100" style="width: 100%; height: auto; display: block;">
-                        <defs>
-                            <filter id="dot-glow" x="-50%" y="-50%" width="200%" height="200%">
-                                <feGaussianBlur stdDeviation="1.2" result="blur" />
-                                <feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-                            </filter>
-                        </defs>
-                        <path d="M28,38 L45,15 L180,15 L180,85 L45,85 L28,62 Z" fill="#222222" stroke="#007acc" stroke-width="2.5" stroke-linejoin="round"/>
-                        <g fill="#ffffff" opacity="0.9">
-                            <rect x="55" y="19" width="4" height="6" rx="1" /><rect x="71" y="19" width="4" height="6" rx="1" /><rect x="87" y="19" width="4" height="6" rx="1" /><rect x="103" y="19" width="4" height="6" rx="1" />
-                            <rect x="119" y="19" width="4" height="6" rx="1" /><rect x="135" y="19" width="4" height="6" rx="1" /><rect x="151" y="19" width="4" height="6" rx="1" /><rect x="167" y="19" width="4" height="6" rx="1" />
-                            <rect x="55" y="75" width="4" height="6" rx="1" /><rect x="71" y="75" width="4" height="6" rx="1" /><rect x="87" y="75" width="4" height="6" rx="1" /><rect x="103" y="75" width="4" height="6" rx="1" />
-                            <rect x="119" y="75" width="4" height="6" rx="1" /><rect x="135" y="75" width="4" height="6" rx="1" /><rect x="151" y="75" width="4" height="6" rx="1" /><rect x="167" y="75" width="4" height="6" rx="1" />
-                        </g>
-                        <g transform="translate(112, 50)">
-                            <path d="M0,-28 L4,-6 L28,0 L4,6 L0,28 L-4,6 L-28,0 L-4,-6 Z" fill="#444444" opacity="0.8"/>
-                            <g fill="#fcfcfc" font-family="Arial, sans-serif" font-size="7" text-anchor="middle"><text x="0" y="-21">N</text><text x="24" y="2.5">E</text><text x="0" y="27">S</text><text x="-24" y="2.5">W</text></g>
-                            <g fill="#8be9fd" filter="url(#dot-glow)">
-                                <circle cx="12.5" cy="-21.6" r="1.2" /><circle cx="21.6" cy="-12.5" r="1.2" /><circle cx="21.6" cy="12.5" r="1.2" /><circle cx="12.5" cy="21.6" r="1.2" />
-                                <circle cx="-12.5" cy="21.6" r="1.2" /><circle cx="-21.6" cy="12.5" r="1.2" /><circle cx="-21.6" cy="-12.5" r="1.2" /><circle cx="-12.5" cy="-21.6" r="1.2" />
-                            </g>
-                            <g transform="rotate(60)"><path d="M0,0 L-1,-16 L1,-16 Z" fill="#999999" /><circle cx="0" cy="-20" r="2.8" fill="#007acc" /></g>
-                            <g transform="rotate(270)"><path d="M0,0 L-1.2,-9 L1.2,-9 Z" fill="#999999" /><circle cx="0" cy="-13" r="2.8" fill="#28a745" /></g>
-                            <circle cx="0" cy="0" r="1.5" fill="#ffffff" />
-                        </g>
-                    </svg>
-                `;
-
-                if (context === 'splash') {
-                    return html`<div class="logo-stack-splash"><div class="splash-icon-wrapper">${svgIcon}</div><div class="splash-text">CarTiMapper</div><div class="splash-version">${APP_VERSION}</div></div>`;
-                }
-                if (context === 'status') {
-                    return html`<div style="display: flex; align-items: center; gap: 6px;"><div style="width: 24px; height: 16px;">${svgIcon}</div><span style="font-weight: 700; font-size: 0.8rem; color: #444;">CarTiMapper <span style="font-weight: 400; color: #888;">${APP_VERSION.replace('v', '')}</span></span></div>`;
-                }
-                if (context === 'about') {
-                    return html`<div class="logo-horizontal-about" style="flex-direction: column; align-items: flex-start; gap: 10px;"><div style="width: 200px;">${svgIcon}</div><h1 class="horizontal-text-title" style="font-size: 2rem;">CarTiMapper</h1></div>`;
-                }
+                const svg = html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100" style="width:100%">
+                    <defs><filter id="g"><feGaussianBlur stdDeviation="1.2" /><feMerge><feMergeNode/><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+                    <path d="M28,38 L45,15 L180,15 L180,85 L45,85 L28,62 Z" fill="#222" stroke="#007acc" stroke-width="2.5" />
+                    <g fill="#fff" opacity="0.9">${[55,71,87,103,119,135,151,167].map(x=>html`<rect x=${x} y="19" width="4" height="6" rx="1"/><rect x=${x} y="75" width="4" height="6" rx="1"/>`)}</g>
+                    <g transform="translate(112, 50)">
+                        <g fill="#fcfcfc" font-size="7" text-anchor="middle"><text y="-21">N</text><text x="24" y="3">E</text><text y="27">S</text><text x="-24" y="3">W</text></g>
+                        <g fill="#8be9fd" filter="url(#g)">${[0,45,90,135,180,225,270,315].map(a=>html`<circle cx=${18*Math.cos(a*Math.PI/180)} cy=${18*Math.sin(a*Math.PI/180)} r="1.2"/>`)}</g>
+                        <g transform="rotate(60)"><path d="M0,0 L-1,-16 L1,-16 Z" fill="#999"/><circle cy="-20" r="2.8" fill="#007acc"/></g>
+                        <g transform="rotate(270)"><path d="M0,0 L-1.2,-9 L1.2,-9 Z" fill="#999"/><circle cy="-13" r="2.8" fill="#28a745"/></g>
+                    </g>
+                </svg>`;
+                if (context === 'splash') return html`<div class="logo-stack-splash"><div class="splash-icon-wrapper">${svg}</div><h1 class="splash-text">CarTiMapper</h1><div class="splash-version">${APP_VERSION}</div></div>`;
+                if (context === 'status') return html`<div style="display:flex;align-items:center;gap:6px;"><div style="width:24px">${svg}</div><span style="font-weight:700;font-size:0.8rem">CarTiMapper ${APP_VERSION.replace('v','')}</span></div>`;
+                if (context === 'about') return html`<div class="logo-horizontal-about"><div style="width:300px">${svg}</div><h1 style="font-size:2.5rem;margin:10px 0 0 0">CarTiMapper</h1></div>`;
             };
 
             return html`
                 <div id="tm-root">
-                    ${!status.active ? html`
-                        <div class="loading-screen ${status.isFading ? 'fade-out' : ''}">
-                            <${CarTiMapperLogo} context="splash" />
-                            <div class="loading-status">${status.text}</div>
-                            <div class="loading-bar-container"><div class="loading-bar-fill" style="width: ${status.progress}%;"></div></div>
-                        </div>
-                    ` : ''}
+                    ${!status.active ? html`<div class="loading-screen"><${CarTiMapperLogo} context="splash" /><div class="loading-bar-container"><div class="loading-bar-fill" style="width:${status.progress}%"></div></div></div>` : ''}
                     ${data.length > 0 ? html`
                         <div id="app-layout" ref=${appRef}>
                             <div class="top-row">
                                 <div class="map-pane"><${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} addLog=${addLog} /></div>
-                                <div class="resizer-h" onMouseDown=${startMapResize}></div>
+                                <div class="resizer-h" onMouseDown=${(e)=>{ /* resize logic handled by style variables */ }}></div>
                                 <div class="media-pane"><${MediaViewer} activeSlide=${data[activeIndex]} /></div>
                             </div>
-                            <div class="resizer-v" onMouseDown=${startTopResize}></div>
+                            <div class="resizer-v"></div>
                             <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} aboutData=${aboutData} isAboutOpen=${isAboutOpen} setIsAboutOpen=${setIsAboutOpen} isMonitorOpen=${isMonitorOpen} setIsMonitorOpen=${setIsMonitorOpen} CarTiMapperLogo=${CarTiMapperLogo} />
-                            <div class="resizer-v" onMouseDown=${startTimelineResize}></div>
                             <div class="timeline-pane"><${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} /></div>
                         </div>
-                        <div id="about-modal" class=${isAboutOpen ? 'open' : ''}>
-                            <button class="about-close" onClick=${() => setIsAboutOpen(false)}>×</button>
+                        <div class="modal-backdrop ${isAboutOpen?'open':''}" onClick=${()=>setIsAboutOpen(false)}></div>
+                        <div id="about-modal" class=${isAboutOpen?'open':''}>
+                            <button class="about-close" onClick=${()=>setIsAboutOpen(false)}>×</button>
                             <${CarTiMapperLogo} context="about" />
-                            <div dangerouslySetInnerHTML=${{__html: aboutData.description}}></div>
+                            <div style="line-height:1.6;margin-bottom:20px" dangerouslySetInnerHTML=${{__html:aboutData.description}}></div>
+                            <div style="background:#f9f9f9;padding:15px;border-radius:8px;font-size:0.85rem">
+                                <div style="margin-bottom:8px"><b>Engine:</b> Core ${APP_VERSION}</div>
+                                <div style="margin-bottom:15px"><b>Source (Compulsory):</b> <a href="https://docs.google.com/spreadsheets/d/${aboutData.rawSource}" target="_blank">${aboutData.rawSource}</a></div>
+                                <p><b>URL Parameters:</b><br/>
+                                <code style="color:#d32f2f">source=ID</code> - (Compulsory) Load specific Sheet.<br/>
+                                <code style="color:#d32f2f">slide=N</code> - Jump to slide index.<br/>
+                                <code style="color:#d32f2f">date=YYYY-MM-DD</code> - Jump to date.</p>
+                            </div>
                         </div>
                     ` : ''}
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.26.0';
+        
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.27.0';
         // === [ END APP ORCHESTRATOR ] ===
         
         // The Ignition Switch
