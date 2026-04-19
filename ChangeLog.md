@@ -1,6 +1,13 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+## [v6.0.9] - April 2026
+### Code Engine (`index.html`)
+* **Architecture:** Bumped `APP_VERSION` to `v6.0.9`.
+* **Map Engine:** Diagnosed and fixed the catastrophic WKT inversion bug. The core `wicket.min.js` library was omitted from the `<head>` in `v6.0.0`, causing silent failures that forced the engine to rely on a primitive Regex fallback (which dutifully inverted OGC standard coordinates). Restoring the core library allows native, flawless WKT-to-Leaflet translation.
+* **Architecture (URL):** Fixed the "Sequence Initiated" boot freeze. The engine now defaults to the Master Database URL if `?source=` is omitted from the browser address bar.
+* **Diagnostics:** Refined `VibeMonitor` telemetry. If a WKT string fails to parse, the execution block now catches and explicitly logs the stack trace instead of silently reverting to standard Regex pins.
+
 ---
 
 ## [v6.0.8] - April 2026
