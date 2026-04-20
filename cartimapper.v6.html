@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CarTiMapper Core v6.0.16</title>
+    <title>CarTiMapper/title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 100'%3E%3Cdefs%3E%3Cfilter id='g' x='-50%25' y='-50%25' width='200%25' height='200%25'%3E%3CfeGaussianBlur stdDeviation='1.2' result='b'/%3E%3CfeMerge%3E%3CfeMergeNode in='b'/%3E%3CfeMergeNode in='b'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Cpath d='M28,38 L45,15 L180,15 L180,85 L45,85 L28,62 Z' fill='%23222' stroke='%23007acc' stroke-width='2.5' stroke-linejoin='round'/%3E%3Cg fill='%23fff' opacity='0.9'%3E%3Crect x='55' y='19' width='4' height='6' rx='1'/%3E%3Crect x='71' y='19' width='4' height='6' rx='1'/%3E%3Crect x='87' y='19' width='4' height='6' rx='1'/%3E%3Crect x='103' y='19' width='4' height='6' rx='1'/%3E%3Crect x='119' y='19' width='4' height='6' rx='1'/%3E%3Crect x='135' y='19' width='4' height='6' rx='1'/%3E%3Crect x='151' y='19' width='4' height='6' rx='1'/%3E%3Crect x='167' y='19' width='4' height='6' rx='1'/%3E%3Crect x='55' y='75' width='4' height='6' rx='1'/%3E%3Crect x='71' y='75' width='4' height='6' rx='1'/%3E%3Crect x='87' y='75' width='4' height='6' rx='1'/%3E%3Crect x='103' y='75' width='4' height='6' rx='1'/%3E%3Crect x='119' y='75' width='4' height='6' rx='1'/%3E%3Crect x='135' y='75' width='4' height='6' rx='1'/%3E%3Crect x='151' y='75' width='4' height='6' rx='1'/%3E%3Crect x='167' y='75' width='4' height='6' rx='1'/%3E%3C/g%3E%3Cg transform='translate(112, 50)'%3E%3Cpath d='M0,-28 L4,-6 L28,0 L4,6 L0,28 L-4,6 L-28,0 L-4,-6 Z' fill='%23444' opacity='0.8'/%3E%3Cg fill='%23fcfcfc' font-family='Arial,sans-serif' font-size='7'%3E%3Ctext x='0' y='-21' text-anchor='middle'%3EN%3C/text%3E%3Ctext x='24' y='2.5' text-anchor='middle'%3EE%3C/text%3E%3Ctext x='0' y='27' text-anchor='middle'%3ES%3C/text%3E%3Ctext x='-24' y='2.5' text-anchor='middle'%3EW%3C/text%3E%3C/g%3E%3Cg fill='%238be9fd' filter='url(%23g)'%3E%3Ccircle cx='12.5' cy='-21.6' r='1.2'/%3E%3Ccircle cx='21.6' cy='-12.5' r='1.2'/%3E%3Ccircle cx='21.6' cy='12.5' r='1.2'/%3E%3Ccircle cx='12.5' cy='21.6' r='1.2'/%3E%3Ccircle cx='-12.5' cy='21.6' r='1.2'/%3E%3Ccircle cx='-21.6' cy='12.5' r='1.2'/%3E%3Ccircle cx='-21.6' cy='-12.5' r='1.2'/%3E%3Ccircle cx='-12.5' cy='-21.6' r='1.2'/%3E%3C/g%3E%3Cg transform='rotate(60)'%3E%3Cpath d='M0,0 L-1,-16 L1,-16 Z' fill='%23999'/%3E%3Ccircle cx='0' cy='-20' r='2.8' fill='%23007acc'/%3E%3C/g%3E%3Cg transform='rotate(270)'%3E%3Cpath d='M0,0 L-1.2,-9 L1.2,-9 Z' fill='%23999'/%3E%3Ccircle cx='0' cy='-13' r='2.8' fill='%2328a745'/%3E%3C/g%3E%3Ccircle cx='0' cy='0' r='1.5' fill='%23fff'/%3E%3C/g%3E%3C/svg%3E">
 
@@ -141,7 +141,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.0.22';
+        const APP_VERSION = 'v6.0.23';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.5.0', Globals: 'v1.0.51' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -398,7 +398,7 @@
         MODULE_VERSIONS['MediaViewer'] = 'v2.1.0';
         // === [ END MAJOR BLOCK: MediaViewer v2.1.0 ] ===
 
-        // === [ MAJOR BLOCK: ContentSlider v3.8.0 ] ===
+        // === [ MAJOR BLOCK: ContentSlider v3.8.1 ] ===
         const ContentSlider = ({ data, activeIndex, setActiveIndex, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo }) => {
             const slide = data[activeIndex];
             if (!slide) return null;
@@ -407,7 +407,7 @@
             const formatSmartDate = (sD, eD) => {
                 if (!sD) return '';
                 
-                // [FIX: DATE-13] Dynamically render time if hours, minutes, or seconds exist
+                // [FIX: DATE-13] Conditionally render time if it is not exactly midnight
                 const hasTime = (d) => d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0;
                 
                 const fDate = (d) => {
@@ -426,7 +426,7 @@
             const goPrev = () => { if (activeIndex > 0) setActiveIndex(activeIndex - 1); };
             const goNext = () => { if (activeIndex < data.length - 1) setActiveIndex(activeIndex + 1); };
 
-            // [FIX: UI-SET-01] Added the Settings ⚙️ Button to the unified status bar
+            // [FIX: UI-SET-01] Injected the Settings ⚙️ Button
             return html`
                 <div class="content-pane-wrapper">
                     <div class="click-zone click-zone-left" onClick=${goPrev} title="Previous"></div>
@@ -466,7 +466,7 @@
             `;
         };
         MODULE_VERSIONS['ContentSlider'] = 'v3.8.0';
-        // === [ END MAJOR BLOCK: ContentSlider v3.8.0 ] ===
+        // === [ END MAJOR BLOCK: ContentSlider v3.8.1 ] ===
 
         // === [ MAJOR BLOCK: TimelineScrubber v23.2.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
@@ -649,12 +649,12 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.2.0';
         // === [ END MAJOR BLOCK: TimelineScrubber v23.2.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.30.0 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.30.1 ] ===
         const App = () => {
             // --- [ SubBlock: State Initializers ] ---
             const [logs, setLogs] = useState([]);
             
-            // [FIX: ARCH-01] Stage 1 Cache State
+            // [FIX: ARCH-01] Stage 1 Raw Cache State
             const [rawCsvRows, setRawCsvRows] = useState([]);
             const [data, setData] = useState([]);
             const [aboutData, setAboutData] = useState(null); 
@@ -666,7 +666,7 @@
             const [isMonitorOpen, setIsMonitorOpen] = useState(false); 
             const [isAboutOpen, setIsAboutOpen] = useState(false);
             
-            // [FIX: UI-SET-01] Settings State
+            // [FIX: UI-SET-01] Settings UI State
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
             const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
             
@@ -762,9 +762,9 @@
             };
             // --- [ End SubBlock: Layout Resizers ] ---
 
-            // --- [ SubBlock: Stage 1 - Network Ingestion ] ---
+            // --- [ SubBlock: Stage 1 - Network Fetching ] ---
             useEffect(() => {
-                const urlParams = new URLSearchParams(window.location.search);
+                const urlParams = newSearchParams(window.location.search);
                 const paramTheme = urlParams.get('theme');
                 
                 if (paramTheme === 'dark') {
@@ -795,7 +795,7 @@
                     if (!res.ok) throw new Error(`HTTP ${res.status}`);
                     return res.text();
                 }).then(csvText => {
-                    setStatus({ text: 'Downloading Matrix...', progress: 80, isFading: false, active: false });
+                    setStatus({ text: 'Parsing Timeline...', progress: 80, isFading: false, active: false });
                     
                     Papa.parse(csvText, {
                         header: true, skipEmptyLines: true,
@@ -818,16 +818,16 @@
                                 rawSource: rawSource === defaultDb ? 'Default Master DB' : rawSource
                             });
 
-                            // [FIX: ARCH-01] Commit the raw data to Stage 1 Cache. Do not parse yet.
+                            // Only set raw rows to cache, triggering Stage 2 dynamically
                             setRawCsvRows(results.data);
                         },
                         error: (err) => { addLog(`Parse Error: ${err.message}`, 'error'); setStatus({ text: `Parse Failed: ${err.message}`, progress: 0, isFading: false, active: false }); }
                     });
                 }).catch(err => { addLog(`Fetch failed: ${err.message}`, 'error'); setStatus({ text: `Connection Failed: ${err.message}`, progress: 0, isFading: false, active: false }); });
             }, []);
-            // --- [ End SubBlock: Stage 1 - Network Ingestion ] ---
+            // --- [ End SubBlock: Stage 1 - Network Fetching ] ---
 
-            // --- [ SubBlock: Stage 2 - Dynamic Compilation Engine ] ---
+            // --- [ SubBlock: Stage 2 - Dynamic Compilation ] ---
             useEffect(() => {
                 if (rawCsvRows.length === 0) return;
                 
@@ -842,20 +842,17 @@
                     const norm = {};
                     for (let k in row) norm[k.toLowerCase().trim()] = row[k];
 
-                    // [FIX: DATE-11 & 12] Isolate HH:mm:ss and Dynamically Route array bounds based on user format
+                    // [FIX: DATE-11 & 12] Time Preservation & Locale Routing
                     const dynamicDateParse = (str, format) => {
                         if (!str) return null;
                         
-                        // 1. Isolate the time payload via whitespace
                         const splitArr = str.trim().split(/\s+/);
                         const dStr = splitArr[0];
                         const tStr = splitArr.length > 1 ? splitArr.slice(1).join(' ') : "";
-                        
                         const dParts = dStr.split(/[/\-.]/);
+                        
                         if (dParts.length === 3) {
                             let d, m, y;
-                            
-                            // 2. Route the date matrix
                             if (format === 'DD/MM/YYYY') {
                                 d = parseInt(dParts[0], 10); m = parseInt(dParts[1], 10) - 1; y = parseInt(dParts[2], 10);
                             } else if (format === 'MM/DD/YYYY') {
@@ -864,7 +861,6 @@
                                 y = parseInt(dParts[0], 10); m = parseInt(dParts[1], 10) - 1; d = parseInt(dParts[2], 10);
                             }
 
-                            // 3. Preserve Time down to the second
                             let h = 0, min = 0, sec = 0;
                             if (tStr) {
                                 const tParts = tStr.split(':');
@@ -914,7 +910,6 @@
                 const finalData = [...valid, ...cleaned.filter(r => !r.startDate)];
                 setData(finalData);
 
-                // Run URL routing strictly ONCE during initial load to prevent slide-jumping during format toggling
                 if (!hasInitializedRef.current) {
                     const urlParams = new URLSearchParams(window.location.search);
                     const paramSlide = urlParams.get('slide');
@@ -943,7 +938,7 @@
                 setTimeout(() => { setStatus({ text: '', progress: 100, isFading: true, active: true }); }, 500);
 
             }, [rawCsvRows, dateFormat]); 
-            // --- [ End SubBlock: Stage 2 - Dynamic Compilation Engine ] ---
+            // --- [ End SubBlock: Stage 2 - Dynamic Compilation ] ---
 
             const activeSlide = data[activeIndex];
             const hasMedia = activeSlide?.media?.length > 0;
@@ -1054,8 +1049,8 @@
             `;
             // --- [ End SubBlock: Master Render ] ---
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.30.0';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.30.0 ] ===
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.30.1';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.30.1 ] ===
 
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
