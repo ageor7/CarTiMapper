@@ -75,6 +75,9 @@
 * **[REF: DATA-05] Direct Key Mapping:** Data is normalized via lowercase `norm` object mapping. Legacy `fuzzy()` logic is deprecated.
 * **[REF: DATA-06] Strict Euro-Date Logic:** `parseEuroDate` forces `DD/MM/YYYY` parsing to prevent US-browser inversion.
 * **[REF: MAP-08] Standard GeoJSON Conformity:** The `MapViewer` relies purely on Leaflet's native parser for GeoJSON objects. Custom coordinate inversion overrides are strictly prohibited to ensure parity with standard PostGIS/QGIS `[Lon, Lat]` exports.
+* **[REF: DATA-08] Strict Schema Contract (`exactGet`):** The engine operates on a locked spreadsheet schema. To prevent string collisions (e.g., fetching "Media" vs "Media Caption") and minimize memory overhead, data extraction relies on strict, case-normalized 1:1 key mapping (`exactGet`).
+* **[REF: DATA-09] Memory Pruning:** Extraneous spreadsheet columns not utilized by the engine (e.g., `Web Page`, `Source`, `Source URL`) are intentionally omitted from the data object mapping to minimize JSON payload size and optimize browser memory retention.
+* **[REF: DATA-10] Place/SubLabel Convergence:** The legacy `subLabels` metadata requirement for Map Hover Tooltips is mathematically bound to the `Place` column, enforcing single-source-of-truth location labeling.
 ---
 
 ## V. UI/UX Elements & Design Solutions
