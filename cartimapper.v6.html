@@ -864,91 +864,137 @@
             useEffect(() => {
                 const urlParams = new URLSearchParams(window.location.search);
                 const rawSource = urlParams.get('source') || '1kdgGiHNDsIZrn8Z1aqWXrEEYKMGxLAqFiwATx3aqbJI';
+                const gid = urlParams.get('gid') || '0';
                 
-                fetch(`https://docs.google.com/spreadsheets/d/${rawSource}/gviz/tq?tqx=out:csv`).then(res => res.text()).then(csv => {
-                    Papa.parse(csv, { header: true, skipEmptyLines: true, complete: (res) => {
-                        const fuzzy = (r, n) => { for (let k in r) { if (n.includes(k.trim().toLowerCase())) return r[k]; } return ''; };
-                        
-                        // Strict Euro Parser (DD/MM/YYYY)
-                        const parseEuroDate = (s) => {
-                            if (!s) return null;
-                            const parts = s.split(/[/-]/);
-                            if (parts.length === 3) {
-                                const d = parseInt(parts[0]), m = parseInt(parts[1])-1, y = parseInt(parts[2]);
-                                const date = new Date(y, m, d);
-                                return isNaN(date.getTime()) ? null : date;
-                            }
-                            return new Date(s);
-                        };
+                // Construct Google Sheets CSV Export URL
+                const fetchUrl = `https://docs.google.com/spreadsheets/d/${rawSource}/gviz/tq?tqx=out:csv&gid=${gid}`;
 
-                        const cleaned = res.data.map((row, idx) => ({
-                            id: idx,
-                            title: fuzzy(row, ['title', 'headline']),
-                            startDate: parseEuroDate(fuzzy(row, ['start', 'date'])),
-                            place: fuzzy(row, ['place', 'location name']),
-                            location: fuzzy(row, ['location', 'coordinates']),
-                            subLabels: fuzzy(row, ['sub_labels', 'sublabels']),
-                            media: fuzzy(row, ['media']) ? fuzzy(row, ['media']).split(',').map(m=>m.trim()) : [],
-                            tags: fuzzy(row, ['tags', 'category']) ? fuzzy(row, ['tags', 'category']).split(',').map(t=>t.trim()) : []
-                        })).filter(r => r.startDate).sort((a,b) => a.startDate - b.startDate);
+                fetch(fetchUrl).then(res => res.text()).then(csvText => {
+                    Papa.parse(csvText, {
+                        header: true, 
+                        skipEmptyLines: true,
+                        complete: (results) => {
+                            // [DATA-06] Normalization & Strict Euro Parsing
+                            const cleaned = results.data.map((row, idx) => {
+                                const norm = {};
+                                for (let key in row) { norm[key.toLowerCase().trim()] = row[key]; }
 
-                        setAboutData({ title: fuzzy(res.data[0], ['title']), description: fuzzy(res.data[0], ['description']), rawSource });
-                        setData(cleaned);
-                        setStatus({ text: 'Ready', progress: 100, active: true });
-                    }});
-                });
+                                const parseEuroDate = (s) => {
+                                    if (!s) return null;
+                                    const parts = s.split(/[/-]/);
+                                    if (parts.length === 3) {
+                                        const d = parseInt(parts[0]), m = parseInt(parts[1]) - 1, y = parseInt(parts[2]);
+                                        const date = new Date(y, m, d);
+                                        return isNaN(date.getTime()) ? null : date;
+                                    }
+                                    const d = new Date(s);
+                                    return isNaN(d.getTime()) ? null : d;
+                                };
+
+                                return {
+                                    id: idx,
+                                    title: norm['title'] || norm['headline'] || `Event ${idx + 1}`,
+                                    startDate: parseEuroDate(norm['start'] || norm['date']),
+                                    endDate: parseEuroDate(norm['end']),
+                                    description: norm['description'] || norm['text'] || "",
+                                    place: norm['place'] || norm['location name'] || "",
+                                    location: norm['location'] || norm['coordinates'] || "",
+                                    subLabels: norm['sub_labels'] || norm['sublabels'] || "",
+                                    media: norm['media'] ? String(norm['media']).split(',').map(m => m.trim()) : [],
+                                    tags: norm['tags'] ? String(norm['tags']).split(',').map(t => t.trim()) : []
+                                };
+                            }).filter(r => r.startDate).sort((a, b) => a.startDate - b.startDate);
+
+                            setAboutData({ 
+                                title: cleaned[0]?.title || 'CarTiMapper', 
+                                description: results.data[0]['description'] || results.data[0]['text'] || "No project description provided.",
+                                rawSource 
+                            });
+                            setData(cleaned);
+                            setStatus({ text: 'Ready', progress: 100, active: true });
+                        }
+                    });
+                }).catch(err => addLog(`Fetch Error: ${err.message}`, 'error'));
             }, []);
 
             const CarTiMapperLogo = ({ context }) => {
-                const svg = html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100" style="width:100%">
-                    <defs><filter id="g"><feGaussianBlur stdDeviation="1.2" /><feMerge><feMergeNode/><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
-                    <path d="M28,38 L45,15 L180,15 L180,85 L45,85 L28,62 Z" fill="#222" stroke="#007acc" stroke-width="2.5" />
-                    <g fill="#fff" opacity="0.9">${[55,71,87,103,119,135,151,167].map(x=>html`<rect x=${x} y="19" width="4" height="6" rx="1"/><rect x=${x} y="75" width="4" height="6" rx="1"/>`)}</g>
-                    <g transform="translate(112, 50)">
-                        <g fill="#fcfcfc" font-size="7" text-anchor="middle"><text y="-21">N</text><text x="24" y="3">E</text><text y="27">S</text><text x="-24" y="3">W</text></g>
-                        <g fill="#8be9fd" filter="url(#g)">${[0,45,90,135,180,225,270,315].map(a=>html`<circle cx=${18*Math.cos(a*Math.PI/180)} cy=${18*Math.sin(a*Math.PI/180)} r="1.2"/>`)}</g>
-                        <g transform="rotate(60)"><path d="M0,0 L-1,-16 L1,-16 Z" fill="#999"/><circle cy="-20" r="2.8" fill="#007acc"/></g>
-                        <g transform="rotate(270)"><path d="M0,0 L-1.2,-9 L1.2,-9 Z" fill="#999"/><circle cy="-13" r="2.8" fill="#28a745"/></g>
-                    </g>
-                </svg>`;
-                if (context === 'splash') return html`<div class="logo-stack-splash"><div class="splash-icon-wrapper">${svg}</div><h1 class="splash-text">CarTiMapper</h1><div class="splash-version">${APP_VERSION}</div></div>`;
-                if (context === 'status') return html`<div style="display:flex;align-items:center;gap:6px;"><div style="width:24px">${svg}</div><span style="font-weight:700;font-size:0.8rem">CarTiMapper ${APP_VERSION.replace('v','')}</span></div>`;
-                if (context === 'about') return html`<div class="logo-horizontal-about"><div style="width:300px">${svg}</div><h1 style="font-size:2.5rem;margin:10px 0 0 0">CarTiMapper</h1></div>`;
+                const svgIcon = html`
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100" style="width: 100%; height: auto; display: block;">
+                        <defs>
+                            <filter id="dot-glow" x="-50%" y="-50%" width="200%" height="200%">
+                                <feGaussianBlur stdDeviation="1.2" result="blur" />
+                                <feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                            </filter>
+                        </defs>
+                        <path d="M28,38 L45,15 L180,15 L180,85 L45,85 L28,62 Z" fill="#222" stroke="#007acc" stroke-width="2.5" stroke-linejoin="round"/>
+                        <g fill="#ffffff" opacity="0.9">
+                            ${[55, 71, 87, 103, 119, 135, 151, 167].map(x => html`
+                                <rect x=${x} y="19" width="4" height="6" rx="1" />
+                                <rect x=${x} y="75" width="4" height="6" rx="1" />
+                            `)}
+                        </g>
+                        <g transform="translate(112, 50)">
+                            <path d="M0,-28 L4,-6 L28,0 L4,6 L0,28 L-4,6 L-28,0 L-4,-6 Z" fill="#444" opacity="0.8"/>
+                            <g fill="#fcfcfc" font-family="Arial, sans-serif" font-size="7" text-anchor="middle">
+                                <text y="-21">N</text><text x="24" y="2.5">E</text><text y="27">S</text><text x="-24" y="2.5">W</text>
+                            </g>
+                            <g fill="#8be9fd" filter="url(#dot-glow)">
+                                ${[0, 45, 90, 135, 180, 225, 270, 315].map(a => html`
+                                    <circle cx=${18 * Math.cos(a * Math.PI / 180)} cy=${18 * Math.sin(a * Math.PI / 180)} r="1.2" />
+                                `)}
+                            </g>
+                            <g transform="rotate(60)"><path d="M0,0 L-1,-16 L1,-16 Z" fill="#999" /><circle cy="-20" r="2.8" fill="#007acc" /></g>
+                            <g transform="rotate(270)"><path d="M0,0 L-1.2,-9 L1.2,-9 Z" fill="#999" /><circle cy="-13" r="2.8" fill="#28a745" /></g>
+                            <circle r="1.5" fill="#fff" />
+                        </g>
+                    </svg>
+                `;
+
+                if (context === 'splash') return html`<div class="logo-stack-splash"><div class="splash-icon-wrapper">${svgIcon}</div><div class="splash-text">CarTiMapper</div><div class="splash-version">${APP_VERSION}</div></div>`;
+                if (context === 'status') return html`<div style="display: flex; align-items: center; gap: 6px;"><div style="width: 24px;">${svgIcon}</div><span style="font-weight: 700; font-size: 0.8rem; color: #444;">CarTiMapper ${APP_VERSION.replace('v','')}</span></div>`;
+                if (context === 'about') return html`<div class="logo-horizontal-about"><div style="width: 300px;">${svgIcon}</div><h1 style="font-size: 2.5rem; margin-top: 10px;">CarTiMapper</h1></div>`;
+                return svgIcon;
             };
 
             return html`
                 <div id="tm-root">
-                    ${!status.active ? html`<div class="loading-screen"><${CarTiMapperLogo} context="splash" /><div class="loading-bar-container"><div class="loading-bar-fill" style="width:${status.progress}%"></div></div></div>` : ''}
+                    ${!status.active ? html`
+                        <div class="loading-screen">
+                            <${CarTiMapperLogo} context="splash" />
+                            <div class="loading-bar-container"><div class="loading-bar-fill" style="width: ${status.progress}%"></div></div>
+                        </div>
+                    ` : ''}
+
                     ${data.length > 0 ? html`
                         <div id="app-layout" ref=${appRef}>
                             <div class="top-row">
                                 <div class="map-pane"><${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} addLog=${addLog} /></div>
-                                <div class="resizer-h" onMouseDown=${(e)=>{ /* resize logic handled by style variables */ }}></div>
+                                <div class="resizer-h"></div>
                                 <div class="media-pane"><${MediaViewer} activeSlide=${data[activeIndex]} /></div>
                             </div>
                             <div class="resizer-v"></div>
                             <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} aboutData=${aboutData} isAboutOpen=${isAboutOpen} setIsAboutOpen=${setIsAboutOpen} isMonitorOpen=${isMonitorOpen} setIsMonitorOpen=${setIsMonitorOpen} CarTiMapperLogo=${CarTiMapperLogo} />
                             <div class="timeline-pane"><${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} /></div>
                         </div>
-                        <div class="modal-backdrop ${isAboutOpen?'open':''}" onClick=${()=>setIsAboutOpen(false)}></div>
-                        <div id="about-modal" class=${isAboutOpen?'open':''}>
-                            <button class="about-close" onClick=${()=>setIsAboutOpen(false)}>×</button>
+
+                        <div class="modal-backdrop ${isAboutOpen ? 'open' : ''}" onClick=${() => setIsAboutOpen(false)}></div>
+                        <div id="about-modal" class=${isAboutOpen ? 'open' : ''}>
+                            <button class="about-close" onClick=${() => setIsAboutOpen(false)}>×</button>
                             <${CarTiMapperLogo} context="about" />
-                            <div style="line-height:1.6;margin-bottom:20px" dangerouslySetInnerHTML=${{__html:aboutData.description}}></div>
-                            <div style="background:#f9f9f9;padding:15px;border-radius:8px;font-size:0.85rem">
-                                <div style="margin-bottom:8px"><b>Engine:</b> Core ${APP_VERSION}</div>
-                                <div style="margin-bottom:15px"><b>Source (Compulsory):</b> <a href="https://docs.google.com/spreadsheets/d/${aboutData.rawSource}" target="_blank">${aboutData.rawSource}</a></div>
+                            <div style="line-height: 1.6; margin-bottom: 20px;" dangerouslySetInnerHTML=${{__html: aboutData.description}}></div>
+                            <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; font-size: 0.85rem;">
+                                <div style="margin-bottom: 8px;"><b>Engine:</b> Core ${APP_VERSION}</div>
+                                <div style="margin-bottom: 15px;"><b>Source (Compulsory):</b> <a href="https://docs.google.com/spreadsheets/d/${aboutData.rawSource}" target="_blank">${aboutData.rawSource}</a></div>
                                 <p><b>URL Parameters:</b><br/>
-                                <code style="color:#d32f2f">source=ID</code> - (Compulsory) Load specific Sheet.<br/>
-                                <code style="color:#d32f2f">slide=N</code> - Jump to slide index.<br/>
-                                <code style="color:#d32f2f">date=YYYY-MM-DD</code> - Jump to date.</p>
+                                <code style="color: #d32f2f;">source=ID</code> - (Compulsory) Spreadsheet ID.<br/>
+                                <code style="color: #d32f2f;">slide=N</code> - Start at slide index.<br/>
+                                <code style="color: #d32f2f;">date=YYYY-MM-DD</code> - Start at closest date.</p>
                             </div>
                         </div>
                     ` : ''}
                 </div>
             `;
         };
-        
         MODULE_VERSIONS['AppOrchestrator'] = 'v1.27.0';
         // === [ END APP ORCHESTRATOR ] ===
         
