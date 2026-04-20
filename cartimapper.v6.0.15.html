@@ -141,7 +141,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.0.16';
+        const APP_VERSION = 'v6.0.22';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.5.0', Globals: 'v1.0.51' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -398,16 +398,27 @@
         MODULE_VERSIONS['MediaViewer'] = 'v2.1.0';
         // === [ END MAJOR BLOCK: MediaViewer v2.1.0 ] ===
 
-        // === [ MAJOR BLOCK: ContentSlider v3.7.0 ] ===
-        const ContentSlider = ({ data, activeIndex, setActiveIndex, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, CarTiMapperLogo }) => {
+        // === [ MAJOR BLOCK: ContentSlider v3.8.0 ] ===
+        const ContentSlider = ({ data, activeIndex, setActiveIndex, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo }) => {
             const slide = data[activeIndex];
             if (!slide) return null;
 
             // --- [ SubBlock: Smart Date Formatter ] ---
             const formatSmartDate = (sD, eD) => {
                 if (!sD) return '';
-                // [FIX: DATE-02] Injected { weekday: 'short' } to restore Day of Week visibility.
-                const fDate = (d) => d.toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+                
+                // [FIX: DATE-13] Dynamically render time if hours, minutes, or seconds exist
+                const hasTime = (d) => d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0;
+                
+                const fDate = (d) => {
+                    const opts = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
+                    if (hasTime(d)) {
+                        opts.hour = '2-digit';
+                        opts.minute = '2-digit';
+                    }
+                    return d.toLocaleString('en-GB', opts);
+                };
+                
                 return `${fDate(sD)}${eD && sD.getTime() !== eD.getTime() ? ` - ${fDate(eD)}` : ''}`;
             };
             // --- [ End SubBlock: Smart Date Formatter ] ---
@@ -415,6 +426,7 @@
             const goPrev = () => { if (activeIndex > 0) setActiveIndex(activeIndex - 1); };
             const goNext = () => { if (activeIndex < data.length - 1) setActiveIndex(activeIndex + 1); };
 
+            // [FIX: UI-SET-01] Added the Settings ⚙️ Button to the unified status bar
             return html`
                 <div class="content-pane-wrapper">
                     <div class="click-zone click-zone-left" onClick=${goPrev} title="Previous"></div>
@@ -439,6 +451,7 @@
                     <div class="unified-status-bar">
                         <div class="status-left">
                             ${aboutData ? html`<button class="status-btn" style="padding: 4px 10px; display: flex; align-items: center;" onClick=${() => setIsAboutOpen(true)}><${CarTiMapperLogo} context="status" /></button>` : ''}
+                            <button class="status-btn" onClick=${() => setIsSettingsOpen(true)}>⚙️</button>
                             <button class="status-btn" onClick=${() => setIsMonitorOpen(!isMonitorOpen)}>Monitor</button>
                         </div>
                         <div class="status-center">
@@ -452,8 +465,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['ContentSlider'] = 'v3.7.0';
-        // === [ END MAJOR BLOCK: ContentSlider v3.7.0 ] ===
+        MODULE_VERSIONS['ContentSlider'] = 'v3.8.0';
+        // === [ END MAJOR BLOCK: ContentSlider v3.8.0 ] ===
 
         // === [ MAJOR BLOCK: TimelineScrubber v23.2.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
@@ -636,10 +649,13 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.2.0';
         // === [ END MAJOR BLOCK: TimelineScrubber v23.2.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.29.0 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.30.0 ] ===
         const App = () => {
             // --- [ SubBlock: State Initializers ] ---
             const [logs, setLogs] = useState([]);
+            
+            // [FIX: ARCH-01] Stage 1 Cache State
+            const [rawCsvRows, setRawCsvRows] = useState([]);
             const [data, setData] = useState([]);
             const [aboutData, setAboutData] = useState(null); 
             const [status, setStatus] = useState({ text: 'Initializing Engine...', progress: 10, isFading: false, active: false });
@@ -649,6 +665,12 @@
             
             const [isMonitorOpen, setIsMonitorOpen] = useState(false); 
             const [isAboutOpen, setIsAboutOpen] = useState(false);
+            
+            // [FIX: UI-SET-01] Settings State
+            const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+            const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
+            
+            const hasInitializedRef = useRef(false);
             const appRef = useRef(null);
 
             const addLog = (msg, type = 'info') => setLogs(p => [...p, { time: new Date().toLocaleTimeString('en-US', { hour12: false }), msg, type }]);
@@ -740,12 +762,10 @@
             };
             // --- [ End SubBlock: Layout Resizers ] ---
 
-            // --- [ SubBlock: Data Fetch & Parser ] ---
+            // --- [ SubBlock: Stage 1 - Network Ingestion ] ---
             useEffect(() => {
                 const urlParams = new URLSearchParams(window.location.search);
                 const paramTheme = urlParams.get('theme');
-                const paramSlide = urlParams.get('slide');
-                const paramDate = urlParams.get('date');
                 
                 if (paramTheme === 'dark') {
                     document.documentElement.style.setProperty('--bg', '#121212');
@@ -758,7 +778,6 @@
                 addLog(`CarTiMapper Engine Boot Sequence Initiated.`, 'info');
                 
                 const gid = urlParams.get('gid') || '0'; 
-                
                 const defaultDb = '1kdgGiHNDsIZrn8Z1aqWXrEEYKMGxLAqFiwATx3aqbJI';
                 const rawSource = urlParams.get('source') || defaultDb;
                 let fetchUrl = rawSource;
@@ -776,14 +795,13 @@
                     if (!res.ok) throw new Error(`HTTP ${res.status}`);
                     return res.text();
                 }).then(csvText => {
-                    setStatus({ text: 'Parsing Timeline...', progress: 80, isFading: false, active: false });
+                    setStatus({ text: 'Downloading Matrix...', progress: 80, isFading: false, active: false });
                     
                     Papa.parse(csvText, {
                         header: true, skipEmptyLines: true,
                         complete: (results) => {
                             if (results.data.length === 0) return setStatus({ text: 'Empty Dataset Error', progress: 0, isFading: false, active: false });
                             
-                            // [FIX: DATA-08] Strict exactGet prevents string collisions (e.g. 'media' vs 'media caption')
                             const exactGet = (normObj, key) => {
                                 const val = normObj[key];
                                 return val !== undefined && val !== null ? String(val).trim() : "";
@@ -800,81 +818,132 @@
                                 rawSource: rawSource === defaultDb ? 'Default Master DB' : rawSource
                             });
 
-                            const cleaned = results.data.map((row, index) => {
-                                const norm = {};
-                                for (let k in row) norm[k.toLowerCase().trim()] = row[k];
-
-                                const parseEuroDate = (str) => {
-                                    if (!str) return null;
-                                    const parts = str.split(/[/-]/);
-                                    if (parts.length === 3) {
-                                        const d = parseInt(parts[0], 10), m = parseInt(parts[1], 10) - 1, y = parseInt(parts[2], 10);
-                                        const date = new Date(y, m, d);
-                                        if (!isNaN(date.getTime())) return date;
-                                    }
-                                    let d2 = new Date(str); return isNaN(d2.getTime()) ? null : d2;
-                                };
-
-                                const rawTags = exactGet(norm, 'tags');
-                                const parsedTags = rawTags ? rawTags.split(',').map(t=>t.trim()).filter(t => t !== "") : [];
-
-                                const rawMedia = exactGet(norm, 'media');
-                                const parsedMedia = rawMedia ? rawMedia.split(',').map(x=>x.trim()).filter(x => x !== "") : [];
-                                
-                                const placeVal = exactGet(norm, 'place');
-
-                                // [FIX: DATA-09 & 10] Pruning unused arrays. Merging subLabels to place. Extracting Captions.
-                                return {
-                                    id: index, 
-                                    title: exactGet(norm, 'title') || `Event ${index + 1}`,
-                                    startDate: parseEuroDate(exactGet(norm, 'start')),
-                                    endDate: parseEuroDate(exactGet(norm, 'end')),
-                                    description: exactGet(norm, 'description'),
-                                    place: placeVal,
-                                    subLabels: placeVal, 
-                                    location: exactGet(norm, 'location'),
-                                    priority: exactGet(norm, 'priority'),
-                                    media: parsedMedia,
-                                    mediaCaption: exactGet(norm, 'media caption'),
-                                    mediaCredit: exactGet(norm, 'media credit'),
-                                    tags: parsedTags
-                                };
-                            });
-                            
-                            const valid = cleaned.filter(r => r.startDate).sort((a, b) => {
-                                const timeDiff = a.startDate.getTime() - b.startDate.getTime();
-                                return timeDiff !== 0 ? timeDiff : a.id - b.id;
-                            });
-
-                            const finalData = [...valid, ...cleaned.filter(r => !r.startDate)];
-                            setData(finalData);
-
-                            let initialIdx = 0;
-                            if (paramSlide && !isNaN(parseInt(paramSlide))) {
-                                initialIdx = Math.max(0, Math.min(finalData.length - 1, parseInt(paramSlide) - 1));
-                            } else if (paramDate) {
-                                const targetTime = new Date(paramDate).getTime();
-                                if (!isNaN(targetTime)) {
-                                    let minDiff = Infinity;
-                                    valid.forEach((d, i) => {
-                                        if (d.startDate) {
-                                            const diff = Math.abs(d.startDate.getTime() - targetTime);
-                                            if (diff < minDiff) { minDiff = diff; initialIdx = i; }
-                                        }
-                                    });
-                                }
-                            }
-                            setActiveIndex(initialIdx); 
-                            
-                            setStatus({ text: `Success! Loaded ${cleaned.length} records.`, progress: 100, isFading: true, active: false });
-                            setTimeout(() => { setStatus({ text: '', progress: 100, isFading: true, active: true }); }, 500);
-                            
+                            // [FIX: ARCH-01] Commit the raw data to Stage 1 Cache. Do not parse yet.
+                            setRawCsvRows(results.data);
                         },
                         error: (err) => { addLog(`Parse Error: ${err.message}`, 'error'); setStatus({ text: `Parse Failed: ${err.message}`, progress: 0, isFading: false, active: false }); }
                     });
                 }).catch(err => { addLog(`Fetch failed: ${err.message}`, 'error'); setStatus({ text: `Connection Failed: ${err.message}`, progress: 0, isFading: false, active: false }); });
             }, []);
-            // --- [ End SubBlock: Data Fetch & Parser ] ---
+            // --- [ End SubBlock: Stage 1 - Network Ingestion ] ---
+
+            // --- [ SubBlock: Stage 2 - Dynamic Compilation Engine ] ---
+            useEffect(() => {
+                if (rawCsvRows.length === 0) return;
+                
+                setStatus({ text: 'Compiling Timeline...', progress: 90, isFading: false, active: false });
+
+                const exactGet = (normObj, key) => {
+                    const val = normObj[key];
+                    return val !== undefined && val !== null ? String(val).trim() : "";
+                };
+
+                const cleaned = rawCsvRows.map((row, index) => {
+                    const norm = {};
+                    for (let k in row) norm[k.toLowerCase().trim()] = row[k];
+
+                    // [FIX: DATE-11 & 12] Isolate HH:mm:ss and Dynamically Route array bounds based on user format
+                    const dynamicDateParse = (str, format) => {
+                        if (!str) return null;
+                        
+                        // 1. Isolate the time payload via whitespace
+                        const splitArr = str.trim().split(/\s+/);
+                        const dStr = splitArr[0];
+                        const tStr = splitArr.length > 1 ? splitArr.slice(1).join(' ') : "";
+                        
+                        const dParts = dStr.split(/[/\-.]/);
+                        if (dParts.length === 3) {
+                            let d, m, y;
+                            
+                            // 2. Route the date matrix
+                            if (format === 'DD/MM/YYYY') {
+                                d = parseInt(dParts[0], 10); m = parseInt(dParts[1], 10) - 1; y = parseInt(dParts[2], 10);
+                            } else if (format === 'MM/DD/YYYY') {
+                                m = parseInt(dParts[0], 10) - 1; d = parseInt(dParts[1], 10); y = parseInt(dParts[2], 10);
+                            } else if (format === 'YYYY/MM/DD') {
+                                y = parseInt(dParts[0], 10); m = parseInt(dParts[1], 10) - 1; d = parseInt(dParts[2], 10);
+                            }
+
+                            // 3. Preserve Time down to the second
+                            let h = 0, min = 0, sec = 0;
+                            if (tStr) {
+                                const tParts = tStr.split(':');
+                                h = parseInt(tParts[0], 10) || 0;
+                                min = parseInt(tParts[1], 10) || 0;
+                                sec = parseInt(tParts[2], 10) || 0;
+                            }
+                            
+                            const finalDate = new Date(y, m, d, h, min, sec);
+                            if (!isNaN(finalDate.getTime())) return finalDate;
+                        }
+                        
+                        let fallback = new Date(str); 
+                        return isNaN(fallback.getTime()) ? null : fallback;
+                    };
+
+                    const rawTags = exactGet(norm, 'tags');
+                    const parsedTags = rawTags ? rawTags.split(',').map(t=>t.trim()).filter(t => t !== "") : [];
+
+                    const rawMedia = exactGet(norm, 'media');
+                    const parsedMedia = rawMedia ? rawMedia.split(',').map(x=>x.trim()).filter(x => x !== "") : [];
+                    
+                    const placeVal = exactGet(norm, 'place');
+
+                    return {
+                        id: index, 
+                        title: exactGet(norm, 'title') || `Event ${index + 1}`,
+                        startDate: dynamicDateParse(exactGet(norm, 'start'), dateFormat),
+                        endDate: dynamicDateParse(exactGet(norm, 'end'), dateFormat),
+                        description: exactGet(norm, 'description'),
+                        place: placeVal,
+                        subLabels: placeVal, 
+                        location: exactGet(norm, 'location'),
+                        priority: exactGet(norm, 'priority'),
+                        media: parsedMedia,
+                        mediaCaption: exactGet(norm, 'media caption'),
+                        mediaCredit: exactGet(norm, 'media credit'),
+                        tags: parsedTags
+                    };
+                });
+                
+                const valid = cleaned.filter(r => r.startDate).sort((a, b) => {
+                    const timeDiff = a.startDate.getTime() - b.startDate.getTime();
+                    return timeDiff !== 0 ? timeDiff : a.id - b.id;
+                });
+
+                const finalData = [...valid, ...cleaned.filter(r => !r.startDate)];
+                setData(finalData);
+
+                // Run URL routing strictly ONCE during initial load to prevent slide-jumping during format toggling
+                if (!hasInitializedRef.current) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const paramSlide = urlParams.get('slide');
+                    const paramDate = urlParams.get('date');
+                    let initialIdx = 0;
+
+                    if (paramSlide && !isNaN(parseInt(paramSlide))) {
+                        initialIdx = Math.max(0, Math.min(finalData.length - 1, parseInt(paramSlide) - 1));
+                    } else if (paramDate) {
+                        const targetTime = new Date(paramDate).getTime();
+                        if (!isNaN(targetTime)) {
+                            let minDiff = Infinity;
+                            valid.forEach((d, i) => {
+                                if (d.startDate) {
+                                    const diff = Math.abs(d.startDate.getTime() - targetTime);
+                                    if (diff < minDiff) { minDiff = diff; initialIdx = i; }
+                                }
+                            });
+                        }
+                    }
+                    setActiveIndex(initialIdx); 
+                    hasInitializedRef.current = true;
+                }
+                
+                setStatus({ text: `Success! Compiled ${cleaned.length} records.`, progress: 100, isFading: true, active: false });
+                setTimeout(() => { setStatus({ text: '', progress: 100, isFading: true, active: true }); }, 500);
+
+            }, [rawCsvRows, dateFormat]); 
+            // --- [ End SubBlock: Stage 2 - Dynamic Compilation Engine ] ---
 
             const activeSlide = data[activeIndex];
             const hasMedia = activeSlide?.media?.length > 0;
@@ -943,7 +1012,7 @@
 
                             <div class="resizer-v" onMouseDown=${startTopResize} onTouchStart=${startTopResize}></div>
                             
-                            <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} slideHistory=${slideHistory} goBack=${goBack} aboutData=${aboutData} isAboutOpen=${isAboutOpen} setIsAboutOpen=${setIsAboutOpen} isMonitorOpen=${isMonitorOpen} setIsMonitorOpen=${setIsMonitorOpen} CarTiMapperLogo=${CarTiMapperLogo} />
+                            <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} slideHistory=${slideHistory} goBack=${goBack} aboutData=${aboutData} isAboutOpen=${isAboutOpen} setIsAboutOpen=${setIsAboutOpen} isMonitorOpen=${isMonitorOpen} setIsMonitorOpen=${setIsMonitorOpen} isSettingsOpen=${isSettingsOpen} setIsSettingsOpen=${setIsSettingsOpen} CarTiMapperLogo=${CarTiMapperLogo} />
                             
                             <div class="resizer-v" onMouseDown=${startTimelineResize} onTouchStart=${startTimelineResize}></div>
 
@@ -961,13 +1030,32 @@
                             </div>
                             <div dangerouslySetInnerHTML=${{__html: aboutData.description}}></div>
                         </div>
+
+                        <div class="modal-backdrop ${isSettingsOpen ? 'open' : ''}" onClick=${() => setIsSettingsOpen(false)}></div>
+                        <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 450px; background: #fff; z-index: 9002; border-radius: 12px; padding: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); color: #222; display: ${isSettingsOpen ? 'block' : 'none'};">
+                            <button class="about-close" onClick=${() => setIsSettingsOpen(false)}>×</button>
+                            <h3 style="margin-top: 0; color: #333; font-size: 1.5rem; border-bottom: 1px solid #eee; padding-bottom: 10px;">Engine Settings</h3>
+                            
+                            <div style="margin-top: 20px;">
+                                <label style="display: block; font-weight: bold; margin-bottom: 8px; color: #555; font-size: 0.95rem;">Data Locale Format</label>
+                                <select style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; background: #fcfcfc; cursor: pointer; color: #333;" 
+                                        value=${dateFormat} 
+                                        onChange=${(e) => setDateFormat(e.target.value)}>
+                                    <option value="DD/MM/YYYY">European / Global (DD/MM/YYYY)</option>
+                                    <option value="MM/DD/YYYY">United States (MM/DD/YYYY)</option>
+                                    <option value="YYYY/MM/DD">Scientific / ISO (YYYY/MM/DD)</option>
+                                </select>
+                                <p style="font-size: 0.85rem; color: #666; margin-top: 12px; line-height: 1.5;">Select the exact format your spreadsheet uses. The Timeline Engine will instantly re-compile the dataset upon selection to prevent chronological corruption.</p>
+                            </div>
+                        </div>
+
                     ` : ''}
                 </div>
             `;
             // --- [ End SubBlock: Master Render ] ---
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.29.0';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.29.0 ] ===
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.30.0';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.30.0 ] ===
 
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
