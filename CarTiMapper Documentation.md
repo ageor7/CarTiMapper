@@ -74,6 +74,7 @@
 * **[REF: DATA-06] Strict Euro-Date Logic: The engine executes a manual split on date strings to prioritize Day/Month/Year formats, specifically mitigating the "Global Paradox" where browsers misinterpret European dates as US formats.
 * **[REF: DATA-05] Direct Key Mapping:** Data is normalized via lowercase `norm` object mapping. Legacy `fuzzy()` logic is deprecated.
 * **[REF: DATA-06] Strict Euro-Date Logic:** `parseEuroDate` forces `DD/MM/YYYY` parsing to prevent US-browser inversion.
+* **[REF: MAP-08] Standard GeoJSON Conformity:** The `MapViewer` relies purely on Leaflet's native parser for GeoJSON objects. Custom coordinate inversion overrides are strictly prohibited to ensure parity with standard PostGIS/QGIS `[Lon, Lat]` exports.
 ---
 
 ## V. UI/UX Elements & Design Solutions
