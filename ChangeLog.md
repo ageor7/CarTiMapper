@@ -1,13 +1,12 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
-Changelog: v6.0.17
-Documentation: Applied the [REF: DOC-02] taxonomy across the entire index.html file to establish the Master Baseline.
-Data Engine: Implemented EuroDate parsing and case-independent normalization.
-Map Geometry: Restored standard GeoJSON parsing and fixed Map Pin CSS decoupling.
-Navigation: Added passive "Back" history tracking and perfectly centered Status Bar Flexbox layouts.
-Branding: Mathematically cropped the SVG viewBox to perfectly center the logo and matched widths.
+Changelog / Commit Description: v6.0.17 Micro-Patch
+MapViewer (v3.12.0): [FIX: GEO-01] Resolved GeoJSON coordinate inversion by deleting the custom coordsToLatLng override. The engine now trusts Leaflet's native parser to accurately process standard [Lon, Lat] GeoJSON outputs.
 
+ContentSlider (v3.7.0): [FIX: DATE-02] Augmented the formatSmartDate logic to include the weekday: 'short' property, successfully restoring the Day of Week visibility across all narrative slides.
+
+TimelineScrubber (v23.1.0): [FIX: UI-TL-01] Restored the complete multi-lane visualizer logic that was structurally truncated in the previous baseline. Redesigned the Zoom Controls container using isolated absolute positioning to prevent flexbox containment breaks, resolving the UI misalignment.
 ---
 
 ## [v6.0.16] - Micro-Patch 1: Date Parsing
