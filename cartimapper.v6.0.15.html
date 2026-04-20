@@ -211,7 +211,7 @@
         };
         // === [ END MAJOR BLOCK: VibeMonitor v1.0.0 ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v3.11.0 ] ===
+        // === [ MAJOR BLOCK: MapViewer v3.12.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog }) => {
             const mapDomRef = useRef(null);
             const mapInstance = useRef(null);
@@ -276,10 +276,10 @@
                             wkt.read(locStr);
                             featureLayers = extractLayers(wkt.toObject());
                         } else if (locStr.startsWith('{') && locStr.includes('"type"')) {
-                            // Reversing standard GeoJSON to match Leaflet in 6.0.15
-                            featureLayers = extractLayers(L.geoJSON(JSON.parse(locStr), {
-                                coordsToLatLng: function (coords) { return new L.LatLng(coords[0], coords[1]); }
-                            }));
+                            // --- [ SubBlock: GeoJSON Parsing ] ---
+                            // [FIX: GEO-01] Removed coordsToLatLng override. Leaflet natively maps standard [Lon, Lat] arrays.
+                            featureLayers = extractLayers(L.geoJSON(JSON.parse(locStr)));
+                            // --- [ End SubBlock: GeoJSON Parsing ] ---
                         } else {
                             const coordMatch = locStr.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
                             if (coordMatch) {
@@ -369,8 +369,8 @@
 
             return html`<div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>`;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.11.0';
-        // === [ END MAJOR BLOCK: MapViewer v3.11.0 ] ===
+        MODULE_VERSIONS['MapViewer'] = 'v3.12.0';
+        // === [ END MAJOR BLOCK: MapViewer v3.12.0 ] ===
 
         // === [ MAJOR BLOCK: MediaViewer v2.1.0 ] ===
         const MediaViewer = ({ activeSlide }) => {
@@ -398,16 +398,19 @@
         MODULE_VERSIONS['MediaViewer'] = 'v2.1.0';
         // === [ END MAJOR BLOCK: MediaViewer v2.1.0 ] ===
 
-        // === [ MAJOR BLOCK: ContentSlider v3.6.0 ] ===
+        // === [ MAJOR BLOCK: ContentSlider v3.7.0 ] ===
         const ContentSlider = ({ data, activeIndex, setActiveIndex, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, CarTiMapperLogo }) => {
             const slide = data[activeIndex];
             if (!slide) return null;
 
+            // --- [ SubBlock: Smart Date Formatter ] ---
             const formatSmartDate = (sD, eD) => {
                 if (!sD) return '';
-                const fDate = (d) => d.toLocaleString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric' });
+                // [FIX: DATE-02] Injected { weekday: 'short' } to restore Day of Week visibility.
+                const fDate = (d) => d.toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
                 return `${fDate(sD)}${eD && sD.getTime() !== eD.getTime() ? ` - ${fDate(eD)}` : ''}`;
             };
+            // --- [ End SubBlock: Smart Date Formatter ] ---
 
             const goPrev = () => { if (activeIndex > 0) setActiveIndex(activeIndex - 1); };
             const goNext = () => { if (activeIndex < data.length - 1) setActiveIndex(activeIndex + 1); };
@@ -449,10 +452,10 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['ContentSlider'] = 'v3.6.0';
-        // === [ END MAJOR BLOCK: ContentSlider v3.6.0 ] ===
+        MODULE_VERSIONS['ContentSlider'] = 'v3.7.0';
+        // === [ END MAJOR BLOCK: ContentSlider v3.7.0 ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v23.0.0 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v23.1.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
             const tlDomRef = useRef(null);
             const [tags, setTags] = useState([]);
@@ -461,6 +464,7 @@
             const [startX, setStartX] = useState(0);
             const [scrollLeft, setScrollLeft] = useState(0);
 
+            // --- [ SubBlock: Timeline Physics & Navigation ] ---
             useEffect(() => {
                 if (data.length === 0) return;
                 const uniqueTags = new Set();
@@ -486,7 +490,6 @@
                 setStartX(e.pageX - tlDomRef.current.offsetLeft);
                 setScrollLeft(tlDomRef.current.scrollLeft);
             };
-
             const onMouseMove = (e) => {
                 if (!isDragging) return;
                 e.preventDefault();
@@ -494,7 +497,6 @@
                 const walk = (x - startX) * 2; 
                 tlDomRef.current.scrollLeft = scrollLeft - walk;
             };
-
             const onMouseUp = () => setIsDragging(false);
 
             useEffect(() => {
@@ -507,9 +509,11 @@
                     tlDomRef.current.scrollTo({ left: blockCenterPx - (containerWidth / 2), behavior: 'smooth' });
                 }
             }, [activeIndex, scale, data]);
+            // --- [ End SubBlock: Timeline Physics & Navigation ] ---
 
             if (data.length === 0 || tags.length === 0) return null;
 
+            // --- [ SubBlock: Lane & Axis Math ] ---
             const minDate = data.reduce((min, d) => d.startDate < min ? d.startDate : min, data[0].startDate).getTime();
             const maxDate = data.reduce((max, d) => d.endDate && d.endDate > max ? d.endDate : (d.startDate > max ? d.startDate : max), data[data.length-1].startDate).getTime();
             const timeSpan = Math.max(maxDate - minDate, 86400000); 
@@ -576,22 +580,22 @@
             const ticks = [];
             let tickTime = minDate - (minDate % tickConfig.ms);
             while (tickTime <= maxDate + tickConfig.ms) {
-                if (tickTime >= minDate) {
-                    ticks.push({ left: (tickTime - minDate) * PxPerMs + 100, label: tickConfig.fmt(new Date(tickTime)) });
-                }
+                if (tickTime >= minDate) ticks.push({ left: (tickTime - minDate) * PxPerMs + 100, label: tickConfig.fmt(new Date(tickTime)) });
                 tickTime += tickConfig.ms;
             }
+            // --- [ End SubBlock: Lane & Axis Math ] ---
 
+            // --- [ SubBlock: Timeline Rendering ] ---
+            // [FIX: UI-TL-01] Isolated Zoom Controls with explicit absolute positioning outside the scroll wrapper physics
             return html`
-                <div class="timeline-controls" style="position: absolute; right: 10px; top: 10px; z-index: 1000; display: flex; gap: 5px;">
-                    <button onClick=${() => setScale(s => s * 1.5)}>+</button>
-                    <button onClick=${() => setScale(1)}>O</button>
-                    <button onClick=${() => setScale(s => s / 1.5)}>-</button>
+                <div style="position: absolute; right: 20px; top: 10px; z-index: 1000; display: flex; gap: 5px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));">
+                    <button style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-weight: bold; color: #444;" onClick=${() => setScale(s => s * 1.5)}>+</button>
+                    <button style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-weight: bold; color: #444;" onClick=${() => setScale(1)}>O</button>
+                    <button style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-weight: bold; color: #444;" onClick=${() => setScale(s => s / 1.5)}>-</button>
                 </div>
                 
                 <div class="timeline-scroll-wrapper" ref=${tlDomRef} onMouseDown=${onMouseDown} onMouseLeave=${onMouseUp} onMouseUp=${onMouseUp} onMouseMove=${onMouseMove} style="--lane-h: ${laneHeight}px;">
                     <div class="timeline-track-container" style="width: ${totalWidth}px; height: ${totalHeight}px;">
-                        
                         ${finalLanes.map(lane => html`
                             <div class="tag-lane" style="top: ${lane.y}px; height: ${lane.height}px;">
                                 <div class="tag-lane-label">${lane.title}</div>
@@ -625,9 +629,10 @@
                     </div>
                 </div>
             `;
+            // --- [ End SubBlock: Timeline Rendering ] ---
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v23.0.0';
-        // === [ END MAJOR BLOCK: TimelineScrubber v23.0.0 ] ===
+        MODULE_VERSIONS['TimelineScrubber'] = 'v23.1.0';
+        // === [ END MAJOR BLOCK: TimelineScrubber v23.1.0 ] ===
 
         // === [ MAJOR BLOCK: AppOrchestrator v1.26.1 ] ===
         const App = () => {
