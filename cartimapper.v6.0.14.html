@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CarTiMapper Core</title>
+    
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 100'%3E%3Cdefs%3E%3Cfilter id='g' x='-50%25' y='-50%25' width='200%25' height='200%25'%3E%3CfeGaussianBlur stdDeviation='1.2' result='b'/%3E%3CfeMerge%3E%3CfeMergeNode in='b'/%3E%3CfeMergeNode in='b'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Cpath d='M28,38 L45,15 L180,15 L180,85 L45,85 L28,62 Z' fill='%23222' stroke='%23007acc' stroke-width='2.5' stroke-linejoin='round'/%3E%3Cg fill='%23fff' opacity='0.9'%3E%3Crect x='55' y='19' width='4' height='6' rx='1'/%3E%3Crect x='71' y='19' width='4' height='6' rx='1'/%3E%3Crect x='87' y='19' width='4' height='6' rx='1'/%3E%3Crect x='103' y='19' width='4' height='6' rx='1'/%3E%3Crect x='119' y='19' width='4' height='6' rx='1'/%3E%3Crect x='135' y='19' width='4' height='6' rx='1'/%3E%3Crect x='151' y='19' width='4' height='6' rx='1'/%3E%3Crect x='167' y='19' width='4' height='6' rx='1'/%3E%3Crect x='55' y='75' width='4' height='6' rx='1'/%3E%3Crect x='71' y='75' width='4' height='6' rx='1'/%3E%3Crect x='87' y='75' width='4' height='6' rx='1'/%3E%3Crect x='103' y='75' width='4' height='6' rx='1'/%3E%3Crect x='119' y='75' width='4' height='6' rx='1'/%3E%3Crect x='135' y='75' width='4' height='6' rx='1'/%3E%3Crect x='151' y='75' width='4' height='6' rx='1'/%3E%3Crect x='167' y='75' width='4' height='6' rx='1'/%3E%3C/g%3E%3Cg transform='translate(112, 50)'%3E%3Cpath d='M0,-28 L4,-6 L28,0 L4,6 L0,28 L-4,6 L-28,0 L-4,-6 Z' fill='%23444' opacity='0.8'/%3E%3Cg fill='%23fcfcfc' font-family='Arial,sans-serif' font-size='7'%3E%3Ctext x='0' y='-21' text-anchor='middle'%3EN%3C/text%3E%3Ctext x='24' y='2.5' text-anchor='middle'%3EE%3C/text%3E%3Ctext x='0' y='27' text-anchor='middle'%3ES%3C/text%3E%3Ctext x='-24' y='2.5' text-anchor='middle'%3EW%3C/text%3E%3C/g%3E%3Cg fill='%238be9fd' filter='url(%23g)'%3E%3Ccircle cx='12.5' cy='-21.6' r='1.2'/%3E%3Ccircle cx='21.6' cy='-12.5' r='1.2'/%3E%3Ccircle cx='21.6' cy='12.5' r='1.2'/%3E%3Ccircle cx='12.5' cy='21.6' r='1.2'/%3E%3Ccircle cx='-12.5' cy='21.6' r='1.2'/%3E%3Ccircle cx='-21.6' cy='12.5' r='1.2'/%3E%3Ccircle cx='-21.6' cy='-12.5' r='1.2'/%3E%3Ccircle cx='-12.5' cy='-21.6' r='1.2'/%3E%3C/g%3E%3Cg transform='rotate(60)'%3E%3Cpath d='M0,0 L-1,-16 L1,-16 Z' fill='%23999'/%3E%3Ccircle cx='0' cy='-20' r='2.8' fill='%23007acc'/%3E%3C/g%3E%3Cg transform='rotate(270)'%3E%3Cpath d='M0,0 L-1.2,-9 L1.2,-9 Z' fill='%23999'/%3E%3Ccircle cx='0' cy='-13' r='2.8' fill='%2328a745'/%3E%3C/g%3E%3Ccircle cx='0' cy='0' r='1.5' fill='%23fff'/%3E%3C/g%3E%3C/svg%3E">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wicket/1.3.8/wicket.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wicket/1.3.8/wicket-leaflet.min.js"></script>
+    <style>
+        /* === [ GLOBAL STYLES v4.5.0 ] === */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+        :root { --bg: #121212; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; --coral: #f36c56; }
+        body { margin: 0; font-family: 'Noto Sans', system-ui, sans-serif; font-weight: 400; overflow: hidden; background: var(--bg); color: var(--text); }
+        
+        .loading-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--paneBg); color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease; opacity: 1; }
+        .loading-screen.fade-out { opacity: 0; pointer-events: none; }
+        
+        /* [REF: UI-08] Splash Screen Vertical Layout */
+        .logo-stack-splash { display: flex; flex-direction: column; align-items: center; margin-bottom: 2rem; }
+        .splash-icon-wrapper { width: 240px; height: auto; margin-bottom: 25px; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.15)); }
+        .splash-text { font-size: 2.8rem; color: #333; font-weight: 700; letter-spacing: -1px; line-height: 1; margin: 0; }
+        .splash-version { font-size: 1rem; color: #888; font-family: monospace; font-weight: bold; margin-top: 5px; letter-spacing: 1px; }
+
+        .loading-status { font-size: 1.1rem; margin-bottom: 1.5rem; color: #666; font-weight: bold;}
+        .loading-bar-container { width: 250px; height: 4px; background: #ddd; border-radius: 2px; overflow: hidden; }
+        .loading-bar-fill { height: 100%; background: #007acc; transition: width 0.4s ease; }
+
+        #tm-root { position: fixed; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; display: flex; flex-direction: column; }
+        #app-layout { --top-height: 35%; --map-width: 50%; --timeline-height: 15%; display: flex; flex-direction: column; flex: 1; width: 100vw; height: 100%; }
+        
+        .top-row { flex: 0 0 var(--top-height); height: var(--top-height); max-height: var(--top-height); display: flex; background: #fff; overflow: hidden; min-height: 0; min-width: 0; }
+        .map-pane { width: var(--map-width); flex-shrink: 0; background: #e0e0e0; position: relative; min-height: 0; min-width: 0; }
+        .map-pane.no-media { width: 100% !important; }
+        
+        .resizer-v { height: 6px; background: #999; cursor: row-resize; flex-shrink: 0; z-index: 100; transition: background 0.2s; }
+        .resizer-v:hover, .resizer-v:active { background: #007acc; }
+        .resizer-h { width: 6px; background: #999; cursor: col-resize; flex-shrink: 0; z-index: 100; transition: background 0.2s; }
+        .resizer-h:hover, .resizer-h:active { background: #007acc; }
+
+        .media-pane { flex: 1; position: relative; padding: 0; overflow: hidden; background: #111; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+        .content-pane-wrapper { flex: 1 1 0%; position: relative; display: flex; flex-direction: column; background: var(--paneBg); overflow: hidden; min-height: 0; min-width: 0; }
+        .timeline-pane { flex: 0 0 var(--timeline-height); height: var(--timeline-height); max-height: var(--timeline-height); padding: 0; background: #ececec; display: flex; flex-direction: column; position: relative; overflow: hidden; min-width: 0; min-height: 0;}
+
+        #map-container { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; }
+        .leaflet-tooltip { white-space: normal !important; word-wrap: break-word !important; width: max-content !important; max-width: 300px !important; text-align: left !important; font-size: 0.85rem; font-weight: 400 !important; line-height: 1.4; padding: 6px 10px !important; text-wrap: balance !important; }
+
+        /* [REF: UI-12] Map Tooltip Anchor Fix: Removed double-negative margins. Leaflet's iconAnchor now natively centers the pin! */
+        .custom-map-pin { display: flex; align-items: flex-end; justify-content: center; width: 24px; height: 34px; }
+        .pin-head { width: 14px; height: 14px; border-radius: 50%; background: #d32f2f; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.4); position: absolute; top: 0; transition: all 0.2s ease; }
+        .pin-stem { width: 2px; height: 20px; background: #333; position: absolute; bottom: 0; }
+        .custom-map-pin.active .pin-head { background: #28a745; transform: scale(1.3); z-index: 1000; }
+        .custom-map-pin.active .pin-stem { background: #28a745; width: 3px; }
+
+        .media-carousel { flex: 1; display: flex; width: 100%; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scroll-behavior: smooth; }
+        .media-item { width: 100%; height: 100%; flex-shrink: 0; scroll-snap-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+        .media-content-wrapper { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .media-item img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .media-item iframe { width: 100%; height: 100%; border: none; }
+        .media-meta-box { width: 100%; background: #222; color: #eee; padding: 8px 15px; box-sizing: border-box; font-size: 0.8rem; border-top: 1px solid #444; }
+        .media-caption { font-style: italic; margin-bottom: 4px; }
+        .media-credit { color: #aaa; font-size: 0.7rem; }
+        .media-counter { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; pointer-events: none; }
+
+        .content-scroll-area { flex: 1; overflow-y: auto; padding: 2rem 4rem; display: flex; flex-direction: column; z-index: 5; }
+        .slide-container { width: 100%; max-width: 1000px; margin: 0 auto; flex: 1; box-sizing: border-box; }
+        
+        .logo-horizontal-about { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; padding-bottom: 15px; border-bottom: 1px solid #eee; }
+        .horizontal-icon-wrapper-about { width: 60px; height: auto; flex-shrink: 0; }
+        .horizontal-text-title { font-size: 1.8rem; font-weight: 700; color: #333; margin: 0; letter-spacing: -0.5px; line-height: 1.1; }
+        
+        .slide-header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.8rem; }
+        .slide-date { color: #007acc; font-size: 1.1rem; letter-spacing: 0.5px; font-weight: bold; }
+        
+        /* [REF: UI-13] Right-Aligned Metadata Structure */
+        .slide-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; max-width: 50%; }
+        
+        /* Unified Tag & Place Aesthetic */
+        .tag-badge, .slide-place-badge { background: #e0e0e0; color: #444; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; white-space: nowrap; border: 1px solid #ccc; font-weight: 400; }
+        .slide-place-badge { display: inline-flex; align-items: center; gap: 4px; }
+        .tags-container { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+        
+        .slide-title { margin: 0 0 1.5rem 0; font-size: 2.5rem; color: #111; line-height: 1.1; font-weight: 400; }
+        .slide-desc { line-height: 1.6; font-size: 1.15rem; color: #333; width: 100%; font-weight: 400; }
+        
+        .click-zone { position: absolute; top: 0; bottom: 40px; width: 15%; z-index: 10; cursor: pointer; }
+        .click-zone-left { left: 0; }
+        .click-zone-right { right: 0; }
+
+        .unified-status-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 40px; background: #fff; border-top: 1px solid #ddd; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; box-shadow: 0 -2px 5px rgba(0,0,0,0.02); z-index: 20; }
+        .status-left { display: flex; gap: 10px; flex: 1; justify-content: flex-start; align-items: center; }
+        .status-btn { background: #eee; color: #444; border: 1px solid #ccc; border-radius: 12px; padding: 4px 12px; cursor: pointer; font-size: 0.75rem; transition: all 0.2s; font-weight: 400; font-family: inherit; }
+        .status-btn:hover { background: #ddd; }
+        .status-btn.active { background: #007acc; color: white; border-color: #005f9e; }
+        
+        .status-center { display: flex; gap: 5px; flex: 1; justify-content: center; }
+        .nav-btn-bottom { background: #f8f8f8; color: #333; border: 1px solid #ccc; border-radius: 4px; padding: 4px 15px; cursor: pointer; font-size: 0.85rem; transition: background 0.2s; font-weight: 400; font-family: inherit; }
+        .nav-btn-bottom:hover:not(:disabled) { background: #e0e0e0; }
+        .nav-btn-bottom:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .status-right { font-size: 0.85rem; color: #666; flex: 1; display: flex; justify-content: flex-end; }
+
+        #about-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; max-width: 800px; max-height: 80vh; overflow-y: auto; background: #fff; z-index: 9999; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); padding: 2rem; display: none; border: 1px solid #ccc; color: #222; font-size: 1.1rem; }
+        #about-modal.open { display: block; }
+        .about-close { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5rem; cursor: pointer; font-family: inherit; }
+
+        .about-meta-footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #eee; font-size: 0.85rem; color: #666; background: #fdfdfd; padding: 1rem; border-radius: 6px;}
+        .about-meta-footer a { color: #007acc; text-decoration: none; word-break: break-all; }
+        .about-meta-footer a:hover { text-decoration: underline; }
+
+        .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-y: hidden; overflow-x: auto; position: relative; display: flex; align-items: flex-start; cursor: grab; touch-action: pan-x; -webkit-overflow-scrolling: touch; }
+        .timeline-scroll-wrapper.is-dragging { cursor: grabbing; }
+        .timeline-track-container { position: relative; height: 100%; }
+        
+        .tag-lane { border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; box-sizing: border-box; width: 100%; position: absolute; left: 0; right: 0; }
+        .tag-lane-label { position: sticky; left: 0; z-index: 100; padding: 0 10px; font-size: 0.75rem; color: #555; display: flex; align-items: center; white-space: nowrap; box-shadow: 2px 0 4px rgba(0,0,0,0.05); border-right: 1px solid #ccc; font-weight: 400; }
+        
+        .event-group { position: absolute; z-index: 10; transition: z-index 0.2s; display: flex; align-items: flex-start; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.15)); }
+        .event-group.active { z-index: 30; filter: drop-shadow(0 4px 6px rgba(0,122,204,0.4)); }
+        
+        .event-block { 
+            display: flex; flex-direction: column; align-items: flex-start; justify-content: center; text-align: left; font-size: 0.75rem; cursor: pointer; transition: filter 0.2s ease; box-sizing: border-box;
+            --diag-w: 10px; min-height: var(--lane-h); padding: 6px 12px 6px calc(var(--diag-w) + 8px); 
+            clip-path: polygon( 0 calc(50% - (var(--lane-h) / 2) + 0.5px), var(--diag-w) 0, 100% 0, 100% 100%, var(--diag-w) 100%, 0 calc(50% + (var(--lane-h) / 2) - 0.5px) );
+        }
+        .event-block:hover { filter: brightness(1.05); z-index: 40; }
+        .event-text { display: flex; flex-direction: column; line-height: 1.3; font-weight: 400; width: 100%; }
+        
+        .timeline-axis { position: absolute; bottom: 0; left: 0; right: 0; height: 28px; background: #e0e0e0; border-top: 2px solid #999; z-index: 5; }
+        .timeline-ruler-tick { position: absolute; bottom: 3px; display: flex; flex-direction: column; align-items: center; z-index: 5; transform: translateX(-50%); }
+
+        .timeline-controls { position: sticky; top: 10px; left: 10px; display: flex; gap: 5px; z-index: 50; width: fit-content; float: right; margin-right: 20px;}
+        .timeline-btn { background: #fff; border: 1px solid #ccc; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; color: #333; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-weight: 400; font-family: inherit;}
+        .timeline-btn:hover { background: #eee; }
+
+        #vibe-monitor { position: absolute; bottom: 10px; left: 10px; width: 400px; height: 300px; background: rgba(10, 10, 15, 0.95); border: 1px solid #444; border-radius: 8px; display: flex; flex-direction: column; z-index: 9999; color: #eee; box-shadow: 0 8px 32px rgba(0,0,0,0.9); resize: both; overflow: hidden; font-family: 'Courier New', monospace; }
+        #vibe-header { background: #222; padding: 8px; cursor: move; border-bottom: 1px solid #444; display: flex; justify-content: space-between; align-items: center; user-select: none; }
+        .vibe-close-btn { background: #ff5555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; padding: 2px 6px; font-family: inherit;}
+        #vibe-logs { flex: 1; overflow-y: auto; padding: 10px; font-size: 12px; line-height: 1.4; word-wrap: break-word; }
+        .log-info { color: #8be9fd; }
+        .log-success { color: #50fa7b; }
+        .log-warn { color: #ffb86c; }
+        .log-error { color: #ff5555; }
+        .log-time { color: #6272a4; margin-right: 5px; }
+
+        .custom-div-icon { background: transparent !important; border: none !important; }
+        .centered-tooltip { text-align: center; }
+        .map-zoom-indicator { position: absolute; bottom: 15px; left: 15px; z-index: 1000; background: rgba(255,255,255,0.85); padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; color: #333; pointer-events: none; border: 1px solid #ccc; }
+
+        .marker-cluster-small { background-color: rgba(255, 183, 77, 0.6) !important; }
+        .marker-cluster-small div { background-color: rgba(255, 152, 0, 0.9) !important; color: white !important; font-weight: bold; }
+        .marker-cluster-medium { background-color: rgba(240, 98, 146, 0.6) !important; }
+        .marker-cluster-medium div { background-color: rgba(233, 30, 99, 0.9) !important; color: white !important; font-weight: bold; }
+        .marker-cluster-large { background-color: rgba(149, 117, 205, 0.6) !important; }
+        .marker-cluster-large div { background-color: rgba(103, 58, 183, 0.9) !important; color: white !important; font-weight: bold; }
+        /* === [ END GLOBAL STYLES ] === */
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module">
+        // === [ GLOBAL VARIABLES & MANIFEST v1.0.49 ] ===
+        import { h, render, Component } from 'https://esm.sh/preact';
+        import { useState, useEffect, useRef } from 'https://esm.sh/preact/hooks';
+        import htm from 'https://esm.sh/htm';
+        import Papa from 'https://esm.sh/papaparse';
+
+        const html = htm.bind(h);
+        
+        const APP_VERSION = 'v6.0.14';
+        document.title = `CarTiMapper Core - ${APP_VERSION}`; 
+        const MODULE_VERSIONS = { Styles: 'v4.5.0', Globals: 'v1.0.49' }; 
+        const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
+        // === [ END GLOBAL VARIABLES ] ===
+        
+        // === [ UTILITIES ] ===
+        const stripHTML = (htmlStr) => {
+            if(!htmlStr) return "";
+            const tmp = document.createElement("DIV");
+            tmp.innerHTML = String(htmlStr);
+            return tmp.textContent || tmp.innerText || "";
+        };
+
+        const formatDateStr = (dateObj) => {
+            if (!dateObj || isNaN(dateObj.getTime())) return null;
+            if (dateObj.getHours() === 0 && dateObj.getMinutes() === 0 && dateObj.getDate() === 1 && dateObj.getMonth() === 0) return dateObj.getFullYear().toString();
+            const dd = dateObj.getDate().toString().padStart(2, '0');
+            const mm = (dateObj.getMonth() + 1).toString().padStart(2, '0'); 
+            const yyyy = dateObj.getFullYear();
+            const HH = dateObj.getHours().toString().padStart(2, '0');
+            const min = dateObj.getMinutes().toString().padStart(2, '0');
+            let timeStr = (HH === '00' && min === '00') ? '' : ` ${HH}:${min}`;
+            return `${dd}/${mm}/${yyyy}${timeStr}`;
+        };
+        MODULE_VERSIONS['Utils'] = 'v1.0.0';
+        // === [ END UTILITIES ] ===
+
+        // === [ ERROR BOUNDARY ] ===
+        class ErrorBoundary extends Component {
+            constructor() { super(); this.state = { error: null }; }
+            componentDidCatch(error) { this.setState({ error }); }
+            render() {
+                if (this.state.error) return html`<div style="padding: 2rem; background: #222; color: #ff5555; height: 100vh; overflow: auto; font-family: monospace;"><h1>⚠️ Fatal UI Crash Prevented</h1><pre>${this.state.error.stack}</pre></div>`;
+                return this.props.children;
+            }
+        }
+        MODULE_VERSIONS['ErrorBoundary'] = 'v1.0.0';
+        // === [ END ERROR BOUNDARY ] ===
+
+        // === [ VIBE MONITOR ] ===
+        const VibeMonitor = ({ logs, status, isOpen, setIsOpen }) => {
+            const logEndRef = useRef(null);
+            const dragRef = useRef({ isDragging: false, startX: 0, startY: 0 });
+
+            useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [logs]);
+
+            const onMouseDown = (e) => {
+                dragRef.current = { isDragging: true, startX: e.clientX, startY: e.clientY };
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            };
+            const onMouseMove = (e) => {
+                if (!dragRef.current.isDragging) return;
+                const monitor = document.getElementById('vibe-monitor');
+                if(!monitor) return;
+                const dx = e.clientX - dragRef.current.startX;
+                const dy = e.clientY - dragRef.current.startY;
+                const rect = monitor.getBoundingClientRect();
+                monitor.style.left = `${rect.left + dx}px`;
+                monitor.style.top = `${rect.top + dy}px`;
+                monitor.style.bottom = 'auto';
+                dragRef.current.startX = e.clientX;
+                dragRef.current.startY = e.clientY;
+            };
+            const onMouseUp = () => {
+                dragRef.current.isDragging = false;
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            };
+
+            if (!isOpen) return html`<button id="vibe-toggle" onClick=${() => setIsOpen(true)}>🟢 Monitor</button>`;
+
+            return html`
+                <div id="vibe-monitor">
+                    <div id="vibe-header" onMouseDown=${onMouseDown}>
+                        <span>🟢 Vibe-Monitor ${APP_VERSION}</span>
+                        <div><span style="color: #bd93f9; margin-right: 10px;">[${status}]</span><button class="vibe-close-btn" onClick=${() => setIsOpen(false)}>X</button></div>
+                    </div>
+                    <div id="vibe-logs">
+                        ${logs.map((l, i) => html`<div key=${i} class="log-${l.type}"><span class="log-time">[${l.time}]</span> ${l.msg}</div>`)}
+                        <div ref=${logEndRef}></div>
+                    </div>
+                </div>
+            `;
+        };
+        MODULE_VERSIONS['VibeMonitor'] = 'v1.0.0';
+        // === [ END VIBE MONITOR ] ===
+
+        // === [ MAP VIEWER v3.10.0 ] ===
+        const MapViewer = ({ data, activeIndex, setActiveIndex, addLog }) => {
+            const mapDomRef = useRef(null);
+            const mapInstance = useRef(null);
+            const [mapZoom, setMapZoom] = useState(2); 
+            
+            const markerLayer = useRef(null); 
+            const clusterLayer = useRef(null); 
+            const markersRef = useRef({}); 
+            const hasFitBounds = useRef(false);
+
+            const createPinHtml = (isActive, isVip) => {
+                const color = isActive ? '#28a745' : (isVip ? '#ffb300' : '#007acc');
+                const scale = isActive ? 'scale(1.3)' : 'scale(1)';
+                const z = isActive ? '1000' : '0';
+                return `<div class="custom-map-pin" style="transform: ${scale}; z-index: ${z};">
+                            <div class="pin-head" style="background: ${color};"></div>
+                            <div class="pin-stem" style="background: ${isActive ? '#28a745' : '#333'}; width: ${isActive ? '3px' : '2px'};"></div>
+                        </div>`;
+            };
+            
+            const createArrowIcon = (angle, isActive) => L.divIcon({
+                className: 'geo-arrow custom-div-icon',
+                html: `<div style="transform: rotate(${angle}deg); font-size: 16px; color: ${isActive ? '#28a745' : '#007acc'}; margin-top: -8px; margin-left: -8px; text-shadow: 0 0 2px #fff;">▲</div>`,
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            });
+
+            const flipLeafletGeometry = (layer) => {
+                if (layer.getLatLng) {
+                    const ll = layer.getLatLng();
+                    layer.setLatLng([ll.lng, ll.lat]);
+                } else if (layer.getLatLngs) {
+                    const flipArray = (arr) => {
+                        if (Array.isArray(arr)) {
+                            if (arr.length > 0 && arr[0] instanceof window.L.LatLng) {
+                                arr.forEach(ll => { const t = ll.lat; ll.lat = ll.lng; ll.lng = t; });
+                            } else {
+                                arr.forEach(flipArray);
+                            }
+                        }
+                    };
+                    const lls = layer.getLatLngs();
+                    flipArray(lls);
+                    layer.setLatLngs(lls);
+                }
+            };
+
+            // [REF: MAP-06] Deep Flattening for LayerGroups
+            const extractLayers = (layerObj) => {
+                let layers = [];
+                if (Array.isArray(layerObj)) {
+                    layerObj.forEach(l => layers = layers.concat(extractLayers(l)));
+                } else if (layerObj && layerObj.eachLayer) {
+                    layerObj.eachLayer(l => layers = layers.concat(extractLayers(l)));
+                } else if (layerObj) {
+                    layers.push(layerObj);
+                }
+                return layers;
+            };
+
+            // Smart Splitter for Sub-Labels
+            const splitLabels = (str) => {
+                if (!str) return [];
+                if (str.includes('|')) return str.split('|').map(s=>s.trim());
+                if (str.includes(';')) return str.split(';').map(s=>s.trim());
+                return [str.trim()];
+            };
+
+            useEffect(() => {
+                try {
+                    if (mapDomRef.current && !mapInstance.current && window.L) {
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const initialZoom = urlParams.get('mapzoom') ? parseInt(urlParams.get('mapzoom')) : 2;
+
+                        const map = L.map(mapDomRef.current, { zoomControl: false }).setView([20, 0], initialZoom);
+                        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM' }).addTo(map);
+                        L.control.zoom({ position: 'topright' }).addTo(map);
+                        
+                        setMapZoom(initialZoom);
+                        map.on('zoomend', () => setMapZoom(map.getZoom()));
+
+                        markerLayer.current = L.featureGroup().addTo(map);
+                        clusterLayer.current = L.markerClusterGroup({ maxClusterRadius: 40, spiderfyOnMaxZoom: true }).addTo(map);
+                        mapInstance.current = map;
+                        
+                        if (window.ResizeObserver) {
+                            const ro = new ResizeObserver(() => {
+                                setTimeout(() => { if (mapInstance.current) mapInstance.current.invalidateSize(); }, 50);
+                            });
+                            ro.observe(mapDomRef.current.parentElement);
+                        }
+                    }
+                } catch(e) { console.error("Map Boot Error:", e); }
+
+                return () => {
+                    if (mapInstance.current) {
+                        mapInstance.current.remove();
+                        mapInstance.current = null;
+                    }
+                };
+            }, []);
+
+            useEffect(() => {
+                const map = mapInstance.current;
+                if (!map || data.length === 0) return;
+
+                markerLayer.current.clearLayers();
+                clusterLayer.current.clearLayers();
+                markersRef.current = {};
+                let validMarkers = 0;
+
+                data.forEach((item, idx) => {
+                    const locStr = String(item.location || '').trim();
+                    if (!locStr) return;
+
+                    const activeLayersArray = []; 
+                    let featureLayers = [];
+
+                    try {
+                        if (locStr.match(/^[A-Z]+\s*\(/) || locStr.match(/^GEOMETRYCOLLECTION/)) {
+                            
+                            const wkt = new window.Wkt.Wkt();
+                            wkt.read(locStr);
+                            const wktObj = wkt.toObject();
+                            
+                            let rawLayers = extractLayers(wktObj);
+                            
+                            rawLayers.forEach(layer => {
+                                flipLeafletGeometry(layer);
+                                featureLayers.push(layer);
+                            });
+
+                        } 
+                        else if (locStr.startsWith('{') && locStr.includes('"type"')) {
+                            const geoLayer = L.geoJSON(JSON.parse(locStr));
+                            extractLayers(geoLayer).forEach(l => featureLayers.push(l));
+                        } 
+                        else {
+                            const coordMatch = locStr.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
+                            if (coordMatch) {
+                                const lat = parseFloat(coordMatch[1]);
+                                const lon = parseFloat(coordMatch[2]);
+                                if (!isNaN(lat) && !isNaN(lon)) featureLayers.push(L.marker([lat, lon]));
+                            }
+                        }
+
+                        const subLabels = splitLabels(item.subLabels);
+                        const fallbackLabels = splitLabels(item.title);
+                        const isVip = String(item.priority).trim().toUpperCase() === 'VIP';
+
+                        featureLayers.forEach((layer, layerIdx) => {
+                            if (layer.setStyle) layer.setStyle({ color: '#007acc', weight: 4 });
+                            
+                            if (layer instanceof L.Marker) {
+                                layer.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
+                                layer.originalPriority = item.priority; 
+                                layer.isVip = isVip;
+                            } 
+                            else if (layer instanceof L.Polyline && !(layer instanceof L.Polygon)) {
+                                try {
+                                    const latlngs = layer.getLatLngs();
+                                    let pts = Array.isArray(latlngs[0]) ? latlngs[latlngs.length - 1] : latlngs; 
+                                    if (pts && pts.length > 1) {
+                                        const p1 = pts[pts.length - 2];
+                                        const p2 = pts[pts.length - 1];
+                                        const dx = p2.lng - p1.lng;
+                                        const dy = p2.lat - p1.lat; 
+                                        const angle = 90 - (Math.atan2(dy, dx) * (180 / Math.PI));
+                                        
+                                        const arrow = L.marker(p2, { icon: createArrowIcon(angle, false) });
+                                        arrow.isArrow = true;
+                                        arrow.arrowAngle = angle;
+                                        
+                                        arrow.addTo(markerLayer.current);
+                                        activeLayersArray.push(arrow);
+                                    }
+                                } catch(e) {}
+                            }
+
+                            // [REF: MAP-04] Hierarchical Tooltip Assignment
+                            let labelText = '';
+                            if (subLabels[layerIdx]) labelText = subLabels[layerIdx];
+                            else if (item.place) labelText = stripHTML(item.place);
+                            else if (fallbackLabels[layerIdx]) labelText = stripHTML(fallbackLabels[layerIdx]);
+                            else labelText = stripHTML(item.title);
+                            
+                            layer.bindTooltip(labelText, { direction: 'top', offset: [0, -48], className: 'centered-tooltip' });
+                            layer.on('click', () => setActiveIndex(idx));
+
+                            if (layer instanceof L.Marker && !isVip && !layer.isArrow) {
+                                clusterLayer.current.addLayer(layer); 
+                            } else {
+                                markerLayer.current.addLayer(layer); 
+                            }
+
+                            activeLayersArray.push(layer);
+                            validMarkers++;
+                        });
+
+                        if (activeLayersArray.length > 0) {
+                            markersRef.current[idx] = activeLayersArray; 
+                        }
+
+                    } catch(e) {
+                        addLog(`[WKT FATAL ERROR] Row ${idx}: ${e.message}`, 'error');
+                    }
+                });
+
+                setTimeout(() => {
+                    try {
+                        if (mapInstance.current) {
+                            mapInstance.current.invalidateSize(); 
+                            if (validMarkers > 0 && !hasFitBounds.current && !new URLSearchParams(window.location.search).get('mapzoom')) {
+                                const bounds = L.latLngBounds();
+                                markerLayer.current.eachLayer(l => { if (l.getLatLng) bounds.extend(l.getLatLng()); else if (l.getBounds) bounds.extend(l.getBounds()); });
+                                clusterLayer.current.eachLayer(l => bounds.extend(l.getLatLng()));
+                                
+                                if (bounds.isValid()) {
+                                    mapInstance.current.fitBounds(bounds, { padding: [30, 30], maxZoom: 6 });
+                                    hasFitBounds.current = true;
+                                }
+                            }
+                        }
+                    } catch(err) { console.warn("Leaflet fitBounds aborted:", err); }
+                }, 150);
+
+            }, [data]);
+
+            useEffect(() => {
+                const map = mapInstance.current;
+                const markers = markersRef.current;
+                if (!map || Object.keys(markers).length === 0) return;
+
+                Object.values(markers).forEach(layerArray => {
+                    layerArray.forEach(l => {
+                        if (l.setStyle) l.setStyle({ color: '#007acc', weight: 4 });
+                        if (l instanceof L.Marker) {
+                            if (l.isArrow) l.setIcon(createArrowIcon(l.arrowAngle, false));
+                            else l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
+                            
+                            if (l.setZIndexOffset) l.setZIndexOffset(0);
+                            
+                            if (!l.isVip && !l.isArrow) {
+                                markerLayer.current.removeLayer(l);
+                                clusterLayer.current.addLayer(l);
+                            }
+                        }
+                    });
+                });
+
+                const activeLayers = markers[activeIndex];
+                if (activeLayers && activeLayers.length > 0) {
+                    const activeFeatureGroup = L.featureGroup(activeLayers);
+                    
+                    activeLayers.forEach(l => {
+                        if (l.setStyle) l.setStyle({ color: '#28a745', weight: 5 }); 
+                        if (l instanceof L.Marker) {
+                            
+                            if (!l.isVip && !l.isArrow) {
+                                clusterLayer.current.removeLayer(l);
+                                markerLayer.current.addLayer(l);
+                            }
+                            
+                            if (l.isArrow) l.setIcon(createArrowIcon(l.arrowAngle, true));
+                            else l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(true, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
+                            
+                            if (l.setZIndexOffset) l.setZIndexOffset(1000);
+                        } else if (l.bringToFront) {
+                            l.bringToFront();
+                        }
+                    });
+
+                    setTimeout(() => {
+                        try {
+                            const bounds = activeFeatureGroup.getBounds();
+                            if (bounds.isValid()) {
+                                const ne = bounds.getNorthEast();
+                                const sw = bounds.getSouthWest();
+                                const isSinglePoint = (ne.lat === sw.lat && ne.lng === sw.lng);
+                                const center = bounds.getCenter();
+                                let isCrowded = false;
+
+                                if (isSinglePoint) {
+                                    Object.entries(markers).forEach(([idx, layerArray]) => {
+                                        if (String(idx) === String(activeIndex)) return;
+                                        const otherBounds = L.featureGroup(layerArray).getBounds();
+                                        if (otherBounds.isValid()) {
+                                            const otherCenter = otherBounds.getCenter();
+                                            if (map.distance(center, otherCenter) <= 1000) isCrowded = true;
+                                        }
+                                    });
+                                }
+
+                                const flyOptions = { animate: true, duration: 2.5 };
+
+                                if (isSinglePoint && !isCrowded) {
+                                    map.flyTo(center, 12, flyOptions);
+                                } else if (isSinglePoint && isCrowded) {
+                                    map.flyTo(center, 16, flyOptions);
+                                } else {
+                                    map.flyToBounds(bounds, { ...flyOptions, maxZoom: 16 });
+                                }
+                            }
+                            activeLayers.forEach(l => { if (l.openTooltip) l.openTooltip(); });
+                        } catch(err) { console.warn("Leaflet flyTo aborted:", err); }
+                    }, 100);
+                }
+            }, [activeIndex, data]);
+
+            return html`
+                <div style="position: relative; width:100%; height:100%;">
+                    <div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>
+                    <div class="map-zoom-indicator">Zoom: ${mapZoom}</div>
+                </div>
+            `;
+        };
+        MODULE_VERSIONS['MapViewer'] = 'v3.10.0';
+        // === [ END MAP VIEWER ] ===
+
+        // === [ MEDIA VIEWER v2.1.0 ] ===
+        const MediaViewer = ({ activeSlide }) => {
+            if (!activeSlide || !activeSlide.media || activeSlide.media.length === 0) return null;
+            
+            const isYouTube = (url) => url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+            const isImage = (url) => url.match(/\.(jpeg|jpg|gif|png|webp)$/i) || url.includes('drive.google.com/uc');
+            const isIframe = (str) => str.trim().toLowerCase().startsWith('<iframe');
+            const isHttp = (str) => str.trim().toLowerCase().startsWith('http');
+
+            return html`
+                <div class="media-carousel">
+                    ${activeSlide.media.map((url, i) => {
+                        let content;
+                        const ytMatch = isYouTube(url);
+                        
+                        if (isIframe(url)) {
+                            content = html`<div style="width: 100%; height: 100%;" dangerouslySetInnerHTML=${{__html: url}}></div>`;
+                        } else if (ytMatch) {
+                            content = html`<iframe src="https://www.youtube.com/embed/${ytMatch[1]}" allowfullscreen></iframe>`;
+                        } else if (isImage(url)) {
+                            content = html`<img src="${url}" alt="Media" loading="lazy" />`;
+                        } else if (isHttp(url)) {
+                            content = html`
+                                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; text-align:center; padding: 2rem;">
+                                    <span style="color:#aaa; margin-bottom:1rem; font-family: 'Fira Sans', sans-serif;">External Link</span>
+                                    <a href="${url}" target="_blank" style="color:#8be9fd; font-size:1.2rem; word-break:break-all; font-family: 'Fira Sans', sans-serif;">${url}</a>
+                                </div>
+                            `;
+                        } else {
+                            content = html`<div style="color:#fff; padding:2rem;">Unsupported Media Format</div>`;
+                        }
+
+                        return html`
+                            <div class="media-item">
+                                <div class="media-content-wrapper">${content}</div>
+                                ${(activeSlide.mediaCaption || activeSlide.mediaCredit) ? html`
+                                    <div class="media-meta-box">
+                                        ${activeSlide.mediaCaption ? html`<div class="media-caption">${activeSlide.mediaCaption}</div>` : ''}
+                                        ${activeSlide.mediaCredit ? html`<div class="media-credit">📸 ${activeSlide.mediaCredit}</div>` : ''}
+                                    </div>
+                                ` : ''}
+                                ${activeSlide.media.length > 1 ? html`<div class="media-counter">${i + 1} / ${activeSlide.media.length}</div>` : ''}
+                            </div>
+                        `;
+                    })}
+                </div>
+            `;
+        };
+        // === [ END MEDIA VIEWER ] ===
+
+        // === [ CONTENT SLIDER v3.6.0 ] ===
+        const ContentSlider = ({ data, activeIndex, setActiveIndex, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, CarTiMapperLogo }) => {
+            const slide = data[activeIndex];
+            if (!slide) return null;
+
+            const formatSmartDate = (sD, eD) => {
+                if (!sD) return '';
+                const fDate = (d) => d.toLocaleString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric' });
+                const fTime = (d) => (d.getHours() === 0 && d.getMinutes() === 0) ? '' : d.toLocaleString('en-GB', {hour: '2-digit', minute:'2-digit'});
+                const fDay = (d) => d.toLocaleString('en-GB', {weekday: 'short'});
+
+                const sDateStr = fDate(sD);
+                const sTimeStr = fTime(sD);
+                const sDayStr = fDay(sD);
+
+                if (!eD || sD.getTime() === eD.getTime()) {
+                    return `${sDayStr} ${sDateStr} ${sTimeStr}`.trim();
+                }
+
+                const eDateStr = fDate(eD);
+                const eTimeStr = fTime(eD);
+                const eDayStr = fDay(eD);
+
+                if (sD.getFullYear() === eD.getFullYear() && sD.getMonth() === eD.getMonth() && sD.getDate() === eD.getDate()) {
+                    if (sTimeStr && eTimeStr && sTimeStr !== eTimeStr) {
+                        return `${sDayStr} ${sDateStr} ${sTimeStr} - ${eTimeStr}`.trim();
+                    }
+                    return `${sDayStr} ${sDateStr} ${sTimeStr}`.trim();
+                }
+
+                if (sD.getFullYear() === eD.getFullYear() && sD.getMonth() === eD.getMonth()) {
+                    const timePart = eTimeStr ? ` ${eTimeStr}` : '';
+                    return `${sDayStr} ${sD.getDate()} - ${eDayStr} ${eDateStr}${timePart}`.trim();
+                }
+
+                return `${sDayStr} ${sDateStr} ${sTimeStr} - ${eDayStr} ${eDateStr} ${eTimeStr}`.trim();
+            };
+
+            const goPrev = () => setActiveIndex(p => Math.max(0, p - 1));
+            const goNext = () => setActiveIndex(p => Math.min(data.length - 1, p + 1));
+
+            return html`
+                <div class="content-pane-wrapper">
+                    <div class="click-zone click-zone-left" onClick=${goPrev} title="Previous"></div>
+                    <div class="click-zone click-zone-right" onClick=${goNext} title="Next"></div>
+
+                    <div class="content-scroll-area">
+                        <div class="slide-container">
+                            
+                            <div class="slide-header-row">
+                                <div class="slide-date-container">
+                                    <div class="slide-date">${formatSmartDate(slide.startDate, slide.endDate)}</div>
+                                </div>
+                                
+                                <div class="slide-header-right">
+                                    <div class="tags-container">
+                                        ${slide.tags.map(t => html`<span class="tag-badge">${t}</span>`)}
+                                    </div>
+                                    ${slide.place ? html`<div class="slide-place-badge">📍 ${slide.place}</div>` : ''}
+                                </div>
+                            </div>
+                            
+                            <h2 class="slide-title" dangerouslySetInnerHTML=${{ __html: slide.title }}></h2>
+                            <div class="slide-desc" dangerouslySetInnerHTML=${{ __html: slide.description }}></div>
+                        </div>
+                    </div>
+
+                    <div class="unified-status-bar">
+                        <div class="status-left">
+                            ${aboutData ? html`
+                                <button class="status-btn ${isAboutOpen ? 'active' : ''}" style="padding: 4px 10px; display: flex; align-items: center;" onClick=${() => setIsAboutOpen(!isAboutOpen)}>
+                                    <${CarTiMapperLogo} context="status" />
+                                </button>
+                            ` : ''}
+                            <button class="status-btn ${isMonitorOpen ? 'active' : ''}" onClick=${() => setIsMonitorOpen(!isMonitorOpen)}>Monitor</button>
+                        </div>
+                        
+                        <div class="status-center">
+                            <button class="nav-btn-bottom" onClick=${goPrev} disabled=${activeIndex === 0}>◀ Prev</button>
+                            <button class="nav-btn-bottom" onClick=${goNext} disabled=${activeIndex === data.length - 1}>Next ▶</button>
+                        </div>
+                        
+                        <div class="status-right">
+                            ${activeIndex + 1} / ${data.length}
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+        MODULE_VERSIONS['ContentSlider'] = 'v3.6.0';
+        // === [ END CONTENT SLIDER ] ===
+
+        // === [ TIMELINE SCRUBBER v23.0.0 ] ===
+        const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
+            const wrapperRef = useRef(null);
+            const [zoomLevel, setZoomLevel] = useState(1);
+            const dragRef = useRef({ isDragging: false, startX: 0, scrollLeft: 0 });
+            const touchZoomRef = useRef({ initialDist: 0, initialZoom: 1 });
+            const isManualZoomRef = useRef(false);
+            const prevActiveIndexRef = useRef(-1);
+            const [containerHeight, setContainerHeight] = useState(200);
+
+            useEffect(() => {
+                const measure = () => { if (wrapperRef.current) setContainerHeight(wrapperRef.current.clientHeight); };
+                measure();
+                window.addEventListener('resize', measure);
+                return () => window.removeEventListener('resize', measure);
+            }, []);
+
+            const tagsMap = new Set();
+            const tagPairs = [];
+            data.forEach(d => {
+                if(!d.startDate || isNaN(d.startDate.getTime())) return;
+                const t = d.tags && d.tags.length > 0 ? d.tags : ['Untagged'];
+                t.forEach(tag => tagsMap.add(tag));
+                for(let i=0; i<t.length-1; i++) tagPairs.push([t[i], t[i+1]]);
+            });
+
+            let orderedTags = [];
+            const remaining = Array.from(tagsMap);
+            if (remaining.length > 0) orderedTags.push(remaining.shift());
+            
+            while(remaining.length > 0) {
+                let placed = false;
+                for (let i = 0; i < remaining.length; i++) {
+                    const r = remaining[i];
+                    const pairedWithFirst = tagPairs.some(p => (p[0]===r && p[1]===orderedTags[0]) || (p[1]===r && p[0]===orderedTags[0]));
+                    const pairedWithLast = tagPairs.some(p => (p[0]===r && p[1]===orderedTags[orderedTags.length-1]) || (p[1]===r && p[0]===orderedTags[orderedTags.length-1]));
+                    if (pairedWithLast) { orderedTags.push(r); remaining.splice(i, 1); placed = true; break; }
+                    if (pairedWithFirst) { orderedTags.unshift(r); remaining.splice(i, 1); placed = true; break; }
+                }
+                if (!placed) orderedTags.push(remaining.shift());
+            }
+
+            const availableLanesHeight = Math.max(containerHeight - 28, 50); 
+            const laneHeight = Math.max(24, availableLanesHeight / (orderedTags.length || 1));
+
+            const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
+            const minTimeRaw = validData.length > 0 ? validData[0].startDate.getTime() : new Date().getTime();
+            let maxTimeRaw = minTimeRaw;
+            validData.forEach(d => { if (d.endDate && !isNaN(d.endDate.getTime()) && d.endDate.getTime() > maxTimeRaw) maxTimeRaw = d.endDate.getTime(); else if (d.startDate.getTime() > maxTimeRaw) maxTimeRaw = d.startDate.getTime(); });
+            
+            const rawTimeRange = maxTimeRaw - minTimeRaw || 1;
+            const padMs = rawTimeRange * 0.05; 
+            const renderMinTime = minTimeRaw - padMs;
+            const renderMaxTime = maxTimeRaw + padMs;
+            const renderTimeRange = renderMaxTime - renderMinTime;
+
+            const measureTextWidth = (text) => {
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                context.font = '400 12px "Noto Sans", sans-serif'; 
+                return context.measureText(text).width;
+            };
+
+            const formatLabelSmart = (titleStr) => {
+                const maxPx = 300; 
+                const words = titleStr.split(' ');
+                
+                let targetLines = words.length > 1 ? (measureTextWidth(titleStr) > 280 ? 3 : 2) : 1;
+                if (targetLines === 1) return { lines: [titleStr], pxWidth: measureTextWidth(titleStr) + 35 };
+
+                let bestSplit = [];
+                let bestScore = Infinity;
+
+                if (targetLines === 2) {
+                    for (let i = 1; i < words.length; i++) {
+                        let l1 = words.slice(0, i).join(' '), l2 = words.slice(i).join(' ');
+                        let w1 = measureTextWidth(l1), w2 = measureTextWidth(l2);
+                        let score = Math.max(w1, w2) + Math.abs(w1 - w2) * 0.8; 
+                        if (score < bestScore) { bestScore = score; bestSplit = [l1, l2]; }
+                    }
+                } else {
+                    for (let i = 1; i < words.length - 1; i++) {
+                        for (let j = i + 1; j < words.length; j++) {
+                            let l1 = words.slice(0, i).join(' '), l2 = words.slice(i, j).join(' '), l3 = words.slice(j).join(' ');
+                            let w1 = measureTextWidth(l1), w2 = measureTextWidth(l2), w3 = measureTextWidth(l3);
+                            let maxW = Math.max(w1, w2, w3), minW = Math.min(w1, w2, w3);
+                            let score = maxW + (maxW - minW) * 0.8;
+                            if (score < bestScore) { bestScore = score; bestSplit = [l1, l2, l3]; }
+                        }
+                    }
+                }
+
+                let lines = bestSplit.length ? bestSplit : [titleStr];
+                
+                if (lines.length === 3) {
+                     let last = lines[2];
+                     if (measureTextWidth(last) > maxPx) {
+                         while(measureTextWidth(last + '...') > maxPx && last.length > 0) last = last.slice(0, -1);
+                         lines[2] = last.trim() + '...';
+                     }
+                } else if (lines.length === 2) {
+                     let last = lines[1];
+                     if (measureTextWidth(last) > maxPx * 1.3) { 
+                         while(measureTextWidth(last + '...') > maxPx * 1.3 && last.length > 0) last = last.slice(0, -1);
+                         lines[1] = last.trim() + '...';
+                     }
+                }
+
+                const finalMaxW = Math.max(...lines.map(l => measureTextWidth(l)));
+                return { lines, pxWidth: Math.max(60, finalMaxW + 35) };
+            };
+
+            useEffect(() => {
+                if (validData.length > 1 && wrapperRef.current && !dragRef.current.isDragging) {
+                    if (activeIndex !== prevActiveIndexRef.current) {
+                        prevActiveIndexRef.current = activeIndex;
+                        isManualZoomRef.current = false; 
+
+                        const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
+                        if (activeDataIndex >= 0 && !isManualZoomRef.current) {
+                            const item = validData[activeDataIndex];
+                            const sT = item.startDate.getTime();
+                            const eT = (item.endDate && !isNaN(item.endDate.getTime())) ? item.endDate.getTime() : sT;
+                            
+                            const activeTags = item.tags && item.tags.length > 0 ? item.tags : ['Untagged'];
+                            const { pxWidth } = formatLabelSmart(stripHTML(item.title));
+                            const containerW = wrapperRef.current.clientWidth || 1000;
+                            
+                            let minTimeGapSameLane = Infinity;
+                            let minTimeGapAnyLane = Infinity;
+                            
+                            validData.forEach((d, idx) => {
+                                if (idx === activeDataIndex) return;
+                                const dSt = d.startDate.getTime();
+                                const dEt = (d.endDate && !isNaN(d.endDate.getTime())) ? d.endDate.getTime() : dSt;
+                                
+                                let gap = Math.abs(dSt - sT);
+                                if (gap === 0) gap = Math.max(Math.abs(dEt - eT), 60000); 
+                                
+                                if (gap < minTimeGapAnyLane) minTimeGapAnyLane = gap;
+                                
+                                const dTags = d.tags && d.tags.length > 0 ? d.tags : ['Untagged'];
+                                if (dTags.some(t => activeTags.includes(t))) {
+                                    if (gap < minTimeGapSameLane) minTimeGapSameLane = gap;
+                                }
+                            });
+
+                            let collisionZoom = 1;
+                            if (minTimeGapSameLane !== Infinity) {
+                                const requiredTrackW = ((pxWidth + 20) * renderTimeRange) / minTimeGapSameLane;
+                                collisionZoom = requiredTrackW / containerW;
+                            }
+
+                            let contextZoom = 1;
+                            if (minTimeGapAnyLane !== Infinity) {
+                                const requiredTrackW = (150 * renderTimeRange) / minTimeGapAnyLane;
+                                contextZoom = requiredTrackW / containerW;
+                            }
+
+                            const idealZoom = Math.max(collisionZoom, contextZoom * 1.3); 
+                            setZoomLevel(prev => {
+                                const maxJump = prev * 0.5;
+                                if (idealZoom > prev + maxJump) return prev + maxJump;
+                                if (idealZoom < prev - maxJump) return Math.max(1, prev - maxJump);
+                                return Math.min(Math.max(1, idealZoom), 150);
+                            });
+                        }
+                    }
+                }
+            }, [activeIndex, data]); 
+
+            useEffect(() => {
+                const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
+                if (activeDataIndex >= 0 && wrapperRef.current && !dragRef.current.isDragging) {
+                    const item = validData[activeDataIndex];
+                    const sT = item.startDate.getTime();
+                    
+                    const { pxWidth } = formatLabelSmart(stripHTML(item.title));
+                    const containerW = wrapperRef.current.clientWidth || 1000;
+                    const targetTrackW = Math.max(containerW, containerW * zoomLevel);
+                    const sPct = (sT - renderMinTime) / renderTimeRange;
+                    
+                    const visualCenterPx = (sPct * targetTrackW) + (pxWidth / 2);
+                    const scrollPos = visualCenterPx - (containerW / 2);
+                    
+                    requestAnimationFrame(() => {
+                        setTimeout(() => {
+                            if (wrapperRef.current) {
+                                wrapperRef.current.scrollTo({ left: scrollPos, behavior: 'smooth' });
+                            }
+                        }, 50); 
+                    });
+                }
+            }, [activeIndex, zoomLevel, data]);
+
+            const onDown = (e) => { 
+                isManualZoomRef.current = true;
+                if (e.touches && e.touches.length === 2) {
+                    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                    touchZoomRef.current = { initialDist: dist, initialZoom: zoomLevel };
+                    return;
+                }
+                const x = e.touches ? e.touches[0].clientX : e.clientX;
+                dragRef.current = { isDragging: true, startX: x - wrapperRef.current.offsetLeft, scrollLeft: wrapperRef.current.scrollLeft }; 
+                wrapperRef.current.classList.add('is-dragging'); 
+            };
+            const onUp = () => { dragRef.current.isDragging = false; wrapperRef.current?.classList.remove('is-dragging'); };
+            const onMove = (e) => {
+                if (e.touches && e.touches.length === 2) {
+                    e.preventDefault(); 
+                    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                    const scale = dist / touchZoomRef.current.initialDist;
+                    setZoomLevel(Math.min(Math.max(touchZoomRef.current.initialZoom * scale, 0.5), 150));
+                    return;
+                }
+                if (!dragRef.current.isDragging) return;
+                const x = e.touches ? e.touches[0].clientX : e.clientX;
+                if (!e.touches) e.preventDefault(); 
+                wrapperRef.current.scrollLeft = dragRef.current.scrollLeft - ((x - wrapperRef.current.offsetLeft - dragRef.current.startX) * 2);
+            };
+
+            const doManualZoom = (direction) => {
+                isManualZoomRef.current = true;
+                setZoomLevel(p => direction === 'in' ? Math.min(p + 0.5, 150) : Math.max(p - 0.5, 0.5));
+            };
+
+            if (validData.length === 0) return html`<div style="padding:1rem;">No valid temporal data.</div>`;
+
+            const containerW = wrapperRef.current ? wrapperRef.current.clientWidth : 1000;
+            const trackWidthPx = Math.max(containerW, containerW * zoomLevel);
+            const visibleMs = renderTimeRange / zoomLevel;
+            const msPerPixel = renderTimeRange / trackWidthPx;
+            
+            const targetMsPerMajorTick = (200 / containerW) * visibleMs; 
+
+            const MINUTE = 60000; const HOUR = 60 * MINUTE; const DAY = 24 * HOUR; const MONTH = 30 * DAY; const YEAR = 365.25 * DAY;
+            const majorSteps = [ 100 * YEAR, 50 * YEAR, 10 * YEAR, YEAR, 6 * MONTH, MONTH, 7 * DAY, DAY, 12 * HOUR, 6 * HOUR, HOUR ];
+            
+            let majorStepMs = majorSteps[0];
+            for (let s of majorSteps) { if (targetMsPerMajorTick <= s) majorStepMs = s; }
+
+            let formatType = 'year'; let minorStepMs = MONTH;
+            if (majorStepMs <= YEAR) { formatType = 'month'; minorStepMs = DAY; }
+            if (majorStepMs <= MONTH) { formatType = 'day'; minorStepMs = 7 * DAY; } 
+            if (majorStepMs <= 7 * DAY) { formatType = 'day'; minorStepMs = DAY; }   
+            if (majorStepMs <= DAY) { formatType = 'time'; minorStepMs = 4 * HOUR; }
+            if (majorStepMs <= 12 * HOUR) { formatType = 'time'; minorStepMs = 2 * HOUR; }
+            if (majorStepMs <= 6 * HOUR) { formatType = 'time'; minorStepMs = HOUR; }
+
+            const rulerTicks = [];
+            const minDate = new Date(renderMinTime);
+            let startTickTime = renderMinTime;
+            
+            if (formatType === 'year') startTickTime = new Date(minDate.getFullYear(), 0, 1).getTime();
+            if (formatType === 'month') startTickTime = new Date(minDate.getFullYear(), minDate.getMonth(), 1).getTime();
+            if (formatType === 'day') startTickTime = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate()).getTime();
+            if (formatType === 'time') {
+                const hours = minDate.getHours();
+                const flooredHours = Math.floor(hours / (majorStepMs / HOUR)) * (majorStepMs / HOUR);
+                startTickTime = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate(), flooredHours, 0, 0).getTime();
+            }
+            
+            let iterTime = startTickTime;
+            let safety = 0;
+
+            while (iterTime <= renderMaxTime && safety < 1000) {
+                safety++;
+                if (iterTime >= renderMinTime) {
+                    const d = new Date(iterTime);
+                    let label = '';
+                    const pctLeft = ((iterTime - renderMinTime) / renderTimeRange) * 100;
+                    
+                    const isMidnight = (d.getHours() === 0 && d.getMinutes() === 0);
+                    const isFirstTick = iterTime === startTickTime;
+                    
+                    if (formatType === 'year') label = d.getFullYear();
+                    else if (formatType === 'month') label = d.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
+                    else if (formatType === 'day') label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                    else if (formatType === 'time') {
+                        if (isMidnight || isFirstTick) label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                        else label = d.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                    }
+
+                    rulerTicks.push(html`
+                        <div class="timeline-ruler-tick" style="left: ${pctLeft}%; position: absolute; bottom: 3px; display: flex; flex-direction: column; align-items: center; z-index: 5;">
+                            <div style="width: 2px; height: 10px; background: #666; margin-bottom: 2px;"></div>
+                            <div style="font-size: 0.75rem; color: #444; white-space: nowrap;">${label}</div>
+                        </div>
+                    `);
+
+                    let minorIter = iterTime + minorStepMs;
+                    let minorCount = 0;
+                    while (minorIter < iterTime + majorStepMs && minorCount < 30) {
+                        minorCount++;
+                        if ((minorStepMs / msPerPixel) > 15) { 
+                            const mPctLeft = ((minorIter - renderMinTime) / renderTimeRange) * 100;
+                            rulerTicks.push(html`<div style="position: absolute; left: ${mPctLeft}%; top: 0; width: 1px; height: 5px; background: #aaa; z-index: 4;"></div>`);
+                        }
+                        minorIter += minorStepMs;
+                    }
+                }
+                iterTime += majorStepMs; 
+            }
+
+            const markers = validData.map((item, index) => {
+                const globalIndex = data.findIndex(d => d.id === item.id);
+                
+                const startPct = Number((((item.startDate.getTime() - renderMinTime) / renderTimeRange) * 100).toFixed(4));
+                let endPct = startPct;
+                if (item.endDate && !isNaN(item.endDate.getTime()) && item.endDate.getTime() > item.startDate.getTime()) {
+                    endPct = Number((((item.endDate.getTime() - renderMinTime) / renderTimeRange) * 100).toFixed(4));
+                }
+                const hasDuration = (endPct - startPct) > 0.001;
+                
+                const isActive = globalIndex === activeIndex;
+                const activeTags = item.tags && item.tags.length > 0 ? item.tags : ['Untagged'];
+                const tagIndices = activeTags.map(t => orderedTags.indexOf(t));
+                const minIdx = Math.min(...tagIndices);
+                const maxIdx = Math.max(...tagIndices);
+                
+                const topPos = minIdx * laneHeight;
+                const blockHeight = (maxIdx - minIdx + 1) * laneHeight; 
+
+                let activeAnchor = '';
+                if (isActive) {
+                    const distanceToAxis = availableLanesHeight - topPos;
+                    
+                    if (hasDuration) {
+                        activeAnchor = html`
+                            <div style="position: absolute; left: 0; top: 50%; height: ${distanceToAxis - (blockHeight / 2)}px; width: 2px; background: #007acc; z-index: 999;"></div>
+                            <div style="position: absolute; top: ${distanceToAxis - 16}px; left: 0; width: 100%; min-width: 2px; height: 16px; background: rgba(0,122,204,0.3); clip-path: polygon(0 0, 100% 50%, 100% 100%, 0 100%); z-index: 998;"></div>
+                            <div style="position: absolute; top: ${distanceToAxis - 8}px; right: 0; width: 2px; height: 8px; background: #007acc; z-index: 999;"></div>
+                        `;
+                    } else {
+                        activeAnchor = html`
+                            <div style="position: absolute; left: 0; top: 50%; height: ${distanceToAxis - (blockHeight / 2)}px; width: 2px; background: #007acc; z-index: 999;"></div>
+                            <div style="position: absolute; top: ${distanceToAxis - 4}px; left: -3px; width: 8px; height: 8px; border-radius: 50%; background: #007acc; border: 1px solid #fff; z-index: 998;"></div>
+                        `;
+                    }
+                }
+
+                const { lines, pxWidth } = formatLabelSmart(stripHTML(item.title));
+                const groupWidth = hasDuration ? `width: ${endPct - startPct}%; min-width: 4px;` : `width: ${pxWidth}px;`;
+
+                return html`
+                    <div id="timeline-marker-${globalIndex}" class="event-group ${isActive ? 'active' : ''}" style="left: ${startPct}%; top: ${topPos}px; height: ${blockHeight}px; ${groupWidth}" onClick=${() => setActiveIndex(globalIndex)}>
+                        ${activeAnchor}
+                        <div class="event-block" style="position: absolute; top: 50%; transform: translateY(-50%); left: 0; --lane-h: ${laneHeight}px; background: ${isActive ? '#007acc' : '#f4f4f5'}; color: ${isActive ? '#fff' : '#444'}; z-index: 5; width: ${pxWidth}px;">
+                            <div class="event-text">
+                                ${lines.map(l => html`<div style="white-space: nowrap; overflow: hidden; width: 100%;">${l}</div>`)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            return html`
+                <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;">
+                    <div class="timeline-controls">
+                        <button class="timeline-btn" onClick=${() => doManualZoom('out')}>-</button>
+                        <div style="background: rgba(255,255,255,0.9); padding: 0 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.75rem; display: flex; align-items: center; font-weight: bold; color: #555; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                            ${zoomLevel.toFixed(1)}x
+                        </div>
+                        <button class="timeline-btn" onClick=${() => doManualZoom('in')}>+</button>
+                    </div>
+                    <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${(e) => { e.preventDefault(); doManualZoom(e.deltaY < 0 ? 'in' : 'out'); }}>
+                        <div class="timeline-track-container" style="width: ${trackWidthPx}px; flex-shrink: 0; min-width: 100%; height: 100%;">
+                            
+                            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 28px; pointer-events: none; z-index: 0;">
+                                ${orderedTags.map((tag, i) => html`
+                                    <div class="tag-lane" style="top: ${i * laneHeight}px; height: ${laneHeight}px; background: ${i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent'};">
+                                        <div class="tag-lane-label" style="background: ${i % 2 === 0 ? '#f4f4f4' : '#fcfcfc'}; pointer-events: auto;">${tag}</div>
+                                    </div>
+                                `)}
+                            </div>
+
+                            <div class="timeline-axis">
+                                ${rulerTicks}
+                            </div>
+                            
+                            ${markers}
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+        MODULE_VERSIONS['TimelineScrubber'] = 'v23.0.0';
+        // === [ END TIMELINE SCRUBBER ] ===
+
+        // === [ APP ORCHESTRATOR v1.26.0 ] ===
+        const App = () => {
+            const [logs, setLogs] = useState([]);
+            const [data, setData] = useState([]);
+            const [aboutData, setAboutData] = useState(null); 
+            const [status, setStatus] = useState({ text: 'Initializing Engine...', progress: 10, isFading: false, active: false });
+            const [activeIndex, setActiveIndex] = useState(0); 
+            const [isMonitorOpen, setIsMonitorOpen] = useState(false); 
+            const [isAboutOpen, setIsAboutOpen] = useState(false);
+            const appRef = useRef(null);
+
+            const addLog = (msg, type = 'info') => setLogs(p => [...p, { time: new Date().toLocaleTimeString('en-US', { hour12: false }), msg, type }]);
+
+            const startMapResize = (e) => {
+                e.preventDefault();
+                const startX = e.touches ? e.touches[0].clientX : e.clientX;
+                const mapNode = appRef.current.querySelector('.map-pane');
+                const startWidth = mapNode.offsetWidth;
+                const containerWidth = appRef.current.querySelector('.top-row').offsetWidth;
+                
+                const onMove = (e2) => {
+                    const currentX = e2.touches ? e2.touches[0].clientX : e2.clientX;
+                    let newWidth = startWidth + (currentX - startX);
+                    let pct = (newWidth / containerWidth) * 100;
+                    if (pct < 10) pct = 10; if (pct > 90) pct = 90;
+                    appRef.current.style.setProperty('--map-width', `${pct}%`);
+                };
+                const onUp = () => { 
+                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
+                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); 
+                    window.dispatchEvent(new Event('resize')); 
+                };
+                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+                document.addEventListener('touchmove', onMove); document.addEventListener('touchend', onUp);
+            };
+
+            const startTopResize = (e) => {
+                e.preventDefault();
+                const startY = e.touches ? e.touches[0].clientY : e.clientY;
+                const topNode = appRef.current.querySelector('.top-row');
+                const startHeight = topNode.offsetHeight;
+                const containerHeight = appRef.current.offsetHeight;
+                
+                const onMove = (e2) => {
+                    const currentY = e2.touches ? e2.touches[0].clientY : e2.clientY;
+                    let newHeight = startHeight + (currentY - startY);
+                    let pct = (newHeight / containerHeight) * 100;
+                    if (pct < 10) pct = 10; if (pct > 80) pct = 80;
+                    appRef.current.style.setProperty('--top-height', `${pct}%`);
+                };
+                const onUp = () => { 
+                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
+                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); 
+                    window.dispatchEvent(new Event('resize')); 
+                };
+                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+                document.addEventListener('touchmove', onMove); document.addEventListener('touchend', onUp);
+            };
+
+            const startTimelineResize = (e) => {
+                e.preventDefault();
+                const startY = e.touches ? e.touches[0].clientY : e.clientY;
+                const tlNode = appRef.current.querySelector('.timeline-pane');
+                const startHeight = tlNode.offsetHeight;
+                const containerHeight = appRef.current.offsetHeight;
+                
+                const onMove = (e2) => {
+                    const currentY = e2.touches ? e2.touches[0].clientY : e2.clientY;
+                    let newHeight = startHeight - (currentY - startY); 
+                    let pct = (newHeight / containerHeight) * 100;
+                    if (pct < 10) pct = 10; if (pct > 80) pct = 80;
+                    appRef.current.style.setProperty('--timeline-height', `${pct}%`);
+                };
+                const onUp = () => { 
+                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
+                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); 
+                    window.dispatchEvent(new Event('resize')); 
+                };
+                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+                document.addEventListener('touchmove', onMove); document.addEventListener('touchend', onUp);
+            };
+
+            useEffect(() => {
+                const urlParams = new URLSearchParams(window.location.search);
+                const paramTheme = urlParams.get('theme');
+                const paramSlide = urlParams.get('slide');
+                const paramDate = urlParams.get('date');
+                
+                if (paramTheme === 'dark') {
+                    document.documentElement.style.setProperty('--bg', '#121212');
+                    document.documentElement.style.setProperty('--text', '#fcfcfc');
+                    document.documentElement.style.setProperty('--paneBg', '#222');
+                    TM_CONFIG.paneBackground = '#222';
+                }
+
+                document.documentElement.style.setProperty('--paneBg', TM_CONFIG.paneBackground);
+                addLog(`CarTiMapper Engine Boot Sequence Initiated.`, 'info');
+                
+                const gid = urlParams.get('gid') || '0'; 
+                
+                const defaultDb = '1kdgGiHNDsIZrn8Z1aqWXrEEYKMGxLAqFiwATx3aqbJI';
+                const rawSource = urlParams.get('source') || defaultDb;
+                let fetchUrl = rawSource;
+
+                if (fetchUrl.includes('http')) {
+                    if (fetchUrl.includes('/e/2PACX')) fetchUrl = fetchUrl.split('/pub')[0] + '/pub?output=csv';
+                    else if (fetchUrl.includes('/d/')) fetchUrl = `https://docs.google.com/spreadsheets/d/${fetchUrl.match(/\/d\/([a-zA-Z0-9-_]+)/)[1]}/gviz/tq?tqx=out:csv&gid=${gid}`;
+                } else {
+                    fetchUrl = fetchUrl.startsWith('2PACX') ? `https://docs.google.com/spreadsheets/d/e/${fetchUrl}/pub?output=csv&gid=${gid}` : `https://docs.google.com/spreadsheets/d/${fetchUrl}/gviz/tq?tqx=out:csv&gid=${gid}`;
+                }
+
+                setStatus({ text: 'Fetching Source Data...', progress: 40, isFading: false, active: false });
+                
+                fetch(fetchUrl).then(res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.text();
+                }).then(csvText => {
+                    setStatus({ text: 'Parsing Timeline...', progress: 80, isFading: false, active: false });
+                    
+                    Papa.parse(csvText, {
+                        header: true, skipEmptyLines: true,
+                        complete: (results) => {
+                            if (results.data.length === 0) return setStatus({ text: 'Empty Dataset Error', progress: 0, isFading: false, active: false });
+                            
+                            const fuzzy = (r, names) => { 
+                                const keys = Object.keys(r);
+                                for (let name of names) {
+                                    for (let k of keys) {
+                                        if (k.trim().toLowerCase() === name && r[k]) return String(r[k]).trim();
+                                    }
+                                }
+                                return ''; 
+                            };
+                            
+                            setAboutData({ 
+                                title: fuzzy(results.data[0], ['title', 'headline', 'name']) || 'About', 
+                                description: fuzzy(results.data[0], ['description', 'text', 'content']),
+                                rawSource: rawSource === defaultDb ? 'Default Master DB' : rawSource
+                            });
+
+                            const cleaned = results.data.map((row, index) => {
+                                const s = fuzzy(row, ['start', 'start date', 'startdate', 'date']);
+                                const e = fuzzy(row, ['end', 'end date', 'enddate']);
+                                
+                                const parseDate = (str) => {
+                                    if (!str) return null;
+                                    if (/^\d+\.?\d*$/.test(str) && parseFloat(str) > 10000) return new Date((parseFloat(str) - 25569) * 86400 * 1000);
+                                    if (/^-?\d{1,4}$/.test(str)) { let d = new Date(0); d.setFullYear(parseInt(str), 0, 1); return d; }
+                                    let iso = str.replace(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/, (m, d, mo, y) => `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`);
+                                    let d = new Date(iso); if (!isNaN(d.getTime())) return d;
+                                    d = new Date(str); if (!isNaN(d.getTime())) return d;
+                                    return null;
+                                };
+                                let pS = parseDate(s), pE = parseDate(e);
+                                
+                                return {
+                                    id: index, title: fuzzy(row, ['title', 'headline', 'name']) || `Event ${index + 1}`,
+                                    startDate: (pS && !isNaN(pS.getTime())) ? pS : null, endDate: (pE && !isNaN(pE.getTime())) ? pE : null,
+                                    description: fuzzy(row, ['description', 'text', 'content']),
+                                    place: fuzzy(row, ['place', 'location name', 'city', 'region']),
+                                    location: fuzzy(row, ['location', 'latlon', 'coordinates', 'clean_geo', 'geo']),
+                                    subLabels: fuzzy(row, ['sub_labels', 'sub labels', 'sublabels']),
+                                    priority: fuzzy(row, ['map_priority', 'priority', 'vip']),
+                                    media: fuzzy(row, ['media', 'image', 'photo', 'url']) ? fuzzy(row, ['media', 'image', 'photo', 'url']).split(',').map(x=>x.trim()) : [],
+                                    mediaCaption: fuzzy(row, ['media caption', 'caption']), mediaCredit: fuzzy(row, ['media credit', 'credit']),
+                                    tags: fuzzy(row, ['tags', 'category', 'type', 'group']) ? fuzzy(row, ['tags', 'category', 'type', 'group']).split(',').map(t=>t.trim()).filter(t=>t) : []
+                                };
+                            });
+                            
+                            const valid = cleaned.filter(r => r.startDate).sort((a, b) => {
+                                const timeDiff = a.startDate.getTime() - b.startDate.getTime();
+                                return timeDiff !== 0 ? timeDiff : a.id - b.id;
+                            });
+
+                            const finalData = [...valid, ...cleaned.filter(r => !r.startDate)];
+                            setData(finalData);
+
+                            let initialIdx = 0;
+                            if (paramSlide && !isNaN(parseInt(paramSlide))) {
+                                initialIdx = Math.max(0, Math.min(finalData.length - 1, parseInt(paramSlide) - 1));
+                            } else if (paramDate) {
+                                const targetTime = new Date(paramDate).getTime();
+                                if (!isNaN(targetTime)) {
+                                    let minDiff = Infinity;
+                                    valid.forEach((d, i) => {
+                                        if (d.startDate) {
+                                            const diff = Math.abs(d.startDate.getTime() - targetTime);
+                                            if (diff < minDiff) { minDiff = diff; initialIdx = i; }
+                                        }
+                                    });
+                                }
+                            }
+                            setActiveIndex(initialIdx); 
+                            
+                            setStatus({ text: `Success! Loaded ${cleaned.length} records.`, progress: 100, isFading: true, active: false });
+                            setTimeout(() => {
+                                setStatus({ text: '', progress: 100, isFading: true, active: true });
+                            }, 500);
+                            
+                        },
+                        error: (err) => { addLog(`Parse Error: ${err.message}`, 'error'); setStatus({ text: `Parse Failed: ${err.message}`, progress: 0, isFading: false, active: false }); }
+                    });
+                }).catch(err => { addLog(`Fetch failed: ${err.message}`, 'error'); setStatus({ text: `Connection Failed: ${err.message}`, progress: 0, isFading: false, active: false }); });
+            }, []);
+
+            const activeSlide = data[activeIndex];
+            const hasMedia = activeSlide?.media?.length > 0;
+
+            const CarTiMapperLogo = ({ context }) => {
+                const svgIcon = html`
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100" style="width: 100%; height: auto; display: block;">
+                        <defs>
+                            <filter id="dot-glow" x="-50%" y="-50%" width="200%" height="200%">
+                                <feGaussianBlur stdDeviation="1.2" result="blur" />
+                                <feMerge>
+                                    <feMergeNode in="blur" />
+                                    <feMergeNode in="blur" />
+                                    <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                            </filter>
+                        </defs>
+                        <path d="M28,38 L45,15 L180,15 L180,85 L45,85 L28,62 Z" fill="#222222" stroke="#007acc" stroke-width="2.5" stroke-linejoin="round"/>
+                        <g fill="#ffffff" opacity="0.9">
+                            <rect x="55" y="19" width="4" height="6" rx="1" /><rect x="71" y="19" width="4" height="6" rx="1" /><rect x="87" y="19" width="4" height="6" rx="1" /><rect x="103" y="19" width="4" height="6" rx="1" />
+                            <rect x="119" y="19" width="4" height="6" rx="1" /><rect x="135" y="19" width="4" height="6" rx="1" /><rect x="151" y="19" width="4" height="6" rx="1" /><rect x="167" y="19" width="4" height="6" rx="1" />
+                            <rect x="55" y="75" width="4" height="6" rx="1" /><rect x="71" y="75" width="4" height="6" rx="1" /><rect x="87" y="75" width="4" height="6" rx="1" /><rect x="103" y="75" width="4" height="6" rx="1" />
+                            <rect x="119" y="75" width="4" height="6" rx="1" /><rect x="135" y="75" width="4" height="6" rx="1" /><rect x="151" y="75" width="4" height="6" rx="1" /><rect x="167" y="75" width="4" height="6" rx="1" />
+                        </g>
+                        <g transform="translate(112, 50)">
+                            <path d="M0,-28 L4,-6 L28,0 L4,6 L0,28 L-4,6 L-28,0 L-4,-6 Z" fill="#444444" opacity="0.8"/>
+                            <g fill="#fcfcfc" font-family="Arial, sans-serif" font-size="7" font-weight="normal" text-anchor="middle">
+                                <text x="0" y="-21">N</text><text x="24" y="2.5">E</text><text x="0" y="27">S</text><text x="-24" y="2.5">W</text>
+                            </g>
+                            <g fill="#8be9fd" filter="url(#dot-glow)">
+                                <circle cx="12.5" cy="-21.6" r="1.2" /><circle cx="21.6" cy="-12.5" r="1.2" />
+                                <circle cx="21.6" cy="12.5" r="1.2" /><circle cx="12.5" cy="21.6" r="1.2" />
+                                <circle cx="-12.5" cy="21.6" r="1.2" /><circle cx="-21.6" cy="12.5" r="1.2" />
+                                <circle cx="-21.6" cy="-12.5" r="1.2" /><circle cx="-12.5" cy="-21.6" r="1.2" />
+                            </g>
+                            <g transform="rotate(60)">
+                                <path d="M0,0 L-1,-16 L1,-16 Z" fill="#999999" /><circle cx="0" cy="-20" r="2.8" fill="#007acc" />
+                            </g>
+                            <g transform="rotate(270)">
+                                <path d="M0,0 L-1.2,-9 L1.2,-9 Z" fill="#999999" /><circle cx="0" cy="-13" r="2.8" fill="#28a745" />
+                            </g>
+                            <circle cx="0" cy="0" r="1.5" fill="#ffffff" />
+                        </g>
+                    </svg>
+                `;
+
+                if (context === 'splash') {
+                    return html`
+                        <div class="logo-stack-splash">
+                            <div class="splash-icon-wrapper">${svgIcon}</div>
+                            <div class="splash-text">CarTiMapper</div>
+                            <div class="splash-version">${APP_VERSION}</div>
+                        </div>
+                    `;
+                }
+                
+                if (context === 'status') {
+                    return html`
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <div style="width: 24px; height: 16px; display: flex; align-items: center;">${svgIcon}</div>
+                            <span style="font-weight: 700; font-size: 0.8rem; color: #444; letter-spacing: -0.3px;">CarTiMapper <span style="font-weight: 400; color: #888;">${APP_VERSION.replace('v', '')}</span></span>
+                        </div>
+                    `;
+                }
+
+                return html`
+                    <div class="logo-horizontal-about">
+                        <div class="horizontal-icon-wrapper-about">${svgIcon}</div>
+                        <div style="display: flex; flex-direction: column;">
+                            <h1 class="horizontal-text-title">CarTiMapper</h1>
+                        </div>
+                    </div>
+                `;
+            };
+
+            return html`
+                <div id="tm-root">
+                    ${!status.active ? html`
+                        <div class="loading-screen ${status.isFading ? 'fade-out' : ''}">
+                            <${CarTiMapperLogo} context="splash" />
+                            <div class="loading-status">${status.text}</div>
+                            <div class="loading-bar-container">
+                                <div class="loading-bar-fill" style="width: ${status.progress}%;"></div>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    ${data.length > 0 ? html`
+                        ${aboutData ? html`
+                            <div id="about-modal" class=${isAboutOpen ? 'open' : ''}>
+                                <button class="about-close" onClick=${() => setIsAboutOpen(false)}>×</button>
+                                
+                                <${CarTiMapperLogo} context="about" />
+                                
+                                <div style="line-height: 1.6; margin-bottom: 2rem;" dangerouslySetInnerHTML=${{__html: aboutData.description}}></div>
+                                
+                                <div class="about-meta-footer">
+                                    <div style="margin-bottom: 6px;"><b style="color: #333;">Engine:</b> CarTiMapper Core ${APP_VERSION}</div>
+                                    <div style="margin-bottom: 15px;"><b style="color: #333;">Source:</b> <a href="${aboutData.rawSource && aboutData.rawSource.startsWith('http') ? aboutData.rawSource : `https://docs.google.com/spreadsheets/d/${aboutData.rawSource}`}" target="_blank" style="word-break: break-all;">${aboutData.rawSource || 'Local/Unknown Data'}</a></div>
+                                    
+                                    <div style="background: #f0f0f0; padding: 12px; border-radius: 6px; border: 1px solid #ddd; font-family: monospace;">
+                                        <b style="color: #333; display: block; margin-bottom: 8px; font-family: 'Noto Sans', sans-serif;">URL Routing Parameters:</b>
+                                        <div style="font-size: 0.85rem; color: #666; margin-bottom: 8px; font-family: 'Noto Sans', sans-serif;">Combine variables using <b>&</b> (e.g., <code style="color: #007acc; font-weight:bold;">?source=XYZ&slide=2</code>)</div>
+                                        <div style="margin-bottom: 6px;"><span style="color: #d32f2f; font-weight: bold;">?source=URL</span> <span style="font-size: 0.85rem; color: #555;">Load specific Google Sheet (Required)</span></div>
+                                        <div style="margin-bottom: 6px;"><span style="color: #d32f2f; font-weight: bold;">?slide=5</span> <span style="font-size: 0.85rem; color: #555;">Jump directly to slide index</span></div>
+                                        <div style="margin-bottom: 6px;"><span style="color: #d32f2f; font-weight: bold;">?date=1945-05-08</span> <span style="font-size: 0.85rem; color: #555;">Jump to closest timeline event</span></div>
+                                        <div style="margin-bottom: 6px;"><span style="color: #d32f2f; font-weight: bold;">?mapzoom=8</span> <span style="font-size: 0.85rem; color: #555;">Force initial camera zoom level</span></div>
+                                        <div><span style="color: #d32f2f; font-weight: bold;">?theme=dark</span> <span style="font-size: 0.85rem; color: #555;">Enable experimental dark mode</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        <div id="app-layout" ref=${appRef}>
+                            <div class="top-row">
+                                <div class="map-pane ${!hasMedia ? 'no-media' : ''}">
+                                    <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} addLog=${addLog} />
+                                    <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} />
+                                </div>
+                                ${hasMedia ? html`<div class="resizer-h" onMouseDown=${startMapResize} onTouchStart=${startMapResize}></div>` : ''}
+                                <div class="media-pane" style="display: ${hasMedia ? 'flex' : 'none'};">
+                                    <${MediaViewer} activeSlide=${activeSlide} />
+                                </div>
+                            </div>
+
+                            <div class="resizer-v" onMouseDown=${startTopResize} onTouchStart=${startTopResize}></div>
+                            
+                            <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} aboutData=${aboutData} isAboutOpen=${isAboutOpen} setIsAboutOpen=${setIsAboutOpen} isMonitorOpen=${isMonitorOpen} setIsMonitorOpen=${setIsMonitorOpen} CarTiMapperLogo=${CarTiMapperLogo} />
+                            
+                            <div class="resizer-v" onMouseDown=${startTimelineResize} onTouchStart=${startTimelineResize}></div>
+
+                            <div class="timeline-pane">
+                                <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} />
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        };
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.26.0';
+        // === [ END APP ORCHESTRATOR ] ===
+        
+        // The Ignition Switch
+        render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
+        
+    </script>
+</body>
+</html>
