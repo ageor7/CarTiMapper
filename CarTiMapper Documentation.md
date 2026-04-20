@@ -10,6 +10,7 @@
 5. **Semantic Boundary Replacements:** We rely exclusively on the indestructible `// === [ BLOCK NAME vX.X.X ] ===` boundary markers instead of fragile, hardcoded line numbers.
 6. **No Default Bold/Capitalize:** We do not enforce `font-weight: bold` or `text-transform: uppercase` on narrative text through global CSS. The interface relies entirely on explicit manual HTML tags (e.g., `<b>`, `<strong>`) for emphasis.
 7. **True Font Loading:** When utilizing Google Fonts (especially for Greek Polytonic characters), we explicitly download all Regular (400) and Bold (700) weights and Italics etc. variations to ensure the browser never generates jagged "faux-bolds", "faux-italics" etc.
+* **[REF: ARCH-01] Two-Stage Data Pipeline:** To support dynamic on-the-fly re-rendering without network latency, the engine strictly separates raw data ingestion (`rawCsvRows`) from the compiled data state (`data`).
 
 *(Added following v6.0.15 Audit)*
 
@@ -78,6 +79,8 @@
 * **[REF: DATA-08] Strict Schema Contract (`exactGet`):** The engine operates on a locked spreadsheet schema. To prevent string collisions (e.g., fetching "Media" vs "Media Caption") and minimize memory overhead, data extraction relies on strict, case-normalized 1:1 key mapping (`exactGet`).
 * **[REF: DATA-09] Memory Pruning:** Extraneous spreadsheet columns not utilized by the engine (e.g., `Web Page`, `Source`, `Source URL`) are intentionally omitted from the data object mapping to minimize JSON payload size and optimize browser memory retention.
 * **[REF: DATA-10] Place/SubLabel Convergence:** The legacy `subLabels` metadata requirement for Map Hover Tooltips is mathematically bound to the `Place` column, enforcing single-source-of-truth location labeling.
+* **[REF: DATE-11] Time Preservation:** The temporal parser must explicitly decouple `HH:mm:ss` payloads from date strings using whitespace isolation. Stripping time signatures is strictly prohibited to prevent `00:00:00` collision bugs in the Timeline zoom physics.
+* **[REF: DATE-12] Dynamic Temporal Locale:** The parser dynamically routes matrix array indices to Year/Month/Day components based on user-defined UI state, allowing instant hot-swapping between European (`DD/MM`) and US (`MM/DD`) spreadsheet exports.
 ---
 
 ## V. UI/UX Elements & Design Solutions
@@ -96,7 +99,7 @@
 * **[REF: UI-13] Metadata Hierarchy: The 📍 Place badge is right-aligned beneath the Tags, utilizing a unified, non-bold, pill-shaped aesthetic to distinguish metadata from narrative text.
 * **[REF: UI-14] Safe History Navigation:** Deep-linking and manual jumps push to a passive `slideHistory` state array, allowing safe "Back" functionality without corrupting child component prop signatures.
 * **[REF: UI-15] Pin Geometry Anchoring:** Map pins strictly enforce `position: relative` to prevent absolute-positioned heads and stems from decoupling during zoom physics.
----
+* **[REF: UI-SET-01] Engine Settings Modal:** A unified settings interface (accessible via the Status Bar ⚙️) provides explicit control over engine-level physics, such as data locale formats.---
 
 ## VI. Algorithms, Analytics & Methodologies
 
