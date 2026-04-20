@@ -455,7 +455,7 @@
         MODULE_VERSIONS['ContentSlider'] = 'v3.7.0';
         // === [ END MAJOR BLOCK: ContentSlider v3.7.0 ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v23.1.0 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v23.2.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
             const tlDomRef = useRef(null);
             const [tags, setTags] = useState([]);
@@ -586,55 +586,57 @@
             // --- [ End SubBlock: Lane & Axis Math ] ---
 
             // --- [ SubBlock: Timeline Rendering ] ---
-            // [FIX: UI-TL-01] Isolated Zoom Controls with explicit absolute positioning outside the scroll wrapper physics
+            // [FIX: UI-TL-02] A single relative wrapper prevents Preact Fragment errors and stops flexbox from crushing the 0px height.
             return html`
-                <div style="position: absolute; right: 20px; top: 10px; z-index: 1000; display: flex; gap: 5px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));">
-                    <button style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-weight: bold; color: #444;" onClick=${() => setScale(s => s * 1.5)}>+</button>
-                    <button style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-weight: bold; color: #444;" onClick=${() => setScale(1)}>O</button>
-                    <button style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-weight: bold; color: #444;" onClick=${() => setScale(s => s / 1.5)}>-</button>
-                </div>
-                
-                <div class="timeline-scroll-wrapper" ref=${tlDomRef} onMouseDown=${onMouseDown} onMouseLeave=${onMouseUp} onMouseUp=${onMouseUp} onMouseMove=${onMouseMove} style="--lane-h: ${laneHeight}px;">
-                    <div class="timeline-track-container" style="width: ${totalWidth}px; height: ${totalHeight}px;">
-                        ${finalLanes.map(lane => html`
-                            <div class="tag-lane" style="top: ${lane.y}px; height: ${lane.height}px;">
-                                <div class="tag-lane-label">${lane.title}</div>
-                            </div>
-                        `)}
-
-                        ${finalLanes.map(lane => lane.events.map(event => {
-                            const isActive = event.id === activeIndex;
-                            return html`
-                                <div class="event-group ${isActive ? 'active' : ''}" data-idx=${event.id}
-                                     style="left: ${event.left}px; top: ${lane.y + (event.subLane * laneHeight)}px;"
-                                     onClick=${() => setActiveIndex(event.id)}>
-                                    
-                                    <div class="event-block" style="width: ${event.width}px; background: ${isActive ? '#007acc' : '#fff'}; border: 1px solid ${isActive ? '#005f9e' : '#ccc'}; color: ${isActive ? '#fff' : '#222'};">
-                                        <div class="event-text">
-                                            <span style="font-weight: bold; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;" dangerouslySetInnerHTML=${{ __html: stripHTML(event.title) }}></span>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-                        }))}
-
-                        <div class="timeline-axis">
-                            ${ticks.map((tick, i) => html`
-                                <div class="timeline-ruler-tick" key=${i} style="left: ${tick.left}px;">
-                                    <div style="width: 2px; height: 6px; background: #999; margin-bottom: 2px;"></div>
-                                    <span>${tick.label}</span>
+                <div style="position: relative; width: 100%; height: 100%;">
+                    <div style="position: absolute; right: 20px; top: 10px; z-index: 1000; display: flex; gap: 5px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));">
+                        <button style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-weight: bold; color: #444;" onClick=${() => setScale(s => s * 1.5)}>+</button>
+                        <button style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-weight: bold; color: #444;" onClick=${() => setScale(1)}>O</button>
+                        <button style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-weight: bold; color: #444;" onClick=${() => setScale(s => s / 1.5)}>-</button>
+                    </div>
+                    
+                    <div class="timeline-scroll-wrapper" ref=${tlDomRef} onMouseDown=${onMouseDown} onMouseLeave=${onMouseUp} onMouseUp=${onMouseUp} onMouseMove=${onMouseMove} style="--lane-h: ${laneHeight}px;">
+                        <div class="timeline-track-container" style="width: ${totalWidth}px; height: ${totalHeight}px;">
+                            ${finalLanes.map(lane => html`
+                                <div class="tag-lane" style="top: ${lane.y}px; height: ${lane.height}px;">
+                                    <div class="tag-lane-label">${lane.title}</div>
                                 </div>
                             `)}
+
+                            ${finalLanes.map(lane => lane.events.map(event => {
+                                const isActive = event.id === activeIndex;
+                                return html`
+                                    <div class="event-group ${isActive ? 'active' : ''}" data-idx=${event.id}
+                                         style="left: ${event.left}px; top: ${lane.y + (event.subLane * laneHeight)}px;"
+                                         onClick=${() => setActiveIndex(event.id)}>
+                                        
+                                        <div class="event-block" style="width: ${event.width}px; background: ${isActive ? '#007acc' : '#fff'}; border: 1px solid ${isActive ? '#005f9e' : '#ccc'}; color: ${isActive ? '#fff' : '#222'};">
+                                            <div class="event-text">
+                                                <span style="font-weight: bold; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;" dangerouslySetInnerHTML=${{ __html: stripHTML(event.title) }}></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }))}
+
+                            <div class="timeline-axis">
+                                ${ticks.map((tick, i) => html`
+                                    <div class="timeline-ruler-tick" key=${i} style="left: ${tick.left}px;">
+                                        <div style="width: 2px; height: 6px; background: #999; margin-bottom: 2px;"></div>
+                                        <span>${tick.label}</span>
+                                    </div>
+                                `)}
+                            </div>
                         </div>
                     </div>
                 </div>
             `;
             // --- [ End SubBlock: Timeline Rendering ] ---
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v23.1.0';
-        // === [ END MAJOR BLOCK: TimelineScrubber v23.1.0 ] ===
+        MODULE_VERSIONS['TimelineScrubber'] = 'v23.2.0';
+        // === [ END MAJOR BLOCK: TimelineScrubber v23.2.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.26.1 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.28.1 ] ===
         const App = () => {
             // --- [ SubBlock: State Initializers ] ---
             const [logs, setLogs] = useState([]);
@@ -765,7 +767,6 @@
                         complete: (results) => {
                             if (results.data.length === 0) return setStatus({ text: 'Empty Dataset Error', progress: 0, isFading: false, active: false });
                             
-                            // [FIX: DATA-02] Normalize first row for case-independent AboutData mapping
                             const firstRowNorm = {};
                             if (results.data[0]) {
                                 for (let k in results.data[0]) firstRowNorm[k.toLowerCase().trim()] = results.data[0][k];
@@ -777,12 +778,10 @@
                                 rawSource: rawSource === defaultDb ? 'Default Master DB' : rawSource
                             });
 
-                            // [FIX: DATA-02] Case-Independent Normalization mapped to 'norm' object
                             const cleaned = results.data.map((row, index) => {
                                 const norm = {};
                                 for (let k in row) norm[k.toLowerCase().trim()] = row[k];
 
-                                // [FIX: DATE-01] Strict EuroDate parsing logic limits US-browser inversion
                                 const parseEuroDate = (str) => {
                                     if (!str) return null;
                                     const parts = str.split(/[/-]/);
@@ -794,6 +793,13 @@
                                     let d2 = new Date(str); return isNaN(d2.getTime()) ? null : d2;
                                 };
 
+                                // [FIX: DATA-03] Expanded fallbacks and aggressive .filter() to purge "Ghost Lanes" (empty strings).
+                                const rawTags = norm['tags'] || norm['category'] || norm['group'] || norm['keywords'] || "";
+                                const parsedTags = rawTags ? String(rawTags).split(',').map(t=>t.trim()).filter(t => t !== "") : [];
+
+                                const rawMedia = norm['media'] || norm['image'] || norm['images'] || "";
+                                const parsedMedia = rawMedia ? String(rawMedia).split(',').map(x=>x.trim()).filter(x => x !== "") : [];
+
                                 return {
                                     id: index, 
                                     title: norm['title'] || norm['headline'] || `Event ${index + 1}`,
@@ -804,8 +810,8 @@
                                     location: norm['location'] || norm['coordinates'] || "",
                                     subLabels: norm['sub_labels'] || norm['sublabels'] || "",
                                     priority: norm['priority'] || norm['map_priority'] || "",
-                                    media: norm['media'] || norm['image'] ? String(norm['media'] || norm['image']).split(',').map(x=>x.trim()) : [],
-                                    tags: norm['tags'] || norm['category'] ? String(norm['tags'] || norm['category']).split(',').map(t=>t.trim()) : []
+                                    media: parsedMedia,
+                                    tags: parsedTags
                                 };
                             });
                             
@@ -961,8 +967,8 @@
             `;
             // --- [ End SubBlock: Master Render ] ---
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.26.1';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.26.1 ] ===
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.28.1';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.28.1 ] ===
 
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
