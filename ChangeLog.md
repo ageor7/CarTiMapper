@@ -1,6 +1,15 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.0.21)
+AppOrchestrator (v1.29.0): * [FIX: DATA-08] Replaced the partial-match smartGet algorithm with a high-performance exactGet mapper to strictly adhere to the defined Google Sheet schema.
+
+[FIX: DATA-09] Activated extraction for media caption and media credit, binding them to the internal engine state so they render correctly in the MediaViewer carousel.
+
+[FIX: DATA-10] Pruned unused fields (Source, Web Page) to optimize memory, and mathematically pointed the map's subLabels logic directly at the Place column for unified UI hover states.
+
+---
+
 Changelog (v6.0.18)
 AppOrchestrator (v1.28.1): [FIX: DATA-03] Expanded normalization fallbacks for tags and media to catch variations like group and images. Implemented a rigorous .filter(t => t !== "") chain to obliterate falsy arrays and ghost lanes.
 
