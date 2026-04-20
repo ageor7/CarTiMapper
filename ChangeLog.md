@@ -1,6 +1,10 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+v6.0.16: Finalized case-independent data mapping, restored full component CSS, and optimized About Modal UX.
+
+---
+
 fix(ui): v6.0.16 - Restore Master CSS, fix date inversion, and finalize sub-label linear mapping.
 
 ---
