@@ -1,6 +1,13 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.0.18)
+AppOrchestrator (v1.28.1): [FIX: DATA-03] Expanded normalization fallbacks for tags and media to catch variations like group and images. Implemented a rigorous .filter(t => t !== "") chain to obliterate falsy arrays and ghost lanes.
+
+TimelineScrubber (v23.2.0): [FIX: UI-TL-02] Encapsulated the Absolute Zoom Controls and the Scroll Wrapper inside a singular strict parent container. This restores architectural integrity and prevents the flexbox engine from crushing the timeline to 0px.
+
+---
+
 Changelog / Commit Description: v6.0.17 Micro-Patch
 MapViewer (v3.12.0): [FIX: GEO-01] Resolved GeoJSON coordinate inversion by deleting the custom coordsToLatLng override. The engine now trusts Leaflet's native parser to accurately process standard [Lon, Lat] GeoJSON outputs.
 
