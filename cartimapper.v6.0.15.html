@@ -636,7 +636,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.2.0';
         // === [ END MAJOR BLOCK: TimelineScrubber v23.2.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.28.1 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.29.0 ] ===
         const App = () => {
             // --- [ SubBlock: State Initializers ] ---
             const [logs, setLogs] = useState([]);
@@ -645,12 +645,28 @@
             const [status, setStatus] = useState({ text: 'Initializing Engine...', progress: 10, isFading: false, active: false });
             
             const [activeIndex, setActiveIndex] = useState(0); 
+            const [slideHistory, setSlideHistory] = useState([]);
             
             const [isMonitorOpen, setIsMonitorOpen] = useState(false); 
             const [isAboutOpen, setIsAboutOpen] = useState(false);
             const appRef = useRef(null);
 
             const addLog = (msg, type = 'info') => setLogs(p => [...p, { time: new Date().toLocaleTimeString('en-US', { hour12: false }), msg, type }]);
+
+            const jumpToSlide = (newIdx, isSequential = false) => {
+                if (newIdx !== activeIndex) {
+                    if (!isSequential) setSlideHistory(prev => [...prev, activeIndex]);
+                    setActiveIndex(newIdx);
+                }
+            };
+
+            const goBack = () => {
+                if (slideHistory.length > 0) {
+                    const prev = slideHistory[slideHistory.length - 1];
+                    setSlideHistory(h => h.slice(0, -1));
+                    setActiveIndex(prev);
+                }
+            };
             // --- [ End SubBlock: State Initializers ] ---
 
             // --- [ SubBlock: Layout Resizers ] ---
@@ -767,14 +783,20 @@
                         complete: (results) => {
                             if (results.data.length === 0) return setStatus({ text: 'Empty Dataset Error', progress: 0, isFading: false, active: false });
                             
+                            // [FIX: DATA-08] Strict exactGet prevents string collisions (e.g. 'media' vs 'media caption')
+                            const exactGet = (normObj, key) => {
+                                const val = normObj[key];
+                                return val !== undefined && val !== null ? String(val).trim() : "";
+                            };
+
                             const firstRowNorm = {};
                             if (results.data[0]) {
                                 for (let k in results.data[0]) firstRowNorm[k.toLowerCase().trim()] = results.data[0][k];
                             }
                             
                             setAboutData({ 
-                                title: firstRowNorm['title'] || firstRowNorm['headline'] || 'About', 
-                                description: firstRowNorm['description'] || firstRowNorm['text'] || 'No project description provided.',
+                                title: exactGet(firstRowNorm, 'title') || 'About', 
+                                description: exactGet(firstRowNorm, 'description') || 'No project description provided.',
                                 rawSource: rawSource === defaultDb ? 'Default Master DB' : rawSource
                             });
 
@@ -793,24 +815,28 @@
                                     let d2 = new Date(str); return isNaN(d2.getTime()) ? null : d2;
                                 };
 
-                                // [FIX: DATA-03] Expanded fallbacks and aggressive .filter() to purge "Ghost Lanes" (empty strings).
-                                const rawTags = norm['tags'] || norm['category'] || norm['group'] || norm['keywords'] || "";
-                                const parsedTags = rawTags ? String(rawTags).split(',').map(t=>t.trim()).filter(t => t !== "") : [];
+                                const rawTags = exactGet(norm, 'tags');
+                                const parsedTags = rawTags ? rawTags.split(',').map(t=>t.trim()).filter(t => t !== "") : [];
 
-                                const rawMedia = norm['media'] || norm['image'] || norm['images'] || "";
-                                const parsedMedia = rawMedia ? String(rawMedia).split(',').map(x=>x.trim()).filter(x => x !== "") : [];
+                                const rawMedia = exactGet(norm, 'media');
+                                const parsedMedia = rawMedia ? rawMedia.split(',').map(x=>x.trim()).filter(x => x !== "") : [];
+                                
+                                const placeVal = exactGet(norm, 'place');
 
+                                // [FIX: DATA-09 & 10] Pruning unused arrays. Merging subLabels to place. Extracting Captions.
                                 return {
                                     id: index, 
-                                    title: norm['title'] || norm['headline'] || `Event ${index + 1}`,
-                                    startDate: parseEuroDate(norm['start'] || norm['date']),
-                                    endDate: parseEuroDate(norm['end']),
-                                    description: norm['description'] || norm['text'] || "",
-                                    place: norm['place'] || norm['location name'] || "",
-                                    location: norm['location'] || norm['coordinates'] || "",
-                                    subLabels: norm['sub_labels'] || norm['sublabels'] || "",
-                                    priority: norm['priority'] || norm['map_priority'] || "",
+                                    title: exactGet(norm, 'title') || `Event ${index + 1}`,
+                                    startDate: parseEuroDate(exactGet(norm, 'start')),
+                                    endDate: parseEuroDate(exactGet(norm, 'end')),
+                                    description: exactGet(norm, 'description'),
+                                    place: placeVal,
+                                    subLabels: placeVal, 
+                                    location: exactGet(norm, 'location'),
+                                    priority: exactGet(norm, 'priority'),
                                     media: parsedMedia,
+                                    mediaCaption: exactGet(norm, 'media caption'),
+                                    mediaCredit: exactGet(norm, 'media credit'),
                                     tags: parsedTags
                                 };
                             });
@@ -841,9 +867,7 @@
                             setActiveIndex(initialIdx); 
                             
                             setStatus({ text: `Success! Loaded ${cleaned.length} records.`, progress: 100, isFading: true, active: false });
-                            setTimeout(() => {
-                                setStatus({ text: '', progress: 100, isFading: true, active: true });
-                            }, 500);
+                            setTimeout(() => { setStatus({ text: '', progress: 100, isFading: true, active: true }); }, 500);
                             
                         },
                         error: (err) => { addLog(`Parse Error: ${err.message}`, 'error'); setStatus({ text: `Parse Failed: ${err.message}`, progress: 0, isFading: false, active: false }); }
@@ -857,15 +881,11 @@
 
             const CarTiMapperLogo = ({ context }) => {
                 const svgIcon = html`
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100" style="width: 100%; height: auto; display: block;">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="20 0 165 100" style="width: 100%; height: auto; display: block;">
                         <defs>
                             <filter id="dot-glow" x="-50%" y="-50%" width="200%" height="200%">
                                 <feGaussianBlur stdDeviation="1.2" result="blur" />
-                                <feMerge>
-                                    <feMergeNode in="blur" />
-                                    <feMergeNode in="blur" />
-                                    <feMergeNode in="SourceGraphic" />
-                                </feMerge>
+                                <feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
                             </filter>
                         </defs>
                         <path d="M28,38 L45,15 L180,15 L180,85 L45,85 L28,62 Z" fill="#222" stroke="#007acc" stroke-width="2.5" stroke-linejoin="round"/>
@@ -886,39 +906,16 @@
                                 <circle cx="-12.5" cy="21.6" r="1.2" /><circle cx="-21.6" cy="12.5" r="1.2" />
                                 <circle cx="-21.6" cy="-12.5" r="1.2" /><circle cx="-12.5" cy="-21.6" r="1.2" />
                             </g>
-                            <g transform="rotate(60)">
-                                <path d="M0,0 L-1,-16 L1,-16 Z" fill="#999" /><circle cx="0" cy="-20" r="2.8" fill="#007acc" />
-                            </g>
-                            <g transform="rotate(270)">
-                                <path d="M0,0 L-1.2,-9 L1.2,-9 Z" fill="#999" /><circle cx="0" cy="-13" r="2.8" fill="#28a745" />
-                            </g>
+                            <g transform="rotate(60)"><path d="M0,0 L-1,-16 L1,-16 Z" fill="#999" /><circle cx="0" cy="-20" r="2.8" fill="#007acc" /></g>
+                            <g transform="rotate(270)"><path d="M0,0 L-1.2,-9 L1.2,-9 Z" fill="#999" /><circle cx="0" cy="-13" r="2.8" fill="#28a745" /></g>
                             <circle cx="0" cy="0" r="1.5" fill="#fff" />
                         </g>
                     </svg>
                 `;
 
-                if (context === 'splash') {
-                    return html`
-                        <div class="logo-stack-splash">
-                            <div class="splash-icon-wrapper">${svgIcon}</div>
-                            <div class="splash-text">CarTiMapper</div>
-                            <div class="splash-version">${APP_VERSION}</div>
-                        </div>
-                    `;
-                }
-                if (context === 'status') {
-                    return html`
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <div style="width: 24px; height: 16px; display: flex; align-items: center;">${svgIcon}</div>
-                            <span style="font-weight: 700; font-size: 0.8rem; color: #444; letter-spacing: -0.3px;">CarTiMapper</span>
-                        </div>
-                    `;
-                }
-                return html`
-                    <div class="logo-horizontal-about" style="flex-direction: column; align-items: flex-start; gap: 10px;">
-                        <div style="width: 200px; height: auto;">${svgIcon}</div>
-                    </div>
-                `;
+                if (context === 'splash') return html`<div class="logo-stack-splash"><div class="splash-icon-wrapper">${svgIcon}</div><div class="splash-text">CarTiMapper</div><div class="splash-version">${APP_VERSION}</div></div>`;
+                if (context === 'status') return html`<div style="display: flex; align-items: center; gap: 6px;"><div style="width: 24px; height: 16px; display: flex; align-items: center;">${svgIcon}</div><span style="font-weight: 700; font-size: 0.8rem; color: #444; letter-spacing: -0.3px;">CarTiMapper</span></div>`;
+                return html`<div class="logo-horizontal-about" style="flex-direction: column; align-items: flex-start; gap: 10px;"><div style="width: 200px; height: auto;">${svgIcon}</div></div>`;
             };
 
             // --- [ SubBlock: Master Render ] ---
@@ -927,9 +924,7 @@
                     ${!status.active ? html`
                         <div class="loading-screen ${status.isFading ? 'fade-out' : ''}">
                             <${CarTiMapperLogo} context="splash" />
-                            <div class="loading-bar-container">
-                                <div class="loading-bar-fill" style="width: ${status.progress}%;"></div>
-                            </div>
+                            <div class="loading-bar-container"><div class="loading-bar-fill" style="width: ${status.progress}%;"></div></div>
                         </div>
                     ` : ''}
 
@@ -937,7 +932,7 @@
                         <div id="app-layout" ref=${appRef}>
                             <div class="top-row">
                                 <div class="map-pane ${!hasMedia ? 'no-media' : ''}">
-                                    <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} addLog=${addLog} />
+                                    <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} addLog=${addLog} />
                                     <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} />
                                 </div>
                                 ${hasMedia ? html`<div class="resizer-h" onMouseDown=${startMapResize} onTouchStart=${startMapResize}></div>` : ''}
@@ -948,18 +943,22 @@
 
                             <div class="resizer-v" onMouseDown=${startTopResize} onTouchStart=${startTopResize}></div>
                             
-                            <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} aboutData=${aboutData} isAboutOpen=${isAboutOpen} setIsAboutOpen=${setIsAboutOpen} isMonitorOpen=${isMonitorOpen} setIsMonitorOpen=${setIsMonitorOpen} CarTiMapperLogo=${CarTiMapperLogo} />
+                            <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} slideHistory=${slideHistory} goBack=${goBack} aboutData=${aboutData} isAboutOpen=${isAboutOpen} setIsAboutOpen=${setIsAboutOpen} isMonitorOpen=${isMonitorOpen} setIsMonitorOpen=${setIsMonitorOpen} CarTiMapperLogo=${CarTiMapperLogo} />
                             
                             <div class="resizer-v" onMouseDown=${startTimelineResize} onTouchStart=${startTimelineResize}></div>
 
                             <div class="timeline-pane">
-                                <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${setActiveIndex} />
+                                <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} />
                             </div>
                         </div>
 
+                        <div class="modal-backdrop ${isAboutOpen ? 'open' : ''}" onClick=${() => setIsAboutOpen(false)}></div>
                         <div id="about-modal" class=${isAboutOpen ? 'open' : ''}>
                             <button class="about-close" onClick=${() => setIsAboutOpen(false)}>×</button>
                             <${CarTiMapperLogo} context="about" />
+                            <div style="text-align: center; margin-bottom: 25px;">
+                                <button class="status-btn" style="padding: 10px 20px; font-size: 1rem; background: #007acc; color: #fff; border: none; font-weight: bold;" onClick=${() => { jumpToSlide(0); setIsAboutOpen(false); }}>View Project Overview (Slide 1)</button>
+                            </div>
                             <div dangerouslySetInnerHTML=${{__html: aboutData.description}}></div>
                         </div>
                     ` : ''}
@@ -967,8 +966,8 @@
             `;
             // --- [ End SubBlock: Master Render ] ---
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.28.1';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.28.1 ] ===
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.29.0';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.29.0 ] ===
 
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
