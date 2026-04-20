@@ -1040,16 +1040,32 @@
                                 return ''; 
                             };
                             setAboutData({ title: fuzzy(results.data[0], ['title', 'headline']) || 'About', description: fuzzy(results.data[0], ['description', 'text']), rawSource });
+                            // [FIX: DATE-01] Strict Euro Date Parser
+                            // Manually splits DD/MM/YYYY to prevent US browser inversion
                             const cleaned = results.data.map((row, index) => {
-                                const parseDate = (str) => {
+                                const parseEuroDate = (str) => {
                                     if (!str) return null;
-                                    let d = new Date(str);
-                                    return isNaN(d.getTime()) ? null : d;
+                                    
+                                    // 1. Check for manual slash/dash formats
+                                    const parts = str.split(/[/-]/);
+                                    if (parts.length === 3) {
+                                        const d = parseInt(parts[0], 10);
+                                        const m = parseInt(parts[1], 10) - 1; // JS Months are 0-indexed
+                                        const y = parseInt(parts[2], 10);
+                                        const date = new Date(y, m, d);
+                                        if (!isNaN(date.getTime())) return date;
+                                    }
+                                    
+                                    // 2. Fallback for strict ISO (YYYY-MM-DD)
+                                    let d2 = new Date(str);
+                                    return isNaN(d2.getTime()) ? null : d2;
                                 };
+
                                 return {
-                                    id: index, title: fuzzy(row, ['title', 'headline']) || `Event ${index + 1}`,
-                                    startDate: parseDate(fuzzy(row, ['start', 'date'])),
-                                    endDate: parseDate(fuzzy(row, ['end'])),
+                                    id: index, 
+                                    title: fuzzy(row, ['title', 'headline']) || `Event ${index + 1}`,
+                                    startDate: parseEuroDate(fuzzy(row, ['start', 'date'])),
+                                    endDate: parseEuroDate(fuzzy(row, ['end'])),
                                     description: fuzzy(row, ['description', 'text']),
                                     place: fuzzy(row, ['place', 'location name']),
                                     location: fuzzy(row, ['location', 'coordinates']),
