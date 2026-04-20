@@ -1,12 +1,9 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
-v6.0.16: Finalized case-independent data mapping, restored full component CSS, and optimized About Modal UX.
-
----
-
-fix(ui): v6.0.16 - Restore Master CSS, fix date inversion, and finalize sub-label linear mapping.
-
+## [v6.0.16] - Micro-Patch 1: Date Parsing
+###🛠️ Data Engine Fixes (index.html)
+* Strict Euro/ISO Date Parser ([FIX: DATE-01]): Resolved the "Global Paradox" date inversion bug. Replaced the generic new Date() constructor with a manual parseEuroDate function. The engine now explicitly splits standard DD/MM/YYYY or DD-MM-YYYY formats and forces the array order to Day, Month, Year. This guarantees that US-localized browsers will no longer silently invert European dates (e.g., misreading August 5th as May 8th).
 ---
 
 ## [v6.0.15] - April 2026
