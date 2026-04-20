@@ -1,6 +1,15 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog: v6.0.17
+Documentation: Applied the [REF: DOC-02] taxonomy across the entire index.html file to establish the Master Baseline.
+Data Engine: Implemented EuroDate parsing and case-independent normalization.
+Map Geometry: Restored standard GeoJSON parsing and fixed Map Pin CSS decoupling.
+Navigation: Added passive "Back" history tracking and perfectly centered Status Bar Flexbox layouts.
+Branding: Mathematically cropped the SVG viewBox to perfectly center the logo and matched widths.
+
+---
+
 ## [v6.0.16] - Micro-Patch 1: Date Parsing
 ###🛠️ Data Engine Fixes (index.html)
 * Strict Euro/ISO Date Parser ([FIX: DATE-01]): Resolved the "Global Paradox" date inversion bug. Replaced the generic new Date() constructor with a manual parseEuroDate function. The engine now explicitly splits standard DD/MM/YYYY or DD-MM-YYYY formats and forces the array order to Day, Month, Year. This guarantees that US-localized browsers will no longer silently invert European dates (e.g., misreading August 5th as May 8th).
