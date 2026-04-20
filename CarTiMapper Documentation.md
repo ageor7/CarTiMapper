@@ -11,6 +11,21 @@
 6. **No Default Bold/Capitalize:** We do not enforce `font-weight: bold` or `text-transform: uppercase` on narrative text through global CSS. The interface relies entirely on explicit manual HTML tags (e.g., `<b>`, `<strong>`) for emphasis.
 7. **True Font Loading:** When utilizing Google Fonts (especially for Greek Polytonic characters), we explicitly download all Regular (400) and Bold (700) weights and Italics etc. variations to ensure the browser never generates jagged "faux-bolds", "faux-italics" etc.
 
+*(Added following v6.0.15 Audit)*
+
+7. **[REF: DOC-02] Architectural Block Taxonomy:** To eliminate cascading errors and enable risk-free surgical patching, the codebase is strictly categorized into visual and logical boundaries.
+    * **Major Blocks:** High-level components (e.g., AppOrchestrator, GlobalStyles). Must carry explicit version numbers. 
+        * *Syntax:* `// === [ MAJOR BLOCK: ComponentName vX.X.X ] ===`
+    * **SubBlocks:** Discrete chunks of logic within a Major Block (e.g., parsers, rendering loops, state management).
+        * *Syntax:* `// --- [ SubBlock: LogicDescription ] ---`
+
+8. **[REF: VER-01] Strict Semantic Versioning:** Version numbers are manually tracked on both the global app and individual Major Blocks.
+    * **Feature Directives:** Increment the MINOR version and reset the patch (e.g., `v6.0.15` → `v6.1.0`).
+    * **Debugging & Hotfixes:** Increment the PATCH version by one (e.g., `v6.0.15` → `v6.0.16`).
+
+9. **[REF: DOC-03] GitHub Artifact Generation:** Every code alteration requires explicit Markdown artifacts prior to code delivery:
+    * **Commits & Changelogs:** Generated for every code change to track debugging history.
+    * **Master Blueprint Updates:** Generated for any design changes, new directives, or architectural shifts to maintain the global "Source of Truth."
 ---
 
 ## II. Active Requirements Matrix
