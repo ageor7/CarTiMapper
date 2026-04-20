@@ -26,6 +26,11 @@
 9. **[REF: DOC-03] GitHub Artifact Generation:** Every code alteration requires explicit Markdown artifacts prior to code delivery:
     * **Commits & Changelogs:** Generated for every code change to track debugging history.
     * **Master Blueprint Updates:** Generated for any design changes, new directives, or architectural shifts to maintain the global "Source of Truth."
+* **[REF: DOC-02] Architectural Block Taxonomy:** The codebase is now fully wrapped in semantic tags.
+    * *Major Blocks:* `// === [ MAJOR BLOCK: Name vX.X.X ] ===`
+    * *SubBlocks:* `// --- [ SubBlock: LogicDescription ] ---`
+* **[REF: VER-01] Strict Semantic Versioning:** Enabled. This baseline is established as **v6.0.17**.
+
 ---
 
 ## II. Active Requirements Matrix
@@ -67,7 +72,8 @@
 * **[REF: DATA-03] Spatial Deduplication:** When a single narrative event aggregates multiple spreadsheet rows of the same physical location, generating overlapping pins breaks Z-index visuals and overloads the DOM. The ETL pipeline wraps all geometry array builders in a `UNIQUE()` matrix, mathematically purging redundant geographic nodes *before* casting them into `GEOMETRYCOLLECTION` strings.
 * **[REF: DATA-05] Direct Key Mapping: Abandoned fuzzy header searching in favor of a Case-Independent Normalization layer. All spreadsheet headers are lowercased and trimmed upon ingest, permitting human-variable entries like "Description" or "DESCRIPTION" without breaking the code contract.
 * **[REF: DATA-06] Strict Euro-Date Logic: The engine executes a manual split on date strings to prioritize Day/Month/Year formats, specifically mitigating the "Global Paradox" where browsers misinterpret European dates as US formats.
-
+* **[REF: DATA-05] Direct Key Mapping:** Data is normalized via lowercase `norm` object mapping. Legacy `fuzzy()` logic is deprecated.
+* **[REF: DATA-06] Strict Euro-Date Logic:** `parseEuroDate` forces `DD/MM/YYYY` parsing to prevent US-browser inversion.
 ---
 
 ## V. UI/UX Elements & Design Solutions
@@ -84,7 +90,8 @@
   * Status Context: 24px micro-icon in the status bar to maximize content real estate.
   * About Context: High-fidelity branding center with a blur-backdrop and "Click-Outside-to-Close" behavior.
 * **[REF: UI-13] Metadata Hierarchy: The 📍 Place badge is right-aligned beneath the Tags, utilizing a unified, non-bold, pill-shaped aesthetic to distinguish metadata from narrative text.
-
+* **[REF: UI-14] Safe History Navigation:** Deep-linking and manual jumps push to a passive `slideHistory` state array, allowing safe "Back" functionality without corrupting child component prop signatures.
+* **[REF: UI-15] Pin Geometry Anchoring:** Map pins strictly enforce `position: relative` to prevent absolute-positioned heads and stems from decoupling during zoom physics.
 ---
 
 ## VI. Algorithms, Analytics & Methodologies
