@@ -16,11 +16,12 @@
 ## II. Active Requirements Matrix
 
 ### Met Requirements
-* **[REF: ETL-01] Upstream Spatial ETL (Google Sheets):** The Google Sheets database acts as the primary translation engine, compiling raw data into mathematically pure WKT and GeoJSON arrays.
+* **[REF: ETL-01] Upstream Spatial ETL: (Updated) The engine now relies on a compulsory source URL parameter for initialization.
 * **[REF: MAP-01] The WKT Mapping Engine:** Map natively parses Well-Known Text (WKT) via the `Wicket` library. Falls back safely to GeoJSON or standard Lat/Lon pairs.
 * **[REF: MAP-02] Spatial Decluttering (Clustering):** The map utilizes an R-Tree spatial index (`MarkerCluster`) to group overlapping geographic elements into numbered bubbles based on a 40px screen radius.
 * **[REF: MAP-03] Dynamic VIP Slide Focus:** Active narrative elements are mathematically extracted from the cluster bucket, styled as "Fire Pins" (`z-index: 1000`), and dropped back into the background when the user leaves the slide.
-* **Layout Hardening:** Map/Text/Media panes perfectly respect Flexbox boundaries.
+* **[REF: MAP-05] Linear Sub-Label Mapping: (New) MultiPoint geometries are recursively flattened into a linear array to ensure 1:1 parity with the pipe-delimited sub-label string.
+* **[REF: URL-01] Deep-Linking Engine: Fully supports ?source=, ?slide=, ?date=, ?theme=, and ?mapzoom=.* **Layout Hardening:** Map/Text/Media panes perfectly respect Flexbox boundaries.
 * **Smart Auto-Zoom (Timeline):** The timeline mathematically prevents text collisions while preserving dataset context.
 * **Ergonomic Touch Navigation:** The text pane supports frictionless Left/Right tap-to-navigate zones (15% width).
 * **Media Agnosticism:** Media pane natively renders images, YouTube iframes, Google Maps iframes, and raw HTTP links.
@@ -35,11 +36,12 @@
 
 ## III. Core Architecture: The Mapping Engine (The "Why" and "What")
 
-* **[REF: MAP-01] The WKT Fallback Engine:** Standard Lat/Lon and GeoJSON cannot natively group multiple distinct geographic shapes into a single narrative slide. We utilize Well-Known Text (WKT) via `Wicket` because it supports strict GIS `MultiPoint` and `GeometryCollection` definitions, allowing us to map complex, distributed events as a single database row.
+* **[REF: MAP-01] WKT Engine: (Updated) Removed redundant coordinate inversion logic. The engine trusts the upstream ETL output of POINT(Lon Lat) to maintain QGIS/PostGIS interoperability.
 * **[REF: MAP-02] Spatial Decluttering (MarkerCluster):** As the database grows, distant map elements mathematically overlap on screen. The R-Tree clustering plugin solves UI clutter without deleting data by dynamically merging pins based on zoom level.
 * **[REF: MAP-03] Dynamic VIP "Slide Focus":** The map utilizes a "State-Based Layer Swapping" architecture. It builds an `O(1)` memory dictionary on load. On slide change, it uses the dictionary to instantly locate the active marker, pull it from the background cluster, elevate its Z-index, and restyle it, ensuring the active narrative is never hidden.
-* **[REF: MAP-04] The Parallel Array (Sub-Labels):** When a `MultiPoint` contains multiple locations, a single label is insufficient. The engine reads a pipe-delimited string (`Camp 1 | Camp 2`) and mathematically aligns each substring to its respective point in the geometry array.
-
+* **[REF: MAP-04] Parallel Array (Sub-Labels): (Updated) Switched to a Strict Linear Map algorithm. If 3 geometries and 3 sub-labels are present, the engine mathematically locks them to prevent label duplication across LayerGroups.
+* **[REF: MAP-07] Tooltip Physics: Tooltips are anchored with a -48px vertical offset to provide aesthetic breathing room above the Map Pin head.
+  
 ---
 
 ## IV. Data Schema & The Upstream ETL Pipeline 
@@ -48,6 +50,8 @@
 * **[REF: DATA-02] The Cartographer's Dilemma (Coordinate Schema Rule):** Standard navigational systems (Google Maps, humans) read coordinates as **[Latitude, Longitude]**. However, strict mathematical GIS standards (OGC, GeoJSON, WKT) operate on a Cartesian graph and absolutely demand **[Longitude, Latitude]** (X, Y).
     * **The Rule:** The database must never be corrupted to appease a frontend quirk. Users will input `Lat, Lon` into the spreadsheet, but the ETL formula MUST act as the translator, natively outputting `POINT(Lon Lat)` for WKT and `[Lon, Lat]` for GeoJSON. This guarantees the CarTiMapper CSV export remains completely interoperable with enterprise software like QGIS and PostGIS.
 * **[REF: DATA-03] Spatial Deduplication:** When a single narrative event aggregates multiple spreadsheet rows of the same physical location, generating overlapping pins breaks Z-index visuals and overloads the DOM. The ETL pipeline wraps all geometry array builders in a `UNIQUE()` matrix, mathematically purging redundant geographic nodes *before* casting them into `GEOMETRYCOLLECTION` strings.
+* **[REF: DATA-05] Direct Key Mapping: Abandoned fuzzy header searching in favor of a Case-Independent Normalization layer. All spreadsheet headers are lowercased and trimmed upon ingest, permitting human-variable entries like "Description" or "DESCRIPTION" without breaking the code contract.
+* **[REF: DATA-06] Strict Euro-Date Logic: The engine executes a manual split on date strings to prioritize Day/Month/Year formats, specifically mitigating the "Global Paradox" where browsers misinterpret European dates as US formats.
 
 ---
 
@@ -60,6 +64,11 @@
 * **Typography Hierarchy:** `EB Garamond` (or similar serif) used for Titles/Descriptions. `Fira Sans` (or similar sans-serif) used for UI elements.
 * **[REF: UI-05] Visual Hierarchy (Map Pins):** Permanent geographical anchors (VIPs) bypass the cluster engine and render as distinct Gold pins. Active slide elements render as oversized Green pins. Inactive clustered elements render as standard Blue pins.
 * **Info Window URL Reference:** To ensure end-user visibility of deep-linking capabilities, the frontend "About" modal must explicitly mirror and document all active `[REF: URL-01]` routing parameters (e.g., `?slide=`, `?date=`, `?theme=`, `?mapzoom=`) as a stylized technical reference card.
+* **[REF: UI-08] Multi-Context Branding: The brand identity is separated into a Logomark (The Hex-Frame Chrono-Compass) and Logotype (CarTiMapper).
+  * Splash Context: Large vertical stack (300px) featuring the engine version.
+  * Status Context: 24px micro-icon in the status bar to maximize content real estate.
+  * About Context: High-fidelity branding center with a blur-backdrop and "Click-Outside-to-Close" behavior.
+* **[REF: UI-13] Metadata Hierarchy: The 📍 Place badge is right-aligned beneath the Tags, utilizing a unified, non-bold, pill-shaped aesthetic to distinguish metadata from narrative text.
 
 ---
 
