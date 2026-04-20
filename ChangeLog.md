@@ -1,6 +1,23 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.0.22)
+ContentSlider (v3.8.0): * [FIX: UI-SET-01] Injected the Settings trigger button into the Status Bar.
+
+[FIX: DATE-13] Upgraded formatSmartDate to conditionally render HH:mm on the narrative slide if an intra-day time is detected.
+
+TimelineScrubber (v23.5.0): * [FIX: TL-CLAMP-01] Deployed a mathematical span floor that forces the timeline to render a minimum of 24 hours.
+
+[FIX: TL-CLAMP-02] Deployed an Infinity Clamp that locks the minimum time gap to 60 seconds, preventing divide-by-zero crashes when multiple events fall on the exact same chronological tick.
+
+AppOrchestrator (v1.30.0): * [FIX: ARCH-01] Implemented the Two-Stage Data Pipeline, caching raw PapaParse rows in memory.
+
+[FIX: DATE-11 & 12] Replaced parseEuroDate with dynamicDateParse, which isolates HH:mm:ss payloads and mathematically routes date components based on the active format state.
+
+[FIX: UI-SET-01] Injected the Settings Modal UI overlay.
+
+---
+
 Changelog (v6.0.21)
 AppOrchestrator (v1.29.0): * [FIX: DATA-08] Replaced the partial-match smartGet algorithm with a high-performance exactGet mapper to strictly adhere to the defined Google Sheet schema.
 
