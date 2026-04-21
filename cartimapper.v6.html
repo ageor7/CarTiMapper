@@ -211,195 +211,8 @@
         };
         // === [ END MAJOR BLOCK: VibeMonitor v1.0.0 ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v3.12.0 ] ===
-        const MapViewer = ({ data, activeIndex, setActiveIndex, addLog }) => {
-            const mapDomRef = useRef(null);
-            const mapInstance = useRef(null);
-            const markerLayer = useRef(null); 
-            const clusterLayer = useRef(null); 
-            const markersRef = useRef({}); 
-            const hasFitBounds = useRef(false);
-
-            const createPinHtml = (isActive, isVip) => {
-                const color = isActive ? '#28a745' : (isVip ? '#ffb300' : '#007acc');
-                const scale = isActive ? 'scale(1.3)' : 'scale(1)';
-                const z = isActive ? '1000' : '0';
-                return `<div class="custom-map-pin" style="transform: ${scale}; z-index: ${z};">
-                            <div class="pin-head" style="background: ${color};"></div>
-                            <div class="pin-stem" style="background: ${isActive ? '#28a745' : '#333'}; width: ${isActive ? '3px' : '2px'};"></div>
-                        </div>`;
-            };
-
-            const extractLayers = (layerObj) => {
-                let layers = [];
-                if (Array.isArray(layerObj)) layerObj.forEach(l => layers = layers.concat(extractLayers(l)));
-                else if (layerObj && layerObj.eachLayer) layerObj.eachLayer(l => layers = layers.concat(extractLayers(l)));
-                else if (layerObj) layers.push(layerObj);
-                return layers;
-            };
-
-            useEffect(() => {
-                if (mapDomRef.current && !mapInstance.current && window.L) {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const initialZoom = urlParams.get('mapzoom') ? parseInt(urlParams.get('mapzoom')) : 2;
-                    const map = L.map(mapDomRef.current, { zoomControl: false }).setView([20, 0], initialZoom);
-                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM' }).addTo(map);
-                    
-                    markerLayer.current = L.featureGroup().addTo(map);
-                    clusterLayer.current = L.markerClusterGroup({ maxClusterRadius: 40, spiderfyOnMaxZoom: true }).addTo(map);
-                    mapInstance.current = map;
-                    
-                    if (window.ResizeObserver) {
-                        const ro = new ResizeObserver(() => { setTimeout(() => { if (mapInstance.current) mapInstance.current.invalidateSize(); }, 50); });
-                        ro.observe(mapDomRef.current.parentElement);
-                    }
-                }
-            }, []);
-
-            useEffect(() => {
-                const map = mapInstance.current;
-                if (!map || data.length === 0) return;
-                markerLayer.current.clearLayers();
-                clusterLayer.current.clearLayers();
-                markersRef.current = {};
-                let validMarkers = 0;
-
-                data.forEach((item, idx) => {
-                    const locStr = String(item.location || '').trim();
-                    if (!locStr) return;
-                    const activeLayersArray = []; 
-                    let featureLayers = [];
-
-                    try {
-                        if (locStr.match(/^[A-Z]+\s*\(/) || locStr.match(/^GEOMETRYCOLLECTION/)) {
-                            const wkt = new window.Wkt.Wkt();
-                            wkt.read(locStr);
-                            featureLayers = extractLayers(wkt.toObject());
-                        } else if (locStr.startsWith('{') && locStr.includes('"type"')) {
-                            // --- [ SubBlock: GeoJSON Parsing ] ---
-                            // [FIX: GEO-01] Removed coordsToLatLng override. Leaflet natively maps standard [Lon, Lat] arrays.
-                            featureLayers = extractLayers(L.geoJSON(JSON.parse(locStr)));
-                            // --- [ End SubBlock: GeoJSON Parsing ] ---
-                        } else {
-                            const coordMatch = locStr.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
-                            if (coordMatch) {
-                                const lat = parseFloat(coordMatch[1]);
-                                const lon = parseFloat(coordMatch[2]);
-                                if (!isNaN(lat) && !isNaN(lon)) featureLayers.push(L.marker([lat, lon]));
-                            }
-                        }
-
-                        const subLabels = item.subLabels ? item.subLabels.split(/[|;]/).map(s=>s.trim()) : [];
-                        const isVip = String(item.priority).trim().toUpperCase() === 'VIP';
-
-                        featureLayers.forEach((layer, layerIdx) => {
-                            if (layer.setStyle) layer.setStyle({ color: '#007acc', weight: 4 });
-                            
-                            if (layer instanceof L.Marker) {
-                                layer.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
-                                layer.isVip = isVip;
-                            } 
-                            
-                            let labelText = subLabels[layerIdx] ? subLabels[layerIdx] : (item.place ? stripHTML(item.place) : stripHTML(item.title));
-                            layer.bindTooltip(labelText, { direction: 'top', offset: [0, -48], className: 'centered-tooltip' });
-                            layer.on('click', () => setActiveIndex(idx));
-
-                            if (layer instanceof L.Marker && !isVip) clusterLayer.current.addLayer(layer); 
-                            else markerLayer.current.addLayer(layer); 
-
-                            activeLayersArray.push(layer);
-                            validMarkers++;
-                        });
-
-                        if (activeLayersArray.length > 0) markersRef.current[idx] = activeLayersArray; 
-                    } catch(e) { console.error("Map Error Row", idx, e); }
-                });
-
-                setTimeout(() => {
-                    if (mapInstance.current && validMarkers > 0 && !hasFitBounds.current && !new URLSearchParams(window.location.search).get('mapzoom')) {
-                        const bounds = L.latLngBounds();
-                        markerLayer.current.eachLayer(l => { if (l.getLatLng) bounds.extend(l.getLatLng()); else if (l.getBounds) bounds.extend(l.getBounds()); });
-                        clusterLayer.current.eachLayer(l => bounds.extend(l.getLatLng()));
-                        if (bounds.isValid()) {
-                            mapInstance.current.fitBounds(bounds, { padding: [30, 30], maxZoom: 6 });
-                            hasFitBounds.current = true;
-                        }
-                    }
-                }, 150);
-            }, [data]);
-
-            useEffect(() => {
-                const map = mapInstance.current;
-                const markers = markersRef.current;
-                if (!map || Object.keys(markers).length === 0) return;
-
-                Object.values(markers).forEach(layerArray => {
-                    layerArray.forEach(l => {
-                        if (l.setStyle) l.setStyle({ color: '#007acc', weight: 4 });
-                        if (l instanceof L.Marker) {
-                            l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
-                        }
-                    });
-                });
-
-                const activeLayers = markers[activeIndex];
-                if (activeLayers && activeLayers.length > 0) {
-                    const activeFeatureGroup = L.featureGroup(activeLayers);
-                    
-                    activeLayers.forEach(l => {
-                        if (l.setStyle) l.setStyle({ color: '#28a745', weight: 5 }); 
-                        if (l instanceof L.Marker) {
-                            l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(true, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
-                        } else if (l.bringToFront) {
-                            l.bringToFront();
-                        }
-                    });
-
-                    setTimeout(() => {
-                        try {
-                            const bounds = activeFeatureGroup.getBounds();
-                            if (bounds.isValid()) {
-                                map.flyToBounds(bounds, { animate: true, duration: 2.5, maxZoom: 16 });
-                            }
-                            activeLayers.forEach(l => { if (l.openTooltip) l.openTooltip(); });
-                        } catch(err) {}
-                    }, 100);
-                }
-            }, [activeIndex, data]);
-
-            return html`<div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>`;
-        };
-        MODULE_VERSIONS['MapViewer'] = 'v3.12.0';
-        // === [ END MAJOR BLOCK: MapViewer v3.12.0 ] ===
-
-        // === [ MAJOR BLOCK: MediaViewer v2.1.0 ] ===
-        const MediaViewer = ({ activeSlide }) => {
-            if (!activeSlide || !activeSlide.media || activeSlide.media.length === 0) return null;
-            
-            const renderMedia = (url) => {
-                if (url.includes('youtube.com') || url.includes('youtu.be')) {
-                    const videoId = url.includes('v=') ? url.split('v=')[1].split('&')[0] : url.split('/').pop().split('?')[0];
-                    return html`<iframe src="https://www.youtube.com/embed/${videoId}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-                }
-                return html`<img src=${url} alt="Media" loading="lazy" />`;
-            };
-
-            return html`
-                <div class="media-carousel">
-                    ${activeSlide.media.map((url, i) => html`
-                        <div class="media-item" key=${i}>
-                            ${activeSlide.media.length > 1 ? html`<div class="media-counter">${i + 1} / ${activeSlide.media.length}</div>` : ''}
-                            <div class="media-content-wrapper">${renderMedia(url)}</div>
-                        </div>
-                    `)}
-                </div>
-            `;
-        };
-        MODULE_VERSIONS['MediaViewer'] = 'v2.1.0';
-        // === [ END MAJOR BLOCK: MediaViewer v2.1.0 ] ===
-
         // === [ MAJOR BLOCK: ContentSlider v3.8.1 ] ===
-        const ContentSlider = ({ data, activeIndex, setActiveIndex, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo }) => {
+        const ContentSlider = ({ data, activeIndex, setActiveIndex, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo }) => {
             const slide = data[activeIndex];
             if (!slide) return null;
 
@@ -407,7 +220,6 @@
             const formatSmartDate = (sD, eD) => {
                 if (!sD) return '';
                 
-                // [FIX: DATE-13] Conditionally render time if it is not exactly midnight
                 const hasTime = (d) => d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0;
                 
                 const fDate = (d) => {
@@ -426,7 +238,6 @@
             const goPrev = () => { if (activeIndex > 0) setActiveIndex(activeIndex - 1); };
             const goNext = () => { if (activeIndex < data.length - 1) setActiveIndex(activeIndex + 1); };
 
-            // [FIX: UI-SET-01] Injected the Settings ⚙️ Button
             return html`
                 <div class="content-pane-wrapper">
                     <div class="click-zone click-zone-left" onClick=${goPrev} title="Previous"></div>
@@ -458,14 +269,15 @@
                             <button class="nav-btn-bottom" onClick=${goPrev} disabled=${activeIndex === 0}>◀ Prev</button>
                             <button class="nav-btn-bottom" onClick=${goNext} disabled=${activeIndex === data.length - 1}>Next ▶</button>
                         </div>
-                        <div class="status-right">
+                        <div class="status-right" style="gap: 10px;">
+                            ${slideHistory && slideHistory.length > 0 ? html`<button class="status-btn" onClick=${goBack}>↩ Back</button>` : ''}
                             ${activeIndex + 1} / ${data.length}
                         </div>
                     </div>
                 </div>
             `;
         };
-        MODULE_VERSIONS['ContentSlider'] = 'v3.8.0';
+        MODULE_VERSIONS['ContentSlider'] = 'v3.8.1';
         // === [ END MAJOR BLOCK: ContentSlider v3.8.1 ] ===
 
         // === [ MAJOR BLOCK: TimelineScrubber v23.2.0 ] ===
@@ -654,7 +466,6 @@
             // --- [ SubBlock: State Initializers ] ---
             const [logs, setLogs] = useState([]);
             
-            // [FIX: ARCH-01] Stage 1 Raw Cache State
             const [rawCsvRows, setRawCsvRows] = useState([]);
             const [data, setData] = useState([]);
             const [aboutData, setAboutData] = useState(null); 
@@ -666,7 +477,6 @@
             const [isMonitorOpen, setIsMonitorOpen] = useState(false); 
             const [isAboutOpen, setIsAboutOpen] = useState(false);
             
-            // [FIX: UI-SET-01] Settings UI State
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
             const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
             
@@ -764,7 +574,8 @@
 
             // --- [ SubBlock: Stage 1 - Network Fetching ] ---
             useEffect(() => {
-                const urlParams = newSearchParams(window.location.search);
+                // [FIX: BOOT-CRASH-01] Corrected the fatal ReferenceError typo to standard URLSearchParams
+                const urlParams = new URLSearchParams(window.location.search);
                 const paramTheme = urlParams.get('theme');
                 
                 if (paramTheme === 'dark') {
@@ -818,7 +629,6 @@
                                 rawSource: rawSource === defaultDb ? 'Default Master DB' : rawSource
                             });
 
-                            // Only set raw rows to cache, triggering Stage 2 dynamically
                             setRawCsvRows(results.data);
                         },
                         error: (err) => { addLog(`Parse Error: ${err.message}`, 'error'); setStatus({ text: `Parse Failed: ${err.message}`, progress: 0, isFading: false, active: false }); }
@@ -842,7 +652,6 @@
                     const norm = {};
                     for (let k in row) norm[k.toLowerCase().trim()] = row[k];
 
-                    // [FIX: DATE-11 & 12] Time Preservation & Locale Routing
                     const dynamicDateParse = (str, format) => {
                         if (!str) return null;
                         
