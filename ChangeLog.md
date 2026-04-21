@@ -1,6 +1,25 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.0.26)
+GlobalStyles (v4.6.0): * [FIX: MAP-UI-02] Overrode default Leaflet Cluster CSS to deploy the Warm Segregation Palette.
+
+[FIX: UI-TYPO-01] Reconfigured .slide-place-badge constraints to allow dynamic multi-line text wrapping that aligns cleanly with the standard .slide-desc left margin.
+
+MapViewer (v3.14.0): * [FIX: MAP-UI-01] Restored native Leaflet zoom controls (topright) and the custom Floating Zoom Indicator.
+
+[FIX: SUB-01] Added dash and ano teleia to the sublabels RegEx split logic.
+
+[FIX: MAP-09] Enabled hot-swapping between the English Esri BaseMap and the Local CartoDB map based on application state.
+
+[FIX: MAP-10] Implemented the Elevation hook. The active marker is dynamically removed from the cluster group to guarantee visibility.
+
+[FIX: MAP-11] Bound getAllChildMarkers() to the cluster hover state to render a list of swallowed location names.
+
+AppOrchestrator (v1.31.0): [FIX: MAP-SET-01] Injected maxAutoZoom and mapLocale state variables and built the corresponding dropdown interfaces in the Settings Modal to route data to the MapViewer.
+
+---
+
 Changelog Strategy (v6.0.25)
 MapViewer (v3.13.0): * [FIX: MAP-UI-01] Restored native Leaflet zoom controls (topright) and the custom Floating Zoom Indicator synced to the map's native zoomend events.
 
