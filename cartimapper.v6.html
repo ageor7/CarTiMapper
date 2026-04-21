@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CarTiMapper/title>
+    <title>CarTiMapper Core v6.0.24</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 100'%3E%3Cdefs%3E%3Cfilter id='g' x='-50%25' y='-50%25' width='200%25' height='200%25'%3E%3CfeGaussianBlur stdDeviation='1.2' result='b'/%3E%3CfeMerge%3E%3CfeMergeNode in='b'/%3E%3CfeMergeNode in='b'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Cpath d='M28,38 L45,15 L180,15 L180,85 L45,85 L28,62 Z' fill='%23222' stroke='%23007acc' stroke-width='2.5' stroke-linejoin='round'/%3E%3Cg fill='%23fff' opacity='0.9'%3E%3Crect x='55' y='19' width='4' height='6' rx='1'/%3E%3Crect x='71' y='19' width='4' height='6' rx='1'/%3E%3Crect x='87' y='19' width='4' height='6' rx='1'/%3E%3Crect x='103' y='19' width='4' height='6' rx='1'/%3E%3Crect x='119' y='19' width='4' height='6' rx='1'/%3E%3Crect x='135' y='19' width='4' height='6' rx='1'/%3E%3Crect x='151' y='19' width='4' height='6' rx='1'/%3E%3Crect x='167' y='19' width='4' height='6' rx='1'/%3E%3Crect x='55' y='75' width='4' height='6' rx='1'/%3E%3Crect x='71' y='75' width='4' height='6' rx='1'/%3E%3Crect x='87' y='75' width='4' height='6' rx='1'/%3E%3Crect x='103' y='75' width='4' height='6' rx='1'/%3E%3Crect x='119' y='75' width='4' height='6' rx='1'/%3E%3Crect x='135' y='75' width='4' height='6' rx='1'/%3E%3Crect x='151' y='75' width='4' height='6' rx='1'/%3E%3Crect x='167' y='75' width='4' height='6' rx='1'/%3E%3C/g%3E%3Cg transform='translate(112, 50)'%3E%3Cpath d='M0,-28 L4,-6 L28,0 L4,6 L0,28 L-4,6 L-28,0 L-4,-6 Z' fill='%23444' opacity='0.8'/%3E%3Cg fill='%23fcfcfc' font-family='Arial,sans-serif' font-size='7'%3E%3Ctext x='0' y='-21' text-anchor='middle'%3EN%3C/text%3E%3Ctext x='24' y='2.5' text-anchor='middle'%3EE%3C/text%3E%3Ctext x='0' y='27' text-anchor='middle'%3ES%3C/text%3E%3Ctext x='-24' y='2.5' text-anchor='middle'%3EW%3C/text%3E%3C/g%3E%3Cg fill='%238be9fd' filter='url(%23g)'%3E%3Ccircle cx='12.5' cy='-21.6' r='1.2'/%3E%3Ccircle cx='21.6' cy='-12.5' r='1.2'/%3E%3Ccircle cx='21.6' cy='12.5' r='1.2'/%3E%3Ccircle cx='12.5' cy='21.6' r='1.2'/%3E%3Ccircle cx='-12.5' cy='21.6' r='1.2'/%3E%3Ccircle cx='-21.6' cy='12.5' r='1.2'/%3E%3Ccircle cx='-21.6' cy='-12.5' r='1.2'/%3E%3Ccircle cx='-12.5' cy='-21.6' r='1.2'/%3E%3C/g%3E%3Cg transform='rotate(60)'%3E%3Cpath d='M0,0 L-1,-16 L1,-16 Z' fill='%23999'/%3E%3Ccircle cx='0' cy='-20' r='2.8' fill='%23007acc'/%3E%3C/g%3E%3Cg transform='rotate(270)'%3E%3Cpath d='M0,0 L-1.2,-9 L1.2,-9 Z' fill='%23999'/%3E%3Ccircle cx='0' cy='-13' r='2.8' fill='%2328a745'/%3E%3C/g%3E%3Ccircle cx='0' cy='0' r='1.5' fill='%23fff'/%3E%3C/g%3E%3C/svg%3E">
 
@@ -51,7 +51,7 @@
 
         /* --- [ SubBlock: Leaflet Map & Pins ] --- */
         .leaflet-tooltip { white-space: normal !important; word-wrap: break-word !important; width: max-content !important; max-width: 300px !important; text-align: left !important; font-size: 0.85rem; font-weight: 400 !important; line-height: 1.4; padding: 6px 10px !important; }
-        .custom-map-pin { display: flex; align-items: flex-end; justify-content: center; width: 24px; height: 34px; transition: transform 0.2s;}
+        .custom-map-pin { display: flex; align-items: flex-end; justify-content: center; width: 24px; height: 34px; position: relative; transition: transform 0.2s;}
         .pin-head { width: 14px; height: 14px; border-radius: 50%; background: #d32f2f; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.4); position: absolute; top: 0; }
         .pin-stem { width: 2px; height: 20px; background: #333; position: absolute; bottom: 0; }
         .custom-div-icon { background: transparent !important; border: none !important; }
@@ -101,6 +101,7 @@
         #about-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 700px; max-height: 85vh; background: #fff; z-index: 9001; border-radius: 12px; padding: 30px; overflow-y: auto; display: none; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid #ccc; color: #222; font-size: 1.1rem; }
         #about-modal.open { display: block; }
         .about-close { position: absolute; top: 15px; right: 15px; border: none; background: none; font-size: 1.5rem; cursor: pointer; color: #999; }
+        .logo-horizontal-about { display: flex; flex-direction: column; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid #eee; padding-bottom: 20px; }
         /* --- [ End SubBlock: Status Bar & Modals ] --- */
 
         /* --- [ SubBlock: Timeline UI ] --- */
@@ -141,7 +142,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.0.23';
+        const APP_VERSION = 'v6.0.24';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.5.0', Globals: 'v1.0.51' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -210,6 +211,190 @@
             `;
         };
         // === [ END MAJOR BLOCK: VibeMonitor v1.0.0 ] ===
+
+        // === [ MAJOR BLOCK: MapViewer v3.12.0 ] ===
+        const MapViewer = ({ data, activeIndex, setActiveIndex, addLog }) => {
+            const mapDomRef = useRef(null);
+            const mapInstance = useRef(null);
+            const markerLayer = useRef(null); 
+            const clusterLayer = useRef(null); 
+            const markersRef = useRef({}); 
+            const hasFitBounds = useRef(false);
+
+            const createPinHtml = (isActive, isVip) => {
+                const color = isActive ? '#28a745' : (isVip ? '#ffb300' : '#007acc');
+                const scale = isActive ? 'scale(1.3)' : 'scale(1)';
+                const z = isActive ? '1000' : '0';
+                return `<div class="custom-map-pin" style="transform: ${scale}; z-index: ${z};">
+                            <div class="pin-head" style="background: ${color};"></div>
+                            <div class="pin-stem" style="background: ${isActive ? '#28a745' : '#333'}; width: ${isActive ? '3px' : '2px'};"></div>
+                        </div>`;
+            };
+
+            const extractLayers = (layerObj) => {
+                let layers = [];
+                if (Array.isArray(layerObj)) layerObj.forEach(l => layers = layers.concat(extractLayers(l)));
+                else if (layerObj && layerObj.eachLayer) layerObj.eachLayer(l => layers = layers.concat(extractLayers(l)));
+                else if (layerObj) layers.push(layerObj);
+                return layers;
+            };
+
+            useEffect(() => {
+                if (mapDomRef.current && !mapInstance.current && window.L) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const initialZoom = urlParams.get('mapzoom') ? parseInt(urlParams.get('mapzoom')) : 2;
+                    const map = L.map(mapDomRef.current, { zoomControl: false }).setView([20, 0], initialZoom);
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM' }).addTo(map);
+                    
+                    markerLayer.current = L.featureGroup().addTo(map);
+                    clusterLayer.current = L.markerClusterGroup({ maxClusterRadius: 40, spiderfyOnMaxZoom: true }).addTo(map);
+                    mapInstance.current = map;
+                    
+                    if (window.ResizeObserver) {
+                        const ro = new ResizeObserver(() => { setTimeout(() => { if (mapInstance.current) mapInstance.current.invalidateSize(); }, 50); });
+                        ro.observe(mapDomRef.current.parentElement);
+                    }
+                }
+            }, []);
+
+            useEffect(() => {
+                const map = mapInstance.current;
+                if (!map || data.length === 0) return;
+                markerLayer.current.clearLayers();
+                clusterLayer.current.clearLayers();
+                markersRef.current = {};
+                let validMarkers = 0;
+
+                data.forEach((item, idx) => {
+                    const locStr = String(item.location || '').trim();
+                    if (!locStr) return;
+                    const activeLayersArray = []; 
+                    let featureLayers = [];
+
+                    try {
+                        if (locStr.match(/^[A-Z]+\s*\(/) || locStr.match(/^GEOMETRYCOLLECTION/)) {
+                            const wkt = new window.Wkt.Wkt();
+                            wkt.read(locStr);
+                            featureLayers = extractLayers(wkt.toObject());
+                        } else if (locStr.startsWith('{') && locStr.includes('"type"')) {
+                            featureLayers = extractLayers(L.geoJSON(JSON.parse(locStr)));
+                        } else {
+                            const coordMatch = locStr.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
+                            if (coordMatch) {
+                                const lat = parseFloat(coordMatch[1]);
+                                const lon = parseFloat(coordMatch[2]);
+                                if (!isNaN(lat) && !isNaN(lon)) featureLayers.push(L.marker([lat, lon]));
+                            }
+                        }
+
+                        const subLabels = item.subLabels ? item.subLabels.split(/[|;]/).map(s=>s.trim()) : [];
+                        const isVip = String(item.priority).trim().toUpperCase() === 'VIP';
+
+                        featureLayers.forEach((layer, layerIdx) => {
+                            if (layer.setStyle) layer.setStyle({ color: '#007acc', weight: 4 });
+                            
+                            if (layer instanceof L.Marker) {
+                                layer.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
+                                layer.isVip = isVip;
+                            } 
+                            
+                            let labelText = subLabels[layerIdx] ? subLabels[layerIdx] : (item.place ? stripHTML(item.place) : stripHTML(item.title));
+                            layer.bindTooltip(labelText, { direction: 'top', offset: [0, -48], className: 'centered-tooltip' });
+                            layer.on('click', () => setActiveIndex(idx));
+
+                            if (layer instanceof L.Marker && !isVip) clusterLayer.current.addLayer(layer); 
+                            else markerLayer.current.addLayer(layer); 
+
+                            activeLayersArray.push(layer);
+                            validMarkers++;
+                        });
+
+                        if (activeLayersArray.length > 0) markersRef.current[idx] = activeLayersArray; 
+                    } catch(e) { console.error("Map Error Row", idx, e); }
+                });
+
+                setTimeout(() => {
+                    if (mapInstance.current && validMarkers > 0 && !hasFitBounds.current && !new URLSearchParams(window.location.search).get('mapzoom')) {
+                        const bounds = L.latLngBounds();
+                        markerLayer.current.eachLayer(l => { if (l.getLatLng) bounds.extend(l.getLatLng()); else if (l.getBounds) bounds.extend(l.getBounds()); });
+                        clusterLayer.current.eachLayer(l => bounds.extend(l.getLatLng()));
+                        if (bounds.isValid()) {
+                            mapInstance.current.fitBounds(bounds, { padding: [30, 30], maxZoom: 6 });
+                            hasFitBounds.current = true;
+                        }
+                    }
+                }, 150);
+            }, [data]);
+
+            useEffect(() => {
+                const map = mapInstance.current;
+                const markers = markersRef.current;
+                if (!map || Object.keys(markers).length === 0) return;
+
+                Object.values(markers).forEach(layerArray => {
+                    layerArray.forEach(l => {
+                        if (l.setStyle) l.setStyle({ color: '#007acc', weight: 4 });
+                        if (l instanceof L.Marker) {
+                            l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
+                        }
+                    });
+                });
+
+                const activeLayers = markers[activeIndex];
+                if (activeLayers && activeLayers.length > 0) {
+                    const activeFeatureGroup = L.featureGroup(activeLayers);
+                    
+                    activeLayers.forEach(l => {
+                        if (l.setStyle) l.setStyle({ color: '#28a745', weight: 5 }); 
+                        if (l instanceof L.Marker) {
+                            l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(true, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
+                        } else if (l.bringToFront) {
+                            l.bringToFront();
+                        }
+                    });
+
+                    setTimeout(() => {
+                        try {
+                            const bounds = activeFeatureGroup.getBounds();
+                            if (bounds.isValid()) {
+                                map.flyToBounds(bounds, { animate: true, duration: 2.5, maxZoom: 16 });
+                            }
+                            activeLayers.forEach(l => { if (l.openTooltip) l.openTooltip(); });
+                        } catch(err) {}
+                    }, 100);
+                }
+            }, [activeIndex, data]);
+
+            return html`<div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>`;
+        };
+        MODULE_VERSIONS['MapViewer'] = 'v3.12.0';
+        // === [ END MAJOR BLOCK: MapViewer v3.12.0 ] ===
+
+        // === [ MAJOR BLOCK: MediaViewer v2.1.0 ] ===
+        const MediaViewer = ({ activeSlide }) => {
+            if (!activeSlide || !activeSlide.media || activeSlide.media.length === 0) return null;
+            
+            const renderMedia = (url) => {
+                if (url.includes('youtube.com') || url.includes('youtu.be')) {
+                    const videoId = url.includes('v=') ? url.split('v=')[1].split('&')[0] : url.split('/').pop().split('?')[0];
+                    return html`<iframe src="https://www.youtube.com/embed/${videoId}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+                }
+                return html`<img src=${url} alt="Media" loading="lazy" />`;
+            };
+
+            return html`
+                <div class="media-carousel">
+                    ${activeSlide.media.map((url, i) => html`
+                        <div class="media-item" key=${i}>
+                            ${activeSlide.media.length > 1 ? html`<div class="media-counter">${i + 1} / ${activeSlide.media.length}</div>` : ''}
+                            <div class="media-content-wrapper">${renderMedia(url)}</div>
+                        </div>
+                    `)}
+                </div>
+            `;
+        };
+        MODULE_VERSIONS['MediaViewer'] = 'v2.1.0';
+        // === [ END MAJOR BLOCK: MediaViewer v2.1.0 ] ===
 
         // === [ MAJOR BLOCK: ContentSlider v3.8.1 ] ===
         const ContentSlider = ({ data, activeIndex, setActiveIndex, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo }) => {
@@ -280,186 +465,402 @@
         MODULE_VERSIONS['ContentSlider'] = 'v3.8.1';
         // === [ END MAJOR BLOCK: ContentSlider v3.8.1 ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v23.2.0 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v23.5.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
-            const tlDomRef = useRef(null);
-            const [tags, setTags] = useState([]);
-            const [scale, setScale] = useState(1); 
-            const [isDragging, setIsDragging] = useState(false);
-            const [startX, setStartX] = useState(0);
-            const [scrollLeft, setScrollLeft] = useState(0);
-
-            // --- [ SubBlock: Timeline Physics & Navigation ] ---
-            useEffect(() => {
-                if (data.length === 0) return;
-                const uniqueTags = new Set();
-                data.forEach(d => { if (d.tags) d.tags.forEach(t => uniqueTags.add(t)); });
-                setTags(Array.from(uniqueTags).sort());
-            }, [data]);
+            const wrapperRef = useRef(null);
+            const [zoomLevel, setZoomLevel] = useState(1);
+            const dragRef = useRef({ isDragging: false, startX: 0, scrollLeft: 0 });
+            const touchZoomRef = useRef({ initialDist: 0, initialZoom: 1 });
+            const isManualZoomRef = useRef(false);
+            const prevActiveIndexRef = useRef(-1);
+            const [containerHeight, setContainerHeight] = useState(200);
 
             useEffect(() => {
-                const handleWheel = (e) => {
-                    if (e.ctrlKey || e.metaKey) {
-                        e.preventDefault();
-                        setScale(s => Math.min(Math.max(0.1, s - e.deltaY * 0.005), 5));
-                    }
-                };
-                const el = tlDomRef.current;
-                if (el) el.addEventListener('wheel', handleWheel, { passive: false });
-                return () => { if (el) el.removeEventListener('wheel', handleWheel); };
+                const measure = () => { if (wrapperRef.current) setContainerHeight(wrapperRef.current.clientHeight); };
+                measure();
+                window.addEventListener('resize', measure);
+                return () => window.removeEventListener('resize', measure);
             }, []);
 
-            const onMouseDown = (e) => {
-                if (e.button !== 0) return; 
-                setIsDragging(true);
-                setStartX(e.pageX - tlDomRef.current.offsetLeft);
-                setScrollLeft(tlDomRef.current.scrollLeft);
-            };
-            const onMouseMove = (e) => {
-                if (!isDragging) return;
-                e.preventDefault();
-                const x = e.pageX - tlDomRef.current.offsetLeft;
-                const walk = (x - startX) * 2; 
-                tlDomRef.current.scrollLeft = scrollLeft - walk;
-            };
-            const onMouseUp = () => setIsDragging(false);
+            // --- [ SubBlock: Tag Matrix & Untagged Fallback ] ---
+            const tagsMap = new Set();
+            const tagPairs = [];
+            data.forEach(d => {
+                if(!d.startDate || isNaN(d.startDate.getTime())) return;
+                const t = d.tags && d.tags.length > 0 ? d.tags : ['Untagged'];
+                t.forEach(tag => tagsMap.add(tag));
+                for(let i=0; i<t.length-1; i++) tagPairs.push([t[i], t[i+1]]);
+            });
 
-            useEffect(() => {
-                if (!tlDomRef.current || data.length === 0) return;
-                const activeEl = tlDomRef.current.querySelector(`.event-group[data-idx="${activeIndex}"]`);
-                if (activeEl) {
-                    const blockWidth = activeEl.offsetWidth || 150;
-                    const blockCenterPx = activeEl.offsetLeft + (blockWidth / 2);
-                    const containerWidth = tlDomRef.current.offsetWidth;
-                    tlDomRef.current.scrollTo({ left: blockCenterPx - (containerWidth / 2), behavior: 'smooth' });
-                }
-            }, [activeIndex, scale, data]);
-            // --- [ End SubBlock: Timeline Physics & Navigation ] ---
-
-            if (data.length === 0 || tags.length === 0) return null;
-
-            // --- [ SubBlock: Lane & Axis Math ] ---
-            const minDate = data.reduce((min, d) => d.startDate < min ? d.startDate : min, data[0].startDate).getTime();
-            const maxDate = data.reduce((max, d) => d.endDate && d.endDate > max ? d.endDate : (d.startDate > max ? d.startDate : max), data[data.length-1].startDate).getTime();
-            const timeSpan = Math.max(maxDate - minDate, 86400000); 
+            let orderedTags = [];
+            const remaining = Array.from(tagsMap);
+            if (remaining.length > 0) orderedTags.push(remaining.shift());
             
-            const laneHeight = 40;
-            const PxPerMs = (1000 / (1000 * 60 * 60 * 24 * 30)) * scale; 
-            const totalWidth = Math.max(window.innerWidth, timeSpan * PxPerMs + 400);
+            while(remaining.length > 0) {
+                let placed = false;
+                for (let i = 0; i < remaining.length; i++) {
+                    const r = remaining[i];
+                    const pairedWithFirst = tagPairs.some(p => (p[0]===r && p[1]===orderedTags[0]) || (p[1]===r && p[0]===orderedTags[0]));
+                    const pairedWithLast = tagPairs.some(p => (p[0]===r && p[1]===orderedTags[orderedTags.length-1]) || (p[1]===r && p[0]===orderedTags[orderedTags.length-1]));
+                    if (pairedWithLast) { orderedTags.push(r); remaining.splice(i, 1); placed = true; break; }
+                    if (pairedWithFirst) { orderedTags.unshift(r); remaining.splice(i, 1); placed = true; break; }
+                }
+                if (!placed) orderedTags.push(remaining.shift());
+            }
+            // --- [ End SubBlock: Tag Matrix & Untagged Fallback ] ---
 
-            const lanes = tags.map((t, i) => ({ id: t, title: t, y: i * laneHeight }));
+            // --- [ SubBlock: Temporal Math & Layout Engine ] ---
+            const availableLanesHeight = Math.max(containerHeight - 28, 50); 
+            const laneHeight = Math.max(24, availableLanesHeight / (orderedTags.length || 1));
 
-            const layoutLanes = lanes.map(lane => {
-                const events = data.filter(d => d.tags.includes(lane.id));
-                const placed = [];
+            const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
+            const minTimeRaw = validData.length > 0 ? validData[0].startDate.getTime() : new Date().getTime();
+            let maxTimeRaw = minTimeRaw;
+            validData.forEach(d => { if (d.endDate && !isNaN(d.endDate.getTime()) && d.endDate.getTime() > maxTimeRaw) maxTimeRaw = d.endDate.getTime(); else if (d.startDate.getTime() > maxTimeRaw) maxTimeRaw = d.startDate.getTime(); });
+            
+            const rawTimeRange = Math.max(maxTimeRaw - minTimeRaw, 86400000); 
+            const padMs = rawTimeRange * 0.05; 
+            const renderMinTime = minTimeRaw - padMs;
+            const renderMaxTime = maxTimeRaw + padMs;
+            const renderTimeRange = renderMaxTime - renderMinTime;
+
+            const measureTextWidth = (text) => {
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                context.font = '400 12px "Noto Sans", sans-serif'; 
+                return context.measureText(text).width;
+            };
+
+            const formatLabelSmart = (titleStr) => {
+                const maxPx = 300; 
+                const words = titleStr.split(' ');
                 
-                events.forEach(event => {
-                    const sT = event.startDate.getTime();
-                    const eT = event.endDate ? event.endDate.getTime() : sT + (86400000 * 3); 
-                    const left = (sT - minDate) * PxPerMs + 100;
-                    let right = (eT - minDate) * PxPerMs + 100;
-                    const minW = 80; if ((right - left) < minW) right = left + minW;
-                    const width = right - left;
-                    
-                    const collisionZoom = 10;
-                    const contextZoom = 150;
-                    let bestSubLane = 0;
-                    let hasOverlap = true;
+                let targetLines = words.length > 1 ? (measureTextWidth(titleStr) > 280 ? 3 : 2) : 1;
+                if (targetLines === 1) return { lines: [titleStr], pxWidth: measureTextWidth(titleStr) + 35 };
 
-                    while (hasOverlap) {
-                        hasOverlap = false;
-                        for (let p of placed) {
-                            if (p.subLane === bestSubLane && left < p.right + collisionZoom && right > p.left - contextZoom) {
-                                hasOverlap = true;
-                                bestSubLane++;
-                                break;
-                            }
+                let bestSplit = [];
+                let bestScore = Infinity;
+
+                if (targetLines === 2) {
+                    for (let i = 1; i < words.length; i++) {
+                        let l1 = words.slice(0, i).join(' '), l2 = words.slice(i).join(' ');
+                        let w1 = measureTextWidth(l1), w2 = measureTextWidth(l2);
+                        let score = Math.max(w1, w2) + Math.abs(w1 - w2) * 0.8; 
+                        if (score < bestScore) { bestScore = score; bestSplit = [l1, l2]; }
+                    }
+                } else {
+                    for (let i = 1; i < words.length - 1; i++) {
+                        for (let j = i + 1; j < words.length; j++) {
+                            let l1 = words.slice(0, i).join(' '), l2 = words.slice(i, j).join(' '), l3 = words.slice(j).join(' ');
+                            let w1 = measureTextWidth(l1), w2 = measureTextWidth(l2), w3 = measureTextWidth(l3);
+                            let maxW = Math.max(w1, w2, w3), minW = Math.min(w1, w2, w3);
+                            let score = maxW + (maxW - minW) * 0.8;
+                            if (score < bestScore) { bestScore = score; bestSplit = [l1, l2, l3]; }
                         }
                     }
-                    placed.push({ ...event, left, right, width, subLane: bestSubLane });
-                });
+                }
 
-                const maxSubLanes = placed.reduce((max, p) => Math.max(max, p.subLane), 0) + 1;
-                return { ...lane, events: placed, height: maxSubLanes * laneHeight };
-            });
+                let lines = bestSplit.length ? bestSplit : [titleStr];
+                
+                if (lines.length === 3) {
+                     let last = lines[2];
+                     if (measureTextWidth(last) > maxPx) {
+                         while(measureTextWidth(last + '...') > maxPx && last.length > 0) last = last.slice(0, -1);
+                         lines[2] = last.trim() + '...';
+                     }
+                } else if (lines.length === 2) {
+                     let last = lines[1];
+                     if (measureTextWidth(last) > maxPx * 1.3) { 
+                         while(measureTextWidth(last + '...') > maxPx * 1.3 && last.length > 0) last = last.slice(0, -1);
+                         lines[1] = last.trim() + '...';
+                     }
+                }
 
-            let currentY = 0;
-            const finalLanes = layoutLanes.map(l => {
-                const laneData = { ...l, y: currentY };
-                currentY += l.height;
-                return laneData;
-            });
-            const totalHeight = currentY + 30; 
+                const finalMaxW = Math.max(...lines.map(l => measureTextWidth(l)));
+                return { lines, pxWidth: Math.max(60, finalMaxW + 35) };
+            };
+            // --- [ End SubBlock: Temporal Math & Layout Engine ] ---
 
-            const getTickInterval = () => {
-                const msPerViewport = (window.innerWidth / PxPerMs);
-                const days = msPerViewport / 86400000;
-                if (days < 5) return { unit: 'day', ms: 86400000, fmt: (d) => d.toLocaleDateString([], { month: 'short', day: 'numeric' }) };
-                if (days < 30) return { unit: 'week', ms: 86400000 * 7, fmt: (d) => d.toLocaleDateString([], { month: 'short', day: 'numeric' }) };
-                if (days < 180) return { unit: 'month', ms: 86400000 * 30.44, fmt: (d) => d.toLocaleDateString([], { month: 'short', year: 'numeric' }) };
-                if (days < 1825) return { unit: 'year', ms: 86400000 * 365.25, fmt: (d) => d.getFullYear().toString() };
-                return { unit: 'decade', ms: 86400000 * 365.25 * 10, fmt: (d) => d.getFullYear().toString() };
+            // --- [ SubBlock: Zoom & Pan Physics ] ---
+            useEffect(() => {
+                if (validData.length > 1 && wrapperRef.current && !dragRef.current.isDragging) {
+                    if (activeIndex !== prevActiveIndexRef.current) {
+                        prevActiveIndexRef.current = activeIndex;
+                        isManualZoomRef.current = false; 
+
+                        const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
+                        if (activeDataIndex >= 0 && !isManualZoomRef.current) {
+                            const item = validData[activeDataIndex];
+                            const sT = item.startDate.getTime();
+                            const eT = (item.endDate && !isNaN(item.endDate.getTime())) ? item.endDate.getTime() : sT;
+                            
+                            const activeTags = item.tags && item.tags.length > 0 ? item.tags : ['Untagged'];
+                            const { pxWidth } = formatLabelSmart(stripHTML(item.title));
+                            const containerW = wrapperRef.current.clientWidth || 1000;
+                            
+                            let minTimeGapSameLane = Infinity;
+                            let minTimeGapAnyLane = Infinity;
+                            
+                            validData.forEach((d, idx) => {
+                                if (idx === activeDataIndex) return;
+                                const dSt = d.startDate.getTime();
+                                const dEt = (d.endDate && !isNaN(d.endDate.getTime())) ? d.endDate.getTime() : dSt;
+                                
+                                let gap = Math.abs(dSt - sT);
+                                if (gap === 0) gap = Math.max(Math.abs(dEt - eT), 60000); 
+                                gap = Math.max(gap, 60000); 
+                                
+                                if (gap < minTimeGapAnyLane) minTimeGapAnyLane = gap;
+                                
+                                const dTags = d.tags && d.tags.length > 0 ? d.tags : ['Untagged'];
+                                if (dTags.some(t => activeTags.includes(t))) {
+                                    if (gap < minTimeGapSameLane) minTimeGapSameLane = gap;
+                                }
+                            });
+
+                            let collisionZoom = 1;
+                            if (minTimeGapSameLane !== Infinity) {
+                                const requiredTrackW = ((pxWidth + 20) * renderTimeRange) / minTimeGapSameLane;
+                                collisionZoom = requiredTrackW / containerW;
+                            }
+
+                            let contextZoom = 1;
+                            if (minTimeGapAnyLane !== Infinity) {
+                                const requiredTrackW = (150 * renderTimeRange) / minTimeGapAnyLane;
+                                contextZoom = requiredTrackW / containerW;
+                            }
+
+                            const idealZoom = Math.max(collisionZoom, contextZoom * 1.3); 
+                            setZoomLevel(prev => {
+                                const maxJump = prev * 0.5;
+                                if (idealZoom > prev + maxJump) return prev + maxJump;
+                                if (idealZoom < prev - maxJump) return Math.max(1, prev - maxJump);
+                                return Math.min(Math.max(1, idealZoom), 150);
+                            });
+                        }
+                    }
+                }
+            }, [activeIndex, data]); 
+
+            useEffect(() => {
+                const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
+                if (activeDataIndex >= 0 && wrapperRef.current && !dragRef.current.isDragging) {
+                    const item = validData[activeDataIndex];
+                    const sT = item.startDate.getTime();
+                    
+                    const { pxWidth } = formatLabelSmart(stripHTML(item.title));
+                    const containerW = wrapperRef.current.clientWidth || 1000;
+                    const targetTrackW = Math.max(containerW, containerW * zoomLevel);
+                    const sPct = (sT - renderMinTime) / renderTimeRange;
+                    
+                    const visualCenterPx = (sPct * targetTrackW) + (pxWidth / 2);
+                    const scrollPos = visualCenterPx - (containerW / 2);
+                    
+                    requestAnimationFrame(() => {
+                        setTimeout(() => {
+                            if (wrapperRef.current) {
+                                wrapperRef.current.scrollTo({ left: scrollPos, behavior: 'smooth' });
+                            }
+                        }, 50); 
+                    });
+                }
+            }, [activeIndex, zoomLevel, data]);
+
+            const onDown = (e) => { 
+                isManualZoomRef.current = true;
+                if (e.touches && e.touches.length === 2) {
+                    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                    touchZoomRef.current = { initialDist: dist, initialZoom: zoomLevel };
+                    return;
+                }
+                const x = e.touches ? e.touches[0].clientX : e.clientX;
+                dragRef.current = { isDragging: true, startX: x - wrapperRef.current.offsetLeft, scrollLeft: wrapperRef.current.scrollLeft }; 
+                wrapperRef.current.classList.add('is-dragging'); 
+            };
+            const onUp = () => { dragRef.current.isDragging = false; wrapperRef.current?.classList.remove('is-dragging'); };
+            const onMove = (e) => {
+                if (e.touches && e.touches.length === 2) {
+                    e.preventDefault(); 
+                    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                    const scale = dist / touchZoomRef.current.initialDist;
+                    setZoomLevel(Math.min(Math.max(touchZoomRef.current.initialZoom * scale, 0.5), 150));
+                    return;
+                }
+                if (!dragRef.current.isDragging) return;
+                const x = e.touches ? e.touches[0].clientX : e.clientX;
+                if (!e.touches) e.preventDefault(); 
+                wrapperRef.current.scrollLeft = dragRef.current.scrollLeft - ((x - wrapperRef.current.offsetLeft - dragRef.current.startX) * 2);
             };
 
-            const tickConfig = getTickInterval();
-            const ticks = [];
-            let tickTime = minDate - (minDate % tickConfig.ms);
-            while (tickTime <= maxDate + tickConfig.ms) {
-                if (tickTime >= minDate) ticks.push({ left: (tickTime - minDate) * PxPerMs + 100, label: tickConfig.fmt(new Date(tickTime)) });
-                tickTime += tickConfig.ms;
+            const doManualZoom = (direction) => {
+                isManualZoomRef.current = true;
+                setZoomLevel(p => direction === 'in' ? Math.min(p + 0.5, 150) : Math.max(p - 0.5, 0.5));
+            };
+            // --- [ End SubBlock: Zoom & Pan Physics ] ---
+
+            if (validData.length === 0) return html`<div style="padding:1rem;">No valid temporal data.</div>`;
+
+            // --- [ SubBlock: Axis Scale Resolution ] ---
+            const containerW = wrapperRef.current ? wrapperRef.current.clientWidth : 1000;
+            const trackWidthPx = Math.max(containerW, containerW * zoomLevel);
+            const visibleMs = renderTimeRange / zoomLevel;
+            const msPerPixel = renderTimeRange / trackWidthPx;
+            
+            const targetMsPerMajorTick = (200 / containerW) * visibleMs; 
+
+            const MINUTE = 60000; const HOUR = 60 * MINUTE; const DAY = 24 * HOUR; const MONTH = 30 * DAY; const YEAR = 365.25 * DAY;
+            const majorSteps = [ 100 * YEAR, 50 * YEAR, 10 * YEAR, YEAR, 6 * MONTH, MONTH, 7 * DAY, DAY, 12 * HOUR, 6 * HOUR, HOUR ];
+            
+            let majorStepMs = majorSteps[0];
+            for (let s of majorSteps) { if (targetMsPerMajorTick <= s) majorStepMs = s; }
+
+            let formatType = 'year'; let minorStepMs = MONTH;
+            if (majorStepMs <= YEAR) { formatType = 'month'; minorStepMs = DAY; }
+            if (majorStepMs <= MONTH) { formatType = 'day'; minorStepMs = 7 * DAY; } 
+            if (majorStepMs <= 7 * DAY) { formatType = 'day'; minorStepMs = DAY; }   
+            if (majorStepMs <= DAY) { formatType = 'time'; minorStepMs = 4 * HOUR; }
+            if (majorStepMs <= 12 * HOUR) { formatType = 'time'; minorStepMs = 2 * HOUR; }
+            if (majorStepMs <= 6 * HOUR) { formatType = 'time'; minorStepMs = HOUR; }
+
+            const rulerTicks = [];
+            const minDate = new Date(renderMinTime);
+            let startTickTime = renderMinTime;
+            
+            if (formatType === 'year') startTickTime = new Date(minDate.getFullYear(), 0, 1).getTime();
+            if (formatType === 'month') startTickTime = new Date(minDate.getFullYear(), minDate.getMonth(), 1).getTime();
+            if (formatType === 'day') startTickTime = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate()).getTime();
+            if (formatType === 'time') {
+                const hours = minDate.getHours();
+                const flooredHours = Math.floor(hours / (majorStepMs / HOUR)) * (majorStepMs / HOUR);
+                startTickTime = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate(), flooredHours, 0, 0).getTime();
             }
-            // --- [ End SubBlock: Lane & Axis Math ] ---
+            
+            let iterTime = startTickTime;
+            let safety = 0;
 
-            // --- [ SubBlock: Timeline Rendering ] ---
-            // [FIX: UI-TL-02] A single relative wrapper prevents Preact Fragment errors and stops flexbox from crushing the 0px height.
-            return html`
-                <div style="position: relative; width: 100%; height: 100%;">
-                    <div style="position: absolute; right: 20px; top: 10px; z-index: 1000; display: flex; gap: 5px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));">
-                        <button style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-weight: bold; color: #444;" onClick=${() => setScale(s => s * 1.5)}>+</button>
-                        <button style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-weight: bold; color: #444;" onClick=${() => setScale(1)}>O</button>
-                        <button style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-weight: bold; color: #444;" onClick=${() => setScale(s => s / 1.5)}>-</button>
-                    </div>
+            while (iterTime <= renderMaxTime && safety < 1000) {
+                safety++;
+                if (iterTime >= renderMinTime) {
+                    const d = new Date(iterTime);
+                    let label = '';
+                    const pctLeft = ((iterTime - renderMinTime) / renderTimeRange) * 100;
                     
-                    <div class="timeline-scroll-wrapper" ref=${tlDomRef} onMouseDown=${onMouseDown} onMouseLeave=${onMouseUp} onMouseUp=${onMouseUp} onMouseMove=${onMouseMove} style="--lane-h: ${laneHeight}px;">
-                        <div class="timeline-track-container" style="width: ${totalWidth}px; height: ${totalHeight}px;">
-                            ${finalLanes.map(lane => html`
-                                <div class="tag-lane" style="top: ${lane.y}px; height: ${lane.height}px;">
-                                    <div class="tag-lane-label">${lane.title}</div>
-                                </div>
-                            `)}
+                    const isMidnight = (d.getHours() === 0 && d.getMinutes() === 0);
+                    const isFirstTick = iterTime === startTickTime;
+                    
+                    if (formatType === 'year') label = d.getFullYear();
+                    else if (formatType === 'month') label = d.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
+                    else if (formatType === 'day') label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                    else if (formatType === 'time') {
+                        if (isMidnight || isFirstTick) label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                        else label = d.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                    }
 
-                            ${finalLanes.map(lane => lane.events.map(event => {
-                                const isActive = event.id === activeIndex;
-                                return html`
-                                    <div class="event-group ${isActive ? 'active' : ''}" data-idx=${event.id}
-                                         style="left: ${event.left}px; top: ${lane.y + (event.subLane * laneHeight)}px;"
-                                         onClick=${() => setActiveIndex(event.id)}>
-                                        
-                                        <div class="event-block" style="width: ${event.width}px; background: ${isActive ? '#007acc' : '#fff'}; border: 1px solid ${isActive ? '#005f9e' : '#ccc'}; color: ${isActive ? '#fff' : '#222'};">
-                                            <div class="event-text">
-                                                <span style="font-weight: bold; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;" dangerouslySetInnerHTML=${{ __html: stripHTML(event.title) }}></span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `;
-                            }))}
+                    rulerTicks.push(html`
+                        <div class="timeline-ruler-tick" style="left: ${pctLeft}%; position: absolute; bottom: 3px; display: flex; flex-direction: column; align-items: center; z-index: 5;">
+                            <div style="width: 2px; height: 10px; background: #666; margin-bottom: 2px;"></div>
+                            <div style="font-size: 0.75rem; color: #444; white-space: nowrap;">${label}</div>
+                        </div>
+                    `);
 
-                            <div class="timeline-axis">
-                                ${ticks.map((tick, i) => html`
-                                    <div class="timeline-ruler-tick" key=${i} style="left: ${tick.left}px;">
-                                        <div style="width: 2px; height: 6px; background: #999; margin-bottom: 2px;"></div>
-                                        <span>${tick.label}</span>
+                    let minorIter = iterTime + minorStepMs;
+                    let minorCount = 0;
+                    while (minorIter < iterTime + majorStepMs && minorCount < 30) {
+                        minorCount++;
+                        if ((minorStepMs / msPerPixel) > 15) { 
+                            const mPctLeft = ((minorIter - renderMinTime) / renderTimeRange) * 100;
+                            rulerTicks.push(html`<div style="position: absolute; left: ${mPctLeft}%; top: 0; width: 1px; height: 5px; background: #aaa; z-index: 4;"></div>`);
+                        }
+                        minorIter += minorStepMs;
+                    }
+                }
+                iterTime += majorStepMs; 
+            }
+            // --- [ End SubBlock: Axis Scale Resolution ] ---
+
+            // --- [ SubBlock: DOM Generation & Geometry Placement ] ---
+            const markers = validData.map((item, index) => {
+                const globalIndex = data.findIndex(d => d.id === item.id);
+                
+                const startPct = Number((((item.startDate.getTime() - renderMinTime) / renderTimeRange) * 100).toFixed(4));
+                let endPct = startPct;
+                if (item.endDate && !isNaN(item.endDate.getTime()) && item.endDate.getTime() > item.startDate.getTime()) {
+                    endPct = Number((((item.endDate.getTime() - renderMinTime) / renderTimeRange) * 100).toFixed(4));
+                }
+                const hasDuration = (endPct - startPct) > 0.001;
+                
+                const isActive = globalIndex === activeIndex;
+                const activeTags = item.tags && item.tags.length > 0 ? item.tags : ['Untagged'];
+                const tagIndices = activeTags.map(t => orderedTags.indexOf(t));
+                const minIdx = Math.min(...tagIndices);
+                const maxIdx = Math.max(...tagIndices);
+                
+                const topPos = minIdx * laneHeight;
+                const blockHeight = (maxIdx - minIdx + 1) * laneHeight; 
+
+                let activeAnchor = '';
+                if (isActive) {
+                    const distanceToAxis = availableLanesHeight - topPos;
+                    if (hasDuration) {
+                        activeAnchor = html`
+                            <div style="position: absolute; left: 0; top: 50%; height: ${distanceToAxis - (blockHeight / 2)}px; width: 2px; background: #007acc; z-index: 999;"></div>
+                            <div style="position: absolute; top: ${distanceToAxis - 16}px; left: 0; width: 100%; min-width: 2px; height: 16px; background: rgba(0,122,204,0.3); clip-path: polygon(0 0, 100% 50%, 100% 100%, 0 100%); z-index: 998;"></div>
+                            <div style="position: absolute; top: ${distanceToAxis - 8}px; right: 0; width: 2px; height: 8px; background: #007acc; z-index: 999;"></div>
+                        `;
+                    } else {
+                        activeAnchor = html`
+                            <div style="position: absolute; left: 0; top: 50%; height: ${distanceToAxis - (blockHeight / 2)}px; width: 2px; background: #007acc; z-index: 999;"></div>
+                            <div style="position: absolute; top: ${distanceToAxis - 4}px; left: -3px; width: 8px; height: 8px; border-radius: 50%; background: #007acc; border: 1px solid #fff; z-index: 998;"></div>
+                        `;
+                    }
+                }
+
+                const { lines, pxWidth } = formatLabelSmart(stripHTML(item.title));
+                const groupWidth = hasDuration ? `width: ${endPct - startPct}%; min-width: 4px;` : `width: ${pxWidth}px;`;
+
+                return html`
+                    <div id="timeline-marker-${globalIndex}" class="event-group ${isActive ? 'active' : ''}" style="left: ${startPct}%; top: ${topPos}px; height: ${blockHeight}px; ${groupWidth}" onClick=${() => setActiveIndex(globalIndex)}>
+                        ${activeAnchor}
+                        <div class="event-block" style="position: absolute; top: 50%; transform: translateY(-50%); left: 0; --lane-h: ${laneHeight}px; background: ${isActive ? '#007acc' : '#f4f4f5'}; color: ${isActive ? '#fff' : '#444'}; z-index: 5; width: ${pxWidth}px;">
+                            <div class="event-text">
+                                ${lines.map(l => html`<div style="white-space: nowrap; overflow: hidden; width: 100%;">${l}</div>`)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            return html`
+                <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;">
+                    <div class="timeline-controls" style="position: absolute; right: 20px; top: 10px; z-index: 1000; display: flex; gap: 5px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));">
+                        <button style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-weight: bold; color: #444;" onClick=${() => doManualZoom('in')}>+</button>
+                        <button style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-weight: bold; color: #444;" onClick=${() => setZoomLevel(1)}>O</button>
+                        <button style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-weight: bold; color: #444;" onClick=${() => doManualZoom('out')}>-</button>
+                    </div>
+                    <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${(e) => { e.preventDefault(); doManualZoom(e.deltaY < 0 ? 'out' : 'in'); }}>
+                        <div class="timeline-track-container" style="width: ${trackWidthPx}px; flex-shrink: 0; min-width: 100%; height: 100%;">
+                            
+                            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 28px; pointer-events: none; z-index: 0;">
+                                ${orderedTags.map((tag, i) => html`
+                                    <div class="tag-lane" style="top: ${i * laneHeight}px; height: ${laneHeight}px; background: ${i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent'};">
+                                        <div class="tag-lane-label" style="background: ${i % 2 === 0 ? '#f4f4f4' : '#fcfcfc'}; pointer-events: auto;">${tag}</div>
                                     </div>
                                 `)}
                             </div>
+
+                            <div class="timeline-axis">
+                                ${rulerTicks}
+                            </div>
+                            
+                            ${markers}
                         </div>
                     </div>
                 </div>
             `;
-            // --- [ End SubBlock: Timeline Rendering ] ---
+            // --- [ End SubBlock: DOM Generation & Geometry Placement ] ---
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v23.2.0';
-        // === [ END MAJOR BLOCK: TimelineScrubber v23.2.0 ] ===
+        MODULE_VERSIONS['TimelineScrubber'] = 'v23.5.0';
+        // === [ END MAJOR BLOCK: TimelineScrubber v23.5.0 ] ===
 
         // === [ MAJOR BLOCK: AppOrchestrator v1.30.1 ] ===
         const App = () => {
@@ -574,7 +975,6 @@
 
             // --- [ SubBlock: Stage 1 - Network Fetching ] ---
             useEffect(() => {
-                // [FIX: BOOT-CRASH-01] Corrected the fatal ReferenceError typo to standard URLSearchParams
                 const urlParams = new URLSearchParams(window.location.search);
                 const paramTheme = urlParams.get('theme');
                 
