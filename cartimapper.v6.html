@@ -15,7 +15,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/wicket/1.3.8/wicket.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/wicket/1.3.8/wicket-leaflet.min.js"></script>
     <style>
-        /* === [ MAJOR BLOCK: GlobalStyles v4.5.0 ] === */
+        /* === [ MAJOR BLOCK: GlobalStyles v4.6.0 ] === */
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
         /* --- [ SubBlock: Root & Base ] --- */
@@ -57,6 +57,14 @@
         .custom-div-icon { background: transparent !important; border: none !important; }
         .centered-tooltip { text-align: center; }
         .map-zoom-indicator { position: absolute; bottom: 15px; left: 15px; z-index: 1000; background: rgba(255,255,255,0.85); padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; color: #333; pointer-events: none; border: 1px solid #ccc; }
+        
+        /* [FIX: MAP-UI-02] Segregated Cluster Palette explicitly avoids semantic Active/Standard blue and green colors */
+        .marker-cluster-small { background-color: rgba(255, 180, 80, 0.6) !important; }
+        .marker-cluster-small div { background-color: rgba(240, 140, 40, 0.7) !important; color: white !important; font-weight: bold; }
+        .marker-cluster-medium { background-color: rgba(240, 130, 130, 0.6) !important; }
+        .marker-cluster-medium div { background-color: rgba(220, 80, 80, 0.7) !important; color: white !important; font-weight: bold; }
+        .marker-cluster-large { background-color: rgba(180, 100, 180, 0.6) !important; }
+        .marker-cluster-large div { background-color: rgba(150, 60, 150, 0.7) !important; color: white !important; font-weight: bold; }
         /* --- [ End SubBlock: Leaflet Map & Pins ] --- */
 
         /* --- [ SubBlock: Media Carousel ] --- */
@@ -76,9 +84,15 @@
         .slide-container { width: 100%; max-width: 1000px; margin: 0 auto; flex: 1; box-sizing: border-box; }
         .slide-header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.8rem; }
         .slide-date { color: #007acc; font-size: 1.1rem; letter-spacing: 0.5px; font-weight: bold; }
-        .slide-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; max-width: 50%; }
-        .tag-badge, .slide-place-badge { background: #e0e0e0; color: #444; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; white-space: nowrap; border: 1px solid #ccc; font-weight: 400; }
-        .slide-place-badge { display: inline-flex; align-items: center; gap: 4px; }
+        
+        /* [FIX: UI-TYPO-01] Expanded flex constraints to 80% to allow badge to align with desc left margin */
+        .slide-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; max-width: 80%; }
+        
+        /* [FIX: UI-TYPO-01] Implemented text-wrap balance and normal whitespace for dynamic multiline alignment */
+        .tag-badge, .slide-place-badge { background: #e0e0e0; color: #444; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; border: 1px solid #ccc; font-weight: 400; }
+        .tag-badge { white-space: nowrap; }
+        .slide-place-badge { display: inline-flex; align-items: center; gap: 4px; white-space: normal; text-align: right; text-wrap: balance; line-height: 1.3; max-width: 100%; }
+        
         .tags-container { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
         .slide-title { margin: 0 0 1.5rem 0; font-size: 2.5rem; color: #111; line-height: 1.1; font-weight: 400; }
         .slide-desc { line-height: 1.6; font-size: 1.15rem; color: #333; width: 100%; font-weight: 400; }
@@ -129,7 +143,7 @@
         #vibe-logs { flex: 1; overflow-y: auto; padding: 10px; font-size: 12px; line-height: 1.4; word-wrap: break-word; }
         .log-info { color: #8be9fd; } .log-success { color: #50fa7b; } .log-warn { color: #ffb86c; } .log-error { color: #ff5555; }
         /* --- [ End SubBlock: Vibe Monitor UI ] --- */
-        /* === [ END MAJOR BLOCK: GlobalStyles v4.5.0 ] === */
+        /* === [ END MAJOR BLOCK: GlobalStyles v4.6.0 ] === */
     </style>
 </head>
 <body>
@@ -142,7 +156,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.0.25';
+        const APP_VERSION = 'v6.0.26';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.5.0', Globals: 'v1.0.51' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -212,16 +226,15 @@
         };
         // === [ END MAJOR BLOCK: VibeMonitor v1.0.0 ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v3.13.0 ] ===
-        const MapViewer = ({ data, activeIndex, setActiveIndex, addLog }) => {
+        // === [ MAJOR BLOCK: MapViewer v3.14.0 ] ===
+        const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, mapLocale, maxAutoZoom }) => {
             const mapDomRef = useRef(null);
             const mapInstance = useRef(null);
             const markerLayer = useRef(null); 
             const clusterLayer = useRef(null); 
+            const tileLayerRef = useRef(null);
             const markersRef = useRef({}); 
             const hasFitBounds = useRef(false);
-            
-            // [FIX: MAP-UI-01] Restored zoom state tracking
             const [mapZoom, setMapZoom] = useState(2);
 
             const createPinHtml = (isActive, isVip) => {
@@ -249,13 +262,11 @@
                     setMapZoom(initialZoom);
                     
                     const map = L.map(mapDomRef.current, { zoomControl: false }).setView([20, 0], initialZoom);
-                    
-                    // [FIX: MAP-UI-01] Restored Top-Right Zoom Control & Event Listener
                     L.control.zoom({ position: 'topright' }).addTo(map);
                     map.on('zoomend', () => setMapZoom(map.getZoom()));
 
-                    // [FIX: MAP-09] Swapped CartoDB for Esri World Street Map to force English locale
-                    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
+                    // Initialize TileLayer reference
+                    tileLayerRef.current = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
                         attribution: '&copy; Esri & OSM' 
                     }).addTo(map);
                     
@@ -268,14 +279,10 @@
                         const titles = [...new Set(children.map(m => m.getTooltip().getContent()))];
                         let displayHtml = titles.slice(0, 5).join('<br/>');
                         if (titles.length > 5) displayHtml += `<br/><em style="color: #666; font-size: 0.8em;">+${titles.length - 5} more locations...</em>`;
-                        
                         c.layer.bindTooltip(displayHtml, { direction: 'top', className: 'centered-tooltip' }).openTooltip();
                     });
                     
-                    clusterLayer.current.on('clustermouseout', (c) => {
-                        c.layer.unbindTooltip();
-                    });
-
+                    clusterLayer.current.on('clustermouseout', (c) => c.layer.unbindTooltip());
                     mapInstance.current = map;
                     
                     if (window.ResizeObserver) {
@@ -284,6 +291,16 @@
                     }
                 }
             }, []);
+
+            // [FIX: MAP-09] Dynamic TileLayer hot-swapping based on Settings state
+            useEffect(() => {
+                if (tileLayerRef.current) {
+                    const url = mapLocale === 'english'
+                        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'
+                        : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+                    tileLayerRef.current.setUrl(url);
+                }
+            }, [mapLocale]);
 
             useEffect(() => {
                 const map = mapInstance.current;
@@ -315,7 +332,8 @@
                             }
                         }
 
-                        const subLabels = item.subLabels ? item.subLabels.split(/[|;]/).map(s=>s.trim()) : [];
+                        // [FIX: SUB-01] Expanded delimiter split logic to intercept Dashes and Greek Ano Teleia
+                        const subLabels = item.subLabels ? item.subLabels.split(/[|\-·;]/).map(s=>s.trim()) : [];
                         const isVip = String(item.priority).trim().toUpperCase() === 'VIP';
 
                         featureLayers.forEach((layer, layerIdx) => {
@@ -359,14 +377,13 @@
                 const markers = markersRef.current;
                 if (!map || Object.keys(markers).length === 0) return;
 
-                // [FIX: MAP-10] Re-evaluate layer assignments to uncluster active pins
                 Object.keys(markers).forEach(idxStr => {
                     const isTarget = parseInt(idxStr, 10) === activeIndex;
                     markers[idxStr].forEach(l => {
                         if (l instanceof L.Marker) {
                             if (isTarget) {
                                 l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(true, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
-                                // Elevate active pin from cluster to root map layer
+                                // [FIX: MAP-10] Elevate active pin from cluster to root map layer
                                 if (!l.isVip) {
                                     clusterLayer.current.removeLayer(l);
                                     markerLayer.current.addLayer(l);
@@ -374,7 +391,7 @@
                                 l.setZIndexOffset(1000);
                             } else {
                                 l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
-                                // Return inactive pin to cluster layer
+                                // [FIX: MAP-10] Return inactive pin to cluster layer
                                 if (!l.isVip) {
                                     markerLayer.current.removeLayer(l);
                                     clusterLayer.current.addLayer(l);
@@ -394,14 +411,15 @@
                     setTimeout(() => {
                         try {
                             const bounds = activeFeatureGroup.getBounds();
+                            // [FIX: SET-ZOOM-01] Fly to bounds utilizing the user's custom maxAutoZoom setting
                             if (bounds.isValid()) {
-                                map.flyToBounds(bounds, { animate: true, duration: 2.5, maxZoom: 16 });
+                                map.flyToBounds(bounds, { animate: true, duration: 2.5, maxZoom: maxAutoZoom });
                             }
                             activeLayers.forEach(l => { if (l.openTooltip) l.openTooltip(); });
                         } catch(err) {}
                     }, 100);
                 }
-            }, [activeIndex, data]);
+            }, [activeIndex, data, maxAutoZoom]);
 
             return html`
                 <div style="position: relative; width:100%; height:100%;">
@@ -410,8 +428,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.13.0';
-        // === [ END MAJOR BLOCK: MapViewer v3.13.0 ] ===
+        MODULE_VERSIONS['MapViewer'] = 'v3.14.0';
+        // === [ END MAJOR BLOCK: MapViewer v3.14.0 ] ===
 
         // === [ MAJOR BLOCK: MediaViewer v2.1.0 ] ===
         const MediaViewer = ({ activeSlide }) => {
@@ -905,9 +923,8 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.5.0';
         // === [ END MAJOR BLOCK: TimelineScrubber v23.5.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.30.1 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.31.0 ] ===
         const App = () => {
-            // --- [ SubBlock: State Initializers ] ---
             const [logs, setLogs] = useState([]);
             
             const [rawCsvRows, setRawCsvRows] = useState([]);
@@ -923,6 +940,10 @@
             
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
             const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
+            
+            // [FIX: MAP-SET-01] New Spatial Settings States
+            const [mapLocale, setMapLocale] = useState('english');
+            const [maxAutoZoom, setMaxAutoZoom] = useState(15);
             
             const hasInitializedRef = useRef(false);
             const appRef = useRef(null);
@@ -943,9 +964,7 @@
                     setActiveIndex(prev);
                 }
             };
-            // --- [ End SubBlock: State Initializers ] ---
 
-            // --- [ SubBlock: Layout Resizers ] ---
             const startMapResize = (e) => {
                 e.preventDefault();
                 const startX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -1014,9 +1033,7 @@
                 document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
                 document.addEventListener('touchmove', onMove); document.addEventListener('touchend', onUp);
             };
-            // --- [ End SubBlock: Layout Resizers ] ---
 
-            // --- [ SubBlock: Stage 1 - Network Fetching ] ---
             useEffect(() => {
                 const urlParams = new URLSearchParams(window.location.search);
                 const paramTheme = urlParams.get('theme');
@@ -1078,9 +1095,7 @@
                     });
                 }).catch(err => { addLog(`Fetch failed: ${err.message}`, 'error'); setStatus({ text: `Connection Failed: ${err.message}`, progress: 0, isFading: false, active: false }); });
             }, []);
-            // --- [ End SubBlock: Stage 1 - Network Fetching ] ---
 
-            // --- [ SubBlock: Stage 2 - Dynamic Compilation ] ---
             useEffect(() => {
                 if (rawCsvRows.length === 0) return;
                 
@@ -1190,7 +1205,6 @@
                 setTimeout(() => { setStatus({ text: '', progress: 100, isFading: true, active: true }); }, 500);
 
             }, [rawCsvRows, dateFormat]); 
-            // --- [ End SubBlock: Stage 2 - Dynamic Compilation ] ---
 
             const activeSlide = data[activeIndex];
             const hasMedia = activeSlide?.media?.length > 0;
@@ -1198,12 +1212,7 @@
             const CarTiMapperLogo = ({ context }) => {
                 const svgIcon = html`
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="20 0 165 100" style="width: 100%; height: auto; display: block;">
-                        <defs>
-                            <filter id="dot-glow" x="-50%" y="-50%" width="200%" height="200%">
-                                <feGaussianBlur stdDeviation="1.2" result="blur" />
-                                <feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-                            </filter>
-                        </defs>
+                        <defs><filter id="dot-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs>
                         <path d="M28,38 L45,15 L180,15 L180,85 L45,85 L28,62 Z" fill="#222" stroke="#007acc" stroke-width="2.5" stroke-linejoin="round"/>
                         <g fill="#fff" opacity="0.9">
                             <rect x="55" y="19" width="4" height="6" rx="1" /><rect x="71" y="19" width="4" height="6" rx="1" /><rect x="87" y="19" width="4" height="6" rx="1" /><rect x="103" y="19" width="4" height="6" rx="1" />
@@ -1213,28 +1222,19 @@
                         </g>
                         <g transform="translate(112, 50)">
                             <path d="M0,-28 L4,-6 L28,0 L4,6 L0,28 L-4,6 L-28,0 L-4,-6 Z" fill="#444" opacity="0.8"/>
-                            <g fill="#fcfcfc" font-family="Arial, sans-serif" font-size="7" font-weight="normal" text-anchor="middle">
-                                <text x="0" y="-21">N</text><text x="24" y="2.5">E</text><text x="0" y="27">S</text><text x="-24" y="2.5">W</text>
-                            </g>
-                            <g fill="#8be9fd" filter="url(#dot-glow)">
-                                <circle cx="12.5" cy="-21.6" r="1.2" /><circle cx="21.6" cy="-12.5" r="1.2" />
-                                <circle cx="21.6" cy="12.5" r="1.2" /><circle cx="12.5" cy="21.6" r="1.2" />
-                                <circle cx="-12.5" cy="21.6" r="1.2" /><circle cx="-21.6" cy="12.5" r="1.2" />
-                                <circle cx="-21.6" cy="-12.5" r="1.2" /><circle cx="-12.5" cy="-21.6" r="1.2" />
-                            </g>
+                            <g fill="#fcfcfc" font-family="Arial, sans-serif" font-size="7" font-weight="normal" text-anchor="middle"><text x="0" y="-21">N</text><text x="24" y="2.5">E</text><text x="0" y="27">S</text><text x="-24" y="2.5">W</text></g>
+                            <g fill="#8be9fd" filter="url(#dot-glow)"><circle cx="12.5" cy="-21.6" r="1.2" /><circle cx="21.6" cy="-12.5" r="1.2" /><circle cx="21.6" cy="12.5" r="1.2" /><circle cx="12.5" cy="21.6" r="1.2" /><circle cx="-12.5" cy="21.6" r="1.2" /><circle cx="-21.6" cy="12.5" r="1.2" /><circle cx="-21.6" cy="-12.5" r="1.2" /><circle cx="-12.5" cy="-21.6" r="1.2" /></g>
                             <g transform="rotate(60)"><path d="M0,0 L-1,-16 L1,-16 Z" fill="#999" /><circle cx="0" cy="-20" r="2.8" fill="#007acc" /></g>
                             <g transform="rotate(270)"><path d="M0,0 L-1.2,-9 L1.2,-9 Z" fill="#999" /><circle cx="0" cy="-13" r="2.8" fill="#28a745" /></g>
                             <circle cx="0" cy="0" r="1.5" fill="#fff" />
                         </g>
                     </svg>
                 `;
-
                 if (context === 'splash') return html`<div class="logo-stack-splash"><div class="splash-icon-wrapper">${svgIcon}</div><div class="splash-text">CarTiMapper</div><div class="splash-version">${APP_VERSION}</div></div>`;
                 if (context === 'status') return html`<div style="display: flex; align-items: center; gap: 6px;"><div style="width: 24px; height: 16px; display: flex; align-items: center;">${svgIcon}</div><span style="font-weight: 700; font-size: 0.8rem; color: #444; letter-spacing: -0.3px;">CarTiMapper</span></div>`;
                 return html`<div class="logo-horizontal-about" style="flex-direction: column; align-items: flex-start; gap: 10px;"><div style="width: 200px; height: auto;">${svgIcon}</div></div>`;
             };
 
-            // --- [ SubBlock: Master Render ] ---
             return html`
                 <div id="tm-root">
                     ${!status.active ? html`
@@ -1248,7 +1248,7 @@
                         <div id="app-layout" ref=${appRef}>
                             <div class="top-row">
                                 <div class="map-pane ${!hasMedia ? 'no-media' : ''}">
-                                    <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} addLog=${addLog} />
+                                    <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} addLog=${addLog} mapLocale=${mapLocale} maxAutoZoom=${maxAutoZoom} />
                                     <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} />
                                 </div>
                                 ${hasMedia ? html`<div class="resizer-h" onMouseDown=${startMapResize} onTouchStart=${startMapResize}></div>` : ''}
@@ -1286,23 +1286,39 @@
                             <div style="margin-top: 20px;">
                                 <label style="display: block; font-weight: bold; margin-bottom: 8px; color: #555; font-size: 0.95rem;">Data Locale Format</label>
                                 <select style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; background: #fcfcfc; cursor: pointer; color: #333;" 
-                                        value=${dateFormat} 
-                                        onChange=${(e) => setDateFormat(e.target.value)}>
+                                        value=${dateFormat} onChange=${(e) => setDateFormat(e.target.value)}>
                                     <option value="DD/MM/YYYY">European / Global (DD/MM/YYYY)</option>
                                     <option value="MM/DD/YYYY">United States (MM/DD/YYYY)</option>
                                     <option value="YYYY/MM/DD">Scientific / ISO (YYYY/MM/DD)</option>
                                 </select>
-                                <p style="font-size: 0.85rem; color: #666; margin-top: 12px; line-height: 1.5;">Select the exact format your spreadsheet uses. The Timeline Engine will instantly re-compile the dataset upon selection to prevent chronological corruption.</p>
+                            </div>
+
+                            <div style="margin-top: 20px;">
+                                <label style="display: block; font-weight: bold; margin-bottom: 8px; color: #555; font-size: 0.95rem;">Map Language</label>
+                                <select style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; background: #fcfcfc; cursor: pointer; color: #333;" 
+                                        value=${mapLocale} onChange=${(e) => setMapLocale(e.target.value)}>
+                                    <option value="english">Standard English (Global Readability)</option>
+                                    <option value="local">Native / Local Languages</option>
+                                </select>
+                            </div>
+
+                            <div style="margin-top: 20px;">
+                                <label style="display: block; font-weight: bold; margin-bottom: 8px; color: #555; font-size: 0.95rem;">Auto-Zoom Depth</label>
+                                <select style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; background: #fcfcfc; cursor: pointer; color: #333;" 
+                                        value=${maxAutoZoom} onChange=${(e) => setMaxAutoZoom(parseInt(e.target.value, 10))}>
+                                    <option value="14">Level 14 (Wider Area)</option>
+                                    <option value="15">Level 15 (Standard City)</option>
+                                    <option value="16">Level 16 (Street Level)</option>
+                                    <option value="17">Level 17 (Building Level)</option>
+                                </select>
                             </div>
                         </div>
-
                     ` : ''}
                 </div>
             `;
-            // --- [ End SubBlock: Master Render ] ---
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.30.1';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.30.1 ] ===
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.31.0';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.31.0 ] ===
 
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
