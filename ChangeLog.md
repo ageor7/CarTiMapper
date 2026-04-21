@@ -1,6 +1,17 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog Strategy (v6.0.25)
+MapViewer (v3.13.0): * [FIX: MAP-UI-01] Restored native Leaflet zoom controls (topright) and the custom Floating Zoom Indicator synced to the map's native zoomend events.
+
+[FIX: MAP-09] Swapped CartoDB light_all for Esri World Street Map to force standard English labeling globally.
+
+[FIX: MAP-10] Implemented the Elevation hook. The active marker is dynamically removed from the cluster group and rendered on the root layer to ensure 100% visibility.
+
+[FIX: MAP-11] Bound getAllChildMarkers() mapping logic to the cluster hover state to dynamically render a list of swallowed location names.
+
+---
+
 Changelog (v6.0.24)
 AppOrchestrator (v1.30.1): [FIX: BOOT-CRASH-01] Patched a critical syntax typo in Stage 1 data fetch (new URLSearchParams). This resolves the catastrophic halting bug that permanently trapped users on the Initialization blank screen.
 
