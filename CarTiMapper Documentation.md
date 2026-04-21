@@ -81,6 +81,7 @@
 * **[REF: DATA-10] Place/SubLabel Convergence:** The legacy `subLabels` metadata requirement for Map Hover Tooltips is mathematically bound to the `Place` column, enforcing single-source-of-truth location labeling.
 * **[REF: DATE-11] Time Preservation:** The temporal parser must explicitly decouple `HH:mm:ss` payloads from date strings using whitespace isolation. Stripping time signatures is strictly prohibited to prevent `00:00:00` collision bugs in the Timeline zoom physics.
 * **[REF: DATE-12] Dynamic Temporal Locale:** The parser dynamically routes matrix array indices to Year/Month/Day components based on user-defined UI state, allowing instant hot-swapping between European (`DD/MM`) and US (`MM/DD`) spreadsheet exports.
+* **[REF: SUB-01] Universal SubLabel Delimiters:** The spatial engine utilizes a unified RegEx parser `/[|\-·;]/` to split location sublabels. This intercepts standard pipes (`|`), semicolons (`;`), dashes (`-`), and the Greek Ano Teleia (`·`) to support international formatting edge-cases.
 ---
 
 ## V. UI/UX Elements & Design Solutions
@@ -103,6 +104,12 @@
 * **[REF: MAP-09] Global Locale Enforcement:** The `MapViewer` TileLayer explicitly utilizes English-enforced raster tiles to ensure global readability, bypassing native local-language tile renders.
 * **[REF: MAP-10] Active State Elevation (Unclustering):** The visual engine must guarantee spatial visibility of the `activeIndex`. Active markers are programmatically detached from the `MarkerClusterGroup` and elevated to the root map layer to prevent them from being hidden inside cluster aggregates.
 * **[REF: MAP-11] Cluster Metadata Aggregation:** Map clusters utilize dynamic event listeners (`clustermouseover`) to aggregate and display a list of child-marker tooltips upon user hover, providing immediate context into collapsed regions.
+* **[REF: MAP-UI-02] Cluster Segregation Palette:** To prevent visual confusion with semantic Green (Active) and Blue (Standard) pins, the Leaflet `MarkerClusterGroup` CSS is explicitly overridden with a distinct warm palette (Amber, Coral, Muted Purple). 
+* **[REF: MAP-09] Global Locale Enforcement:** The `MapViewer` TileLayer explicitly utilizes English-enforced raster tiles (Esri World Street Map) to ensure global readability. This is user-configurable via the Settings Modal.
+* **[REF: MAP-10] Active State Elevation (Unclustering):** The visual engine must guarantee spatial visibility of the `activeIndex`. Active markers are dynamically detached from the `MarkerClusterGroup` and elevated to the root map layer to prevent them from being hidden inside cluster aggregates. 
+* **[REF: MAP-11] Cluster Metadata Aggregation:** Map clusters utilize dynamic event listeners (`clustermouseover`) to aggregate and display a list of child-marker tooltips upon user hover.
+* **[REF: UI-TYPO-01] Dynamic Badge Typography:** Text badges in the narrative UI (e.g., Place labels) utilize `text-wrap: balance` and widened layout containers to ensure multi-line labels break mathematically and align their left margins elegantly with parent text bodies without exceeding container bounds.
+
 ---
 
 ## VI. Algorithms, Analytics & Methodologies
