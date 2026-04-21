@@ -1,6 +1,17 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.0.24)
+AppOrchestrator (v1.30.1): [FIX: BOOT-CRASH-01] Patched a critical syntax typo in Stage 1 data fetch (new URLSearchParams). This resolves the catastrophic halting bug that permanently trapped users on the Initialization blank screen.
+
+ContentSlider (v3.8.1): [FIX: UI-NAV-01] Restored the missing slideHistory and goBack properties to the component signature. The "Back" button successfully renders again inside the unified status bar.
+
+TimelineScrubber (v23.5.0): * [FIX: TL-CLAMP-01] Deployed a mathematical span floor that forces the timeline to render a minimum of 24 hours.
+
+[FIX: TL-CLAMP-02] Deployed an Infinity Clamp that locks the minimum time gap to 60 seconds, preventing divide-by-zero crashes when multiple events fall on the exact same chronological tick.
+
+---
+
 Changelog (v6.0.23)
 AppOrchestrator (v1.30.1): [FIX: BOOT-CRASH-01] Patched a critical syntax typo in Stage 1 data fetch (new URLSearchParams). This resolves the catastrophic halting bug that permanently trapped users on the Initialization loading sequence.
 
