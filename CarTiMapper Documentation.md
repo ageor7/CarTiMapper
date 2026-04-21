@@ -99,7 +99,11 @@
 * **[REF: UI-13] Metadata Hierarchy: The 📍 Place badge is right-aligned beneath the Tags, utilizing a unified, non-bold, pill-shaped aesthetic to distinguish metadata from narrative text.
 * **[REF: UI-14] Safe History Navigation:** Deep-linking and manual jumps push to a passive `slideHistory` state array, allowing safe "Back" functionality without corrupting child component prop signatures.
 * **[REF: UI-15] Pin Geometry Anchoring:** Map pins strictly enforce `position: relative` to prevent absolute-positioned heads and stems from decoupling during zoom physics.
-* **[REF: UI-SET-01] Engine Settings Modal:** A unified settings interface (accessible via the Status Bar ⚙️) provides explicit control over engine-level physics, such as data locale formats.---
+* **[REF: UI-SET-01] Engine Settings Modal:** A unified settings interface (accessible via the Status Bar ⚙️) provides explicit control over engine-level physics, such as data locale formats.
+* **[REF: MAP-09] Global Locale Enforcement:** The `MapViewer` TileLayer explicitly utilizes English-enforced raster tiles to ensure global readability, bypassing native local-language tile renders.
+* **[REF: MAP-10] Active State Elevation (Unclustering):** The visual engine must guarantee spatial visibility of the `activeIndex`. Active markers are programmatically detached from the `MarkerClusterGroup` and elevated to the root map layer to prevent them from being hidden inside cluster aggregates.
+* **[REF: MAP-11] Cluster Metadata Aggregation:** Map clusters utilize dynamic event listeners (`clustermouseover`) to aggregate and display a list of child-marker tooltips upon user hover, providing immediate context into collapsed regions.
+---
 
 ## VI. Algorithms, Analytics & Methodologies
 
