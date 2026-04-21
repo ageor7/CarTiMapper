@@ -112,3 +112,6 @@
 
 ## VII. System Stability & Error Boundaries
 * **[REF: BOOT-CRASH-01] Boot Safety Validation:** To prevent fatal `ReferenceError` crashes during early component mounting (which result in unrecoverable blank screens), all Native JS constructors (`new URLSearchParams`, `new Date`, `new Set`) are strictly validated against typos and scope constraints prior to execution within React's `useEffect` hooks.
+* **[REF: BOOT-CRASH-01] Boot Safety Validation:** To prevent fatal unrecoverable blank screens, all Native JS constructors (`new URLSearchParams`) must be strictly validated against syntax typos prior to React's first render hook.
+* **[REF: TL-CLAMP-01] Span Geometry Clamp:** The Timeline Scrubber must strictly enforce a minimum temporal visual width of 24 hours (`86400000` ms) to prevent `0px` layout collapse in single-event datasets.
+* **[REF: TL-CLAMP-02] Infinity Geometry Clamp:** The Timeline Scrubber's automatic scaling math must enforce a strict `60000` ms floor on event time gaps. This mathematically ensures the engine never divides by zero and triggers an infinite zoom collapse when multiple events share an identical timestamp.
