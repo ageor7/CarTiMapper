@@ -1,6 +1,13 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.0.23)
+AppOrchestrator (v1.30.1): [FIX: BOOT-CRASH-01] Patched a critical syntax typo in Stage 1 data fetch (new URLSearchParams). This resolves the catastrophic halting bug that permanently trapped users on the Initialization loading sequence.
+
+ContentSlider (v3.8.1): [FIX: UI-NAV-01] Restored the missing slideHistory and goBack properties to the component signature. The "Back" button successfully renders again inside the unified status bar.
+
+---
+
 Changelog (v6.0.22)
 ContentSlider (v3.8.0): * [FIX: UI-SET-01] Injected the Settings trigger button into the Status Bar.
 
