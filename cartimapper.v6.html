@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CarTiMapper Core v6.1.1</title>
+    <title>CarTiMapper Core v6.1.2</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 100'%3E%3Cdefs%3E%3Cfilter id='g' x='-50%25' y='-50%25' width='200%25' height='200%25'%3E%3CfeGaussianBlur stdDeviation='1.2' result='b'/%3E%3CfeMerge%3E%3CfeMergeNode in='b'/%3E%3CfeMergeNode in='b'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Cpath d='M28,38 L45,15 L180,15 L180,85 L45,85 L28,62 Z' fill='%23222' stroke='%23007acc' stroke-width='2.5' stroke-linejoin='round'/%3E%3Cg fill='%23fff' opacity='0.9'%3E%3Crect x='55' y='19' width='4' height='6' rx='1'/%3E%3Crect x='71' y='19' width='4' height='6' rx='1'/%3E%3Crect x='87' y='19' width='4' height='6' rx='1'/%3E%3Crect x='103' y='19' width='4' height='6' rx='1'/%3E%3Crect x='119' y='19' width='4' height='6' rx='1'/%3E%3Crect x='135' y='19' width='4' height='6' rx='1'/%3E%3Crect x='151' y='19' width='4' height='6' rx='1'/%3E%3Crect x='167' y='19' width='4' height='6' rx='1'/%3E%3Crect x='55' y='75' width='4' height='6' rx='1'/%3E%3Crect x='71' y='75' width='4' height='6' rx='1'/%3E%3Crect x='87' y='75' width='4' height='6' rx='1'/%3E%3Crect x='103' y='75' width='4' height='6' rx='1'/%3E%3Crect x='119' y='75' width='4' height='6' rx='1'/%3E%3Crect x='135' y='75' width='4' height='6' rx='1'/%3E%3Crect x='151' y='75' width='4' height='6' rx='1'/%3E%3Crect x='167' y='75' width='4' height='6' rx='1'/%3E%3C/g%3E%3Cg transform='translate(112, 50)'%3E%3Cpath d='M0,-28 L4,-6 L28,0 L4,6 L0,28 L-4,6 L-28,0 L-4,-6 Z' fill='%23444' opacity='0.8'/%3E%3Cg fill='%23fcfcfc' font-family='Arial,sans-serif' font-size='7'%3E%3Ctext x='0' y='-21' text-anchor='middle'%3EN%3C/text%3E%3Ctext x='24' y='2.5' text-anchor='middle'%3EE%3C/text%3E%3Ctext x='0' y='27' text-anchor='middle'%3ES%3C/text%3E%3Ctext x='-24' y='2.5' text-anchor='middle'%3EW%3C/text%3E%3C/g%3E%3Cg fill='%238be9fd' filter='url(%23g)'%3E%3Ccircle cx='12.5' cy='-21.6' r='1.2'/%3E%3Ccircle cx='21.6' cy='-12.5' r='1.2'/%3E%3Ccircle cx='21.6' cy='12.5' r='1.2'/%3E%3Ccircle cx='12.5' cy='21.6' r='1.2'/%3E%3Ccircle cx='-12.5' cy='21.6' r='1.2'/%3E%3Ccircle cx='-21.6' cy='12.5' r='1.2'/%3E%3Ccircle cx='-21.6' cy='-12.5' r='1.2'/%3E%3Ccircle cx='-12.5' cy='-21.6' r='1.2'/%3E%3C/g%3E%3Cg transform='rotate(60)'%3E%3Cpath d='M0,0 L-1,-16 L1,-16 Z' fill='%23999'/%3E%3Ccircle cx='0' cy='-20' r='2.8' fill='%23007acc'/%3E%3C/g%3E%3Cg transform='rotate(270)'%3E%3Cpath d='M0,0 L-1.2,-9 L1.2,-9 Z' fill='%23999'/%3E%3Ccircle cx='0' cy='-13' r='2.8' fill='%2328a745'/%3E%3C/g%3E%3Ccircle cx='0' cy='0' r='1.5' fill='%23fff'/%3E%3C/g%3E%3C/svg%3E">
 
@@ -15,7 +15,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/wicket/1.3.8/wicket.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/wicket/1.3.8/wicket-leaflet.min.js"></script>
     <style>
-        /* === [ MAJOR BLOCK: GlobalStyles v4.7.0 ] === */
+        /* === [ MAJOR BLOCK: GlobalStyles v4.8.0 ] === */
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
         /* --- [ SubBlock: Root & Base ] --- */
@@ -73,12 +73,17 @@
         .media-carousel { flex: 1; display: flex; width: 100%; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scroll-behavior: smooth; }
         .media-item { width: 100%; height: 100%; flex-shrink: 0; scroll-snap-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
         .media-content-wrapper { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .media-item img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .media-item img { max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.2s; }
+        .media-item img:hover { transform: scale(1.01); }
         .media-item iframe { width: 100%; height: 100%; border: none; }
-        .media-meta-box { width: 100%; background: #222; color: #eee; padding: 8px 15px; box-sizing: border-box; font-size: 0.8rem; border-top: 1px solid #444; }
-        .media-caption { font-style: italic; margin-bottom: 4px; }
-        .media-credit { color: #aaa; font-size: 0.7rem; }
-        .media-counter { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; pointer-events: none; }
+        
+        .media-meta-box { width: 100%; background: #1a1a1a; color: #ddd; padding: 12px 15px; box-sizing: border-box; font-size: 0.85rem; border-top: 1px solid #333; z-index: 10; display: flex; flex-direction: column; gap: 4px; }
+        .media-meta-box a { color: #8be9fd; text-decoration: none; transition: color 0.2s; }
+        .media-meta-box a:hover { color: #fff; text-decoration: underline; }
+        .media-caption { font-style: italic; font-size: 0.9rem; }
+        .media-credit { color: #aaa; font-size: 0.75rem; font-weight: bold; }
+        
+        .media-counter { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; pointer-events: none; z-index: 20; }
         /* --- [ End SubBlock: Media Carousel ] --- */
 
         /* --- [ SubBlock: Narrative Content Slider ] --- */
@@ -147,7 +152,7 @@
         #vibe-logs { flex: 1; overflow-y: auto; padding: 10px; font-size: 12px; line-height: 1.4; word-wrap: break-word; }
         .log-info { color: #8be9fd; } .log-success { color: #50fa7b; } .log-warn { color: #ffb86c; } .log-error { color: #ff5555; }
         /* --- [ End SubBlock: Vibe Monitor UI ] --- */
-        /* === [ END MAJOR BLOCK: GlobalStyles v4.7.0 ] === */
+        /* === [ END MAJOR BLOCK: GlobalStyles v4.8.0 ] === */
     </style>
 </head>
 <body>
@@ -160,9 +165,9 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.1.1';
+        const APP_VERSION = 'v6.1.2';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v4.7.0', Globals: 'v1.0.51' }; 
+        const MODULE_VERSIONS = { Styles: 'v4.8.0', Globals: 'v1.0.51' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
         // === [ END MAJOR BLOCK: Imports & Globals v1.0.51 ] ===
 
@@ -454,7 +459,7 @@
         MODULE_VERSIONS['MapViewer'] = 'v3.16.0';
         // === [ END MAJOR BLOCK: MapViewer v3.16.0 ] ===
 
-        // === [ MAJOR BLOCK: MediaViewer v2.1.0 ] ===
+        // === [ MAJOR BLOCK: MediaViewer v2.3.0 ] ===
         const MediaViewer = ({ activeSlide }) => {
             if (!activeSlide || !activeSlide.media || activeSlide.media.length === 0) return null;
             
@@ -463,7 +468,11 @@
                     const videoId = url.includes('v=') ? url.split('v=')[1].split('&')[0] : url.split('/').pop().split('?')[0];
                     return html`<iframe src="https://www.youtube.com/embed/${videoId}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
                 }
-                return html`<img src=${url} alt="Media" loading="lazy" />`;
+                return html`
+                    <a href=${url} target="_blank" rel="noopener noreferrer" style="display:flex; height:100%; width:100%; align-items:center; justify-content:center;">
+                        <img src=${url} alt="Media" loading="lazy" />
+                    </a>
+                `;
             };
 
             return html`
@@ -472,13 +481,20 @@
                         <div class="media-item" key=${i}>
                             ${activeSlide.media.length > 1 ? html`<div class="media-counter">${i + 1} / ${activeSlide.media.length}</div>` : ''}
                             <div class="media-content-wrapper">${renderMedia(url)}</div>
+                            
+                            ${(activeSlide.mediaCaption || activeSlide.mediaCredit) ? html`
+                                <div class="media-meta-box">
+                                    ${activeSlide.mediaCaption ? html`<div class="media-caption"><a href=${url} target="_blank" rel="noopener noreferrer">${activeSlide.mediaCaption}</a></div>` : ''}
+                                    ${activeSlide.mediaCredit ? html`<div class="media-credit"><a href=${activeSlide.mediaCredit} target="_blank" rel="noopener noreferrer">${activeSlide.mediaCredit}</a></div>` : ''}
+                                </div>
+                            ` : ''}
                         </div>
                     `)}
                 </div>
             `;
         };
-        MODULE_VERSIONS['MediaViewer'] = 'v2.1.0';
-        // === [ END MAJOR BLOCK: MediaViewer v2.1.0 ] ===
+        MODULE_VERSIONS['MediaViewer'] = 'v2.3.0';
+        // === [ END MAJOR BLOCK: MediaViewer v2.3.0 ] ===
 
         // === [ MAJOR BLOCK: ContentSlider v3.9.0 ] ===
         const ContentSlider = ({ data, activeIndex, setActiveIndex, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo, visibleTimeSpan }) => {
@@ -889,7 +905,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.7.0';
         // === [ END MAJOR BLOCK: TimelineScrubber v23.7.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.32.0 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.33.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             
@@ -1115,7 +1131,7 @@
                     const parsedTags = rawTags ? rawTags.split(',').map(t=>t.trim()).filter(t => t !== "") : [];
 
                     const rawMedia = exactGet(norm, 'media');
-                    const parsedMedia = rawMedia ? rawMedia.split(',').map(x=>x.trim()).filter(x => x !== "") : [];
+                    const parsedMedia = rawMedia ? rawMedia.split(/[;,]\s+/).map(x=>x.trim()).filter(x => x !== "") : [];
                     
                     const placeVal = exactGet(norm, 'place');
 
@@ -1284,8 +1300,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.32.0';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.32.0 ] ===
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.33.0';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.33.0 ] ===
 
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
