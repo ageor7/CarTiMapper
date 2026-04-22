@@ -1,6 +1,15 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.1.4)
+ContentSlider (v3.9.2): [FIX: CRASH-02] Added missing jumpToSlide prop assignment. The "View overview as slide" button now correctly triggers timeline navigation without causing a fatal ReferenceError crash.
+
+AppOrchestrator (v1.34.1): [FIX: CRASH-02] Wired the jumpToSlide method into the <ContentSlider /> component injection.
+
+MapViewer (v3.16.1): [FIX: CRASH-01] Implemented parseGeometryCollection(). This custom polyfill strips the WKT wrapper and iteratively forces individual shapes (LINESTRING, POINT) into the Wicket constructor, permanently preventing the not yet supported console crash and restoring geometry rendering.
+
+---
+
 Changelog (v6.1.3-2)
 GlobalStyles (v4.9.0): [FIX: UI-TYPO-02] Scrubbed all font-weight: bold properties from the UI layer to establish the professional neutral aesthetic. [FIX: UI-HUD-02] Reprogrammed .status-center with absolute CSS positioning to lock navigation buttons to the exact middle of the user's screen.
 
