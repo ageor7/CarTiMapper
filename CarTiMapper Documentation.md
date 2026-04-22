@@ -124,6 +124,8 @@
 [REF: TL-AUTO-02] Zero-Gap Autozoom: The timeline scaling engine must intercept and process events mapped to the exact same chronological tick (Gap = 0ms). These events inherit the minimum temporal floor of 10 minutes to properly trigger the cascade rendering visualizer.
 * **[REF: MED-UI-01] Interactive Media Footprint:** Raster assets rendered by the `MediaViewer` act as implicit anchor tags linking to their absolute source paths. Associated metadata (Captions and Credits) inherit this clickability state and apply subtle `:hover` affordances.
 [REF: MED-UI-03] Iframe Caption Anchors: If an iframe snippet is parsed, the engine utilizes a secondary regex extraction routine (src=["']([^"']+)["']) to isolate the absolute URI. This extracted URI safely populates the associated caption anchor tag.
+* **[REF: UI-HUD-02] Absolute Spatial Centering:** The core navigation cluster (`Prev/Next/TimeSpan`) within the Unified Status Bar utilizes absolute positioning (`left: 50%; transform: translateX(-50%)`) to guarantee mathematical centering independent of adjacent flex-box sibling widths.
+* **[REF: UI-TYPO-02] Neutral Weighting:** Default application typography defaults to `font-weight: 400`. Bold weights are explicitly restricted across primary text, status buttons, map indicators, and modal headers.
 
 ---
 
@@ -141,3 +143,5 @@
 * **[REF: BOOT-CRASH-01] Boot Safety Validation:** To prevent fatal unrecoverable blank screens, all Native JS constructors (`new URLSearchParams`) must be strictly validated against syntax typos prior to React's first render hook.
 * **[REF: TL-CLAMP-01] Span Geometry Clamp:** The Timeline Scrubber must strictly enforce a minimum temporal visual width of 24 hours (`86400000` ms) to prevent `0px` layout collapse in single-event datasets.
 * **[REF: TL-CLAMP-02] Infinity Geometry Clamp:** The Timeline Scrubber's automatic scaling math must enforce a strict `60000` ms floor on event time gaps. This mathematically ensures the engine never divides by zero and triggers an infinite zoom collapse when multiple events share an identical timestamp.
+* **[REF: DIAG-01] Active Sensor Telemetry:** The Vibe Monitor must passively expose the application version manifest and the raw location string of the currently active dataset row to facilitate real-time coordinate validation for Leaflet `GEOMETRYCOLLECTION` geometries.
+* **[REF: DIAG-02] Metadata Manifest:** The Application 'About' Modal acts as a system manifest, exposing current URL parameters, usage instructions, and the active version footprint, separated cleanly from the core project description.
