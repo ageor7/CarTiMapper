@@ -84,6 +84,7 @@
 * **[REF: SUB-01] Universal SubLabel Delimiters:** The spatial engine utilizes a unified RegEx parser `/[|\-·;]/` to split location sublabels. This intercepts standard pipes (`|`), semicolons (`;`), dashes (`-`), and the Greek Ano Teleia (`·`) to support international formatting edge-cases.
 [REF: GEO-02] Differentiated Geometry Styling: The spatial renderer actively intercepts GeoJSON layer structures. `LINESTRING` objects are constrained to dashed lines with a weight of 2. `POLYGON` objects are rendered without strokes, relying entirely on a transparent fill, maintaining clear distinction from primary event markers.
 * **[REF: MED-01] Safe URL Splitting:** Media URLs are strictly parsed via `/[;,]\s+/`. The engine mathematically protects inline URL parameters containing commas or semicolons by only splitting strings if the delimiter is followed by a legitimate whitespace character.
+[REF: MED-02] Iframe String Interception: The MediaViewer dynamically intercepts string values beginning with an iframe declaration. To prevent DOM corruption via malformed href attributes, these strings bypass anchor-tag encapsulation and are executed via direct HTML injection.
 
 ---
 
@@ -122,6 +123,7 @@
 [REF: UI-NUM-01] Scalar Data Formatting: Abstract screen percentages are prohibited for zoom metrics. The engine standardizes on `<times>x` notation formatted to a maximum of one decimal place, trimming `.0` when mathematical bounds are even integers.
 [REF: TL-AUTO-02] Zero-Gap Autozoom: The timeline scaling engine must intercept and process events mapped to the exact same chronological tick (Gap = 0ms). These events inherit the minimum temporal floor of 10 minutes to properly trigger the cascade rendering visualizer.
 * **[REF: MED-UI-01] Interactive Media Footprint:** Raster assets rendered by the `MediaViewer` act as implicit anchor tags linking to their absolute source paths. Associated metadata (Captions and Credits) inherit this clickability state and apply subtle `:hover` affordances.
+[REF: MED-UI-03] Iframe Caption Anchors: If an iframe snippet is parsed, the engine utilizes a secondary regex extraction routine (src=["']([^"']+)["']) to isolate the absolute URI. This extracted URI safely populates the associated caption anchor tag.
 
 ---
 
