@@ -1,6 +1,15 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.1.3-2)
+GlobalStyles (v4.9.0): [FIX: UI-TYPO-02] Scrubbed all font-weight: bold properties from the UI layer to establish the professional neutral aesthetic. [FIX: UI-HUD-02] Reprogrammed .status-center with absolute CSS positioning to lock navigation buttons to the exact middle of the user's screen.
+
+VibeMonitor (v2.0.0): [FIX: DIAG-01] Implemented the Active Sensor HUD immediately below the header to display the activeSlide.location text and system version metrics for diagnostic transparency.
+
+ContentSlider (v3.9.1): [FIX: DIAG-02] Restructured the 'About' modal flow. Placed the "View overview" button immediately following the description block, and isolated the dynamic URL parameter list and Usage Instructions into a separate trailing block. Injected dynamic ${APP_VERSION} into the status bar logo button.
+
+---
+
 Changelog (v6.1.3)
 MediaViewer (v2.4.0):
 [FIX: MED-02] Engineered a raw HTML interception loop. Entire iframe tags pasted into the media column now render flawlessly without triggering relative-path appending errors.
