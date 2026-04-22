@@ -82,6 +82,8 @@
 * **[REF: DATE-11] Time Preservation:** The temporal parser must explicitly decouple `HH:mm:ss` payloads from date strings using whitespace isolation. Stripping time signatures is strictly prohibited to prevent `00:00:00` collision bugs in the Timeline zoom physics.
 * **[REF: DATE-12] Dynamic Temporal Locale:** The parser dynamically routes matrix array indices to Year/Month/Day components based on user-defined UI state, allowing instant hot-swapping between European (`DD/MM`) and US (`MM/DD`) spreadsheet exports.
 * **[REF: SUB-01] Universal SubLabel Delimiters:** The spatial engine utilizes a unified RegEx parser `/[|\-·;]/` to split location sublabels. This intercepts standard pipes (`|`), semicolons (`;`), dashes (`-`), and the Greek Ano Teleia (`·`) to support international formatting edge-cases.
+[REF: GEO-02] Differentiated Geometry Styling: The spatial renderer actively intercepts GeoJSON layer structures. `LINESTRING` objects are constrained to dashed lines with a weight of 2. `POLYGON` objects are rendered without strokes, relying entirely on a transparent fill, maintaining clear distinction from primary event markers.
+
 ---
 
 ## V. UI/UX Elements & Design Solutions
@@ -116,6 +118,8 @@
 * **[REF: TL-LOCK-01] The Dual-Tier Zoom Lock:** * *Soft Lock:* Engaged dynamically upon manual zoom/scroll. Decouples scaling from navigation until the next slide jump.
   * *Hard Lock:* Engaged via explicit UI toggle (`🔒`). Permanently freezes the zoom scalar; navigation triggers panning strictly.
 * **[REF: HUD-STATE-01] Unified 100% Spatial/Temporal Mapping:** "100%" globally signifies the minimum scale required to view the entire bounds of the dataset. Map multipliers use mathematical exponents against the `getBoundsZoom()` base relative to the active zoom state.
+[REF: UI-NUM-01] Scalar Data Formatting: Abstract screen percentages are prohibited for zoom metrics. The engine standardizes on `<times>x` notation formatted to a maximum of one decimal place, trimming `.0` when mathematical bounds are even integers.
+[REF: TL-AUTO-02] Zero-Gap Autozoom: The timeline scaling engine must intercept and process events mapped to the exact same chronological tick (Gap = 0ms). These events inherit the minimum temporal floor of 10 minutes to properly trigger the cascade rendering visualizer.
 
 ---
 
