@@ -15,7 +15,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/wicket/1.3.8/wicket.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/wicket/1.3.8/wicket-leaflet.min.js"></script>
     <style>
-        /* === [ MAJOR BLOCK: GlobalStyles v4.6.0 ] === */
+        /* === [ MAJOR BLOCK: GlobalStyles v4.7.0 ] === */
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
         /* --- [ SubBlock: Root & Base ] --- */
@@ -49,23 +49,25 @@
         .timeline-pane { flex: 0 0 var(--timeline-height); height: var(--timeline-height); background: #ececec; display: flex; flex-direction: column; position: relative; overflow: hidden; }
         /* --- [ End SubBlock: Layout & Resizers ] --- */
 
-        /* --- [ SubBlock: Leaflet Map & Pins ] --- */
+        /* --- [ SubBlock: Leaflet Map & Spatial HUD ] --- */
         .leaflet-tooltip { white-space: normal !important; word-wrap: break-word !important; width: max-content !important; max-width: 300px !important; text-align: left !important; font-size: 0.85rem; font-weight: 400 !important; line-height: 1.4; padding: 6px 10px !important; }
         .custom-map-pin { display: flex; align-items: flex-end; justify-content: center; width: 24px; height: 34px; position: relative; transition: transform 0.2s;}
         .pin-head { width: 14px; height: 14px; border-radius: 50%; background: #d32f2f; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.4); position: absolute; top: 0; }
         .pin-stem { width: 2px; height: 20px; background: #333; position: absolute; bottom: 0; }
         .custom-div-icon { background: transparent !important; border: none !important; }
         .centered-tooltip { text-align: center; }
-        .map-zoom-indicator { position: absolute; bottom: 15px; left: 15px; z-index: 1000; background: rgba(255,255,255,0.85); padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; color: #333; pointer-events: none; border: 1px solid #ccc; }
         
-        /* [FIX: MAP-UI-02] Segregated Cluster Palette explicitly avoids semantic Active/Standard blue and green colors */
+        .map-zoom-indicator { position: absolute; bottom: 15px; right: 15px; z-index: 1000; background: rgba(255,255,255,0.9); padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; color: #333; pointer-events: none; border: 1px solid #ccc; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+        .minimap-container { position: absolute; bottom: 50px; right: 15px; width: 160px; height: 110px; z-index: 1000; border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.3); border-radius: 4px; overflow: hidden; background: #e0e0e0; transition: transform 0.2s; }
+        .minimap-container:hover { transform: scale(1.05); }
+
         .marker-cluster-small { background-color: rgba(255, 180, 80, 0.6) !important; }
         .marker-cluster-small div { background-color: rgba(240, 140, 40, 0.7) !important; color: white !important; font-weight: bold; }
         .marker-cluster-medium { background-color: rgba(240, 130, 130, 0.6) !important; }
         .marker-cluster-medium div { background-color: rgba(220, 80, 80, 0.7) !important; color: white !important; font-weight: bold; }
         .marker-cluster-large { background-color: rgba(180, 100, 180, 0.6) !important; }
         .marker-cluster-large div { background-color: rgba(150, 60, 150, 0.7) !important; color: white !important; font-weight: bold; }
-        /* --- [ End SubBlock: Leaflet Map & Pins ] --- */
+        /* --- [ End SubBlock: Leaflet Map & Spatial HUD ] --- */
 
         /* --- [ SubBlock: Media Carousel ] --- */
         .media-carousel { flex: 1; display: flex; width: 100%; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scroll-behavior: smooth; }
@@ -84,15 +86,10 @@
         .slide-container { width: 100%; max-width: 1000px; margin: 0 auto; flex: 1; box-sizing: border-box; }
         .slide-header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.8rem; }
         .slide-date { color: #007acc; font-size: 1.1rem; letter-spacing: 0.5px; font-weight: bold; }
-        
-        /* [FIX: UI-TYPO-01] Expanded flex constraints to 80% to allow badge to align with desc left margin */
         .slide-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; max-width: 80%; }
-        
-        /* [FIX: UI-TYPO-01] Implemented text-wrap balance and normal whitespace for dynamic multiline alignment */
         .tag-badge, .slide-place-badge { background: #e0e0e0; color: #444; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; border: 1px solid #ccc; font-weight: 400; }
         .tag-badge { white-space: nowrap; }
         .slide-place-badge { display: inline-flex; align-items: center; gap: 4px; white-space: normal; text-align: right; text-wrap: balance; line-height: 1.3; max-width: 100%; }
-        
         .tags-container { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
         .slide-title { margin: 0 0 1.5rem 0; font-size: 2.5rem; color: #111; line-height: 1.1; font-weight: 400; }
         .slide-desc { line-height: 1.6; font-size: 1.15rem; color: #333; width: 100%; font-weight: 400; }
@@ -104,13 +101,14 @@
         /* --- [ SubBlock: Status Bar & Modals ] --- */
         .unified-status-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 40px; background: #fff; border-top: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; box-shadow: 0 -2px 5px rgba(0,0,0,0.02); z-index: 20; }
         .status-left { display: flex; align-items: center; gap: 10px; }
-        .status-center { display: flex; gap: 5px; flex: 1; justify-content: center; }
+        .status-center { display: flex; gap: 5px; flex: 1; justify-content: center; align-items: center; }
         .status-right { display: flex; align-items: center; font-size: 0.85rem; color: #666; }
         .status-btn { background: #eee; color: #444; border: 1px solid #ccc; border-radius: 12px; padding: 4px 12px; cursor: pointer; font-size: 0.75rem; transition: all 0.2s; font-family: inherit; }
         .status-btn:hover { background: #ddd; }
         .nav-btn-bottom { background: #f8f8f8; color: #333; border: 1px solid #ccc; border-radius: 4px; padding: 4px 15px; cursor: pointer; font-size: 0.85rem; transition: background 0.2s; font-family: inherit; }
         .nav-btn-bottom:hover:not(:disabled) { background: #e0e0e0; }
         .nav-btn-bottom:disabled { opacity: 0.3; cursor: not-allowed; }
+        .semantic-time-span { font-size: 0.75rem; font-weight: bold; color: #007acc; padding: 0 10px; border-left: 1px solid #ddd; border-right: 1px solid #ddd; margin: 0 5px; display: flex; align-items: center; height: 20px;}
         
         #about-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 700px; max-height: 85vh; background: #fff; z-index: 9001; border-radius: 12px; padding: 30px; overflow-y: auto; display: none; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid #ccc; color: #222; font-size: 1.1rem; }
         #about-modal.open { display: block; }
@@ -118,7 +116,7 @@
         .logo-horizontal-about { display: flex; flex-direction: column; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid #eee; padding-bottom: 20px; }
         /* --- [ End SubBlock: Status Bar & Modals ] --- */
 
-        /* --- [ SubBlock: Timeline UI ] --- */
+        /* --- [ SubBlock: Timeline UI & Leaflet Controls ] --- */
         .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-y: hidden; overflow-x: auto; position: relative; display: flex; align-items: flex-start; cursor: grab; }
         .timeline-scroll-wrapper:active { cursor: grabbing; }
         .timeline-track-container { position: relative; height: 100%; }
@@ -134,7 +132,13 @@
         .event-block:hover { filter: brightness(1.05); z-index: 40; }
         .timeline-axis { position: absolute; bottom: 0; left: 0; right: 0; height: 28px; background: #e0e0e0; border-top: 2px solid #999; z-index: 5; }
         .timeline-ruler-tick { position: absolute; bottom: 3px; display: flex; flex-direction: column; align-items: center; z-index: 5; transform: translateX(-50%); font-size: 0.7rem; color: #555;}
-        /* --- [ End SubBlock: Timeline UI ] --- */
+        
+        .timeline-leaflet-controls { position: absolute; top: 15px; right: 15px; z-index: 1000; display: flex; flex-direction: column; box-shadow: 0 1px 5px rgba(0,0,0,0.65); border-radius: 4px; background: #fff; border: 2px solid rgba(0,0,0,0.2); overflow: hidden; }
+        .timeline-leaflet-btn { width: 34px; height: 34px; line-height: 34px; text-align: center; text-decoration: none; color: black; background: #fff; border-bottom: 1px solid #ccc; cursor: pointer; font-weight: bold; font-size: 1.2rem; user-select: none; transition: background 0.2s; }
+        .timeline-leaflet-btn:last-child { border-bottom: none; }
+        .timeline-leaflet-btn:hover { background: #f4f4f4; }
+        .timeline-leaflet-text { font-size: 0.65rem; line-height: 1; display: flex; align-items: center; justify-content: center; height: 24px; border-bottom: 1px solid #ccc; background: #fff; color: #333; font-weight: bold; }
+        /* --- [ End SubBlock: Timeline UI & Leaflet Controls ] --- */
 
         /* --- [ SubBlock: Vibe Monitor UI ] --- */
         #vibe-monitor { position: absolute; bottom: 50px; left: 10px; width: 400px; height: 300px; background: rgba(10, 10, 15, 0.95); border: 1px solid #444; border-radius: 8px; display: flex; flex-direction: column; z-index: 9999; color: #eee; box-shadow: 0 8px 32px rgba(0,0,0,0.9); resize: both; overflow: hidden; font-family: monospace; }
@@ -143,8 +147,7 @@
         #vibe-logs { flex: 1; overflow-y: auto; padding: 10px; font-size: 12px; line-height: 1.4; word-wrap: break-word; }
         .log-info { color: #8be9fd; } .log-success { color: #50fa7b; } .log-warn { color: #ffb86c; } .log-error { color: #ff5555; }
         /* --- [ End SubBlock: Vibe Monitor UI ] --- */
-        /* === [ END MAJOR BLOCK: GlobalStyles v4.6.0 ] === */
-    </style>
+        /* === [ END MAJOR BLOCK: GlobalStyles v4.7.0 ] === */
 </head>
 <body>
     <div id="root"></div>
@@ -156,7 +159,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.0.26';
+        const APP_VERSION = 'v6.1.0';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.5.0', Globals: 'v1.0.51' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -226,15 +229,22 @@
         };
         // === [ END MAJOR BLOCK: VibeMonitor v1.0.0 ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v3.14.0 ] ===
+        // === [ MAJOR BLOCK: MapViewer v3.15.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, mapLocale, maxAutoZoom }) => {
             const mapDomRef = useRef(null);
+            const miniMapDomRef = useRef(null);
+            
             const mapInstance = useRef(null);
+            const miniMapInstance = useRef(null);
+            const rectBoundsRef = useRef(null);
+            
             const markerLayer = useRef(null); 
             const clusterLayer = useRef(null); 
             const tileLayerRef = useRef(null);
             const markersRef = useRef({}); 
+            
             const hasFitBounds = useRef(false);
+            const baseZoomRef = useRef(2); // 100% Fit-All Baseline
             const [mapZoom, setMapZoom] = useState(2);
 
             const createPinHtml = (isActive, isVip) => {
@@ -256,16 +266,20 @@
             };
 
             useEffect(() => {
-                if (mapDomRef.current && !mapInstance.current && window.L) {
+                if (mapDomRef.current && miniMapDomRef.current && !mapInstance.current && window.L) {
                     const urlParams = new URLSearchParams(window.location.search);
                     const initialZoom = urlParams.get('mapzoom') ? parseInt(urlParams.get('mapzoom')) : 2;
                     setMapZoom(initialZoom);
                     
+                    // Main Map Init
                     const map = L.map(mapDomRef.current, { zoomControl: false }).setView([20, 0], initialZoom);
                     L.control.zoom({ position: 'topright' }).addTo(map);
+                    
+                    // [FIX: MAP-13] Added Geographic Scale Indicator
+                    L.control.scale({ position: 'bottomleft', imperial: true, metric: true }).addTo(map);
+                    
                     map.on('zoomend', () => setMapZoom(map.getZoom()));
 
-                    // Initialize TileLayer reference
                     tileLayerRef.current = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
                         attribution: '&copy; Esri & OSM' 
                     }).addTo(map);
@@ -273,7 +287,6 @@
                     markerLayer.current = L.featureGroup().addTo(map);
                     clusterLayer.current = L.markerClusterGroup({ maxClusterRadius: 40, spiderfyOnMaxZoom: true }).addTo(map);
                     
-                    // [FIX: MAP-11] Bind Hover Tooltips to Clusters to reveal swallowed pins
                     clusterLayer.current.on('clustermouseover', (c) => {
                         const children = c.layer.getAllChildMarkers();
                         const titles = [...new Set(children.map(m => m.getTooltip().getContent()))];
@@ -281,18 +294,29 @@
                         if (titles.length > 5) displayHtml += `<br/><em style="color: #666; font-size: 0.8em;">+${titles.length - 5} more locations...</em>`;
                         c.layer.bindTooltip(displayHtml, { direction: 'top', className: 'centered-tooltip' }).openTooltip();
                     });
-                    
                     clusterLayer.current.on('clustermouseout', (c) => c.layer.unbindTooltip());
+
+                    // [FIX: MAP-12] Initialize Overview Map (Minimap)
+                    const miniMap = L.map(miniMapDomRef.current, { zoomControl: false, attributionControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false }).setView([20, 0], 0);
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(miniMap);
+                    
+                    const boundsRect = L.rectangle(map.getBounds(), { color: '#007acc', weight: 2, fillOpacity: 0.15 }).addTo(miniMap);
+                    rectBoundsRef.current = boundsRect;
+
+                    map.on('move', () => {
+                        boundsRect.setBounds(map.getBounds());
+                    });
+
                     mapInstance.current = map;
+                    miniMapInstance.current = miniMap;
                     
                     if (window.ResizeObserver) {
-                        const ro = new ResizeObserver(() => { setTimeout(() => { if (mapInstance.current) mapInstance.current.invalidateSize(); }, 50); });
+                        const ro = new ResizeObserver(() => { setTimeout(() => { if (mapInstance.current) mapInstance.current.invalidateSize(); if (miniMapInstance.current) miniMapInstance.current.invalidateSize(); }, 50); });
                         ro.observe(mapDomRef.current.parentElement);
                     }
                 }
             }, []);
 
-            // [FIX: MAP-09] Dynamic TileLayer hot-swapping based on Settings state
             useEffect(() => {
                 if (tileLayerRef.current) {
                     const url = mapLocale === 'english'
@@ -304,7 +328,9 @@
 
             useEffect(() => {
                 const map = mapInstance.current;
+                const miniMap = miniMapInstance.current;
                 if (!map || data.length === 0) return;
+                
                 markerLayer.current.clearLayers();
                 clusterLayer.current.clearLayers();
                 markersRef.current = {};
@@ -318,27 +344,20 @@
 
                     try {
                         if (locStr.match(/^[A-Z]+\s*\(/) || locStr.match(/^GEOMETRYCOLLECTION/)) {
-                            const wkt = new window.Wkt.Wkt();
-                            wkt.read(locStr);
+                            const wkt = new window.Wkt.Wkt(); wkt.read(locStr);
                             featureLayers = extractLayers(wkt.toObject());
                         } else if (locStr.startsWith('{') && locStr.includes('"type"')) {
                             featureLayers = extractLayers(L.geoJSON(JSON.parse(locStr)));
                         } else {
                             const coordMatch = locStr.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
-                            if (coordMatch) {
-                                const lat = parseFloat(coordMatch[1]);
-                                const lon = parseFloat(coordMatch[2]);
-                                if (!isNaN(lat) && !isNaN(lon)) featureLayers.push(L.marker([lat, lon]));
-                            }
+                            if (coordMatch) featureLayers.push(L.marker([parseFloat(coordMatch[1]), parseFloat(coordMatch[2])]));
                         }
 
-                        // [FIX: SUB-01] Expanded delimiter split logic to intercept Dashes and Greek Ano Teleia
                         const subLabels = item.subLabels ? item.subLabels.split(/[|\-·;]/).map(s=>s.trim()) : [];
                         const isVip = String(item.priority).trim().toUpperCase() === 'VIP';
 
                         featureLayers.forEach((layer, layerIdx) => {
                             if (layer.setStyle) layer.setStyle({ color: '#007acc', weight: 4 });
-                            
                             if (layer instanceof L.Marker) {
                                 layer.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
                                 layer.isVip = isVip;
@@ -360,12 +379,15 @@
                 });
 
                 setTimeout(() => {
-                    if (mapInstance.current && validMarkers > 0 && !hasFitBounds.current && !new URLSearchParams(window.location.search).get('mapzoom')) {
+                    if (map && validMarkers > 0 && !hasFitBounds.current && !new URLSearchParams(window.location.search).get('mapzoom')) {
                         const bounds = L.latLngBounds();
                         markerLayer.current.eachLayer(l => { if (l.getLatLng) bounds.extend(l.getLatLng()); else if (l.getBounds) bounds.extend(l.getBounds()); });
                         clusterLayer.current.eachLayer(l => bounds.extend(l.getLatLng()));
                         if (bounds.isValid()) {
-                            mapInstance.current.fitBounds(bounds, { padding: [30, 30], maxZoom: 6 });
+                            // Sync 100% Fit bounds across Main and Overview
+                            map.fitBounds(bounds, { padding: [30, 30], maxZoom: 6 });
+                            miniMap.fitBounds(bounds, { padding: [5, 5] });
+                            baseZoomRef.current = map.getBoundsZoom(bounds);
                             hasFitBounds.current = true;
                         }
                     }
@@ -383,19 +405,11 @@
                         if (l instanceof L.Marker) {
                             if (isTarget) {
                                 l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(true, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
-                                // [FIX: MAP-10] Elevate active pin from cluster to root map layer
-                                if (!l.isVip) {
-                                    clusterLayer.current.removeLayer(l);
-                                    markerLayer.current.addLayer(l);
-                                }
+                                if (!l.isVip) { clusterLayer.current.removeLayer(l); markerLayer.current.addLayer(l); }
                                 l.setZIndexOffset(1000);
                             } else {
                                 l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
-                                // [FIX: MAP-10] Return inactive pin to cluster layer
-                                if (!l.isVip) {
-                                    markerLayer.current.removeLayer(l);
-                                    clusterLayer.current.addLayer(l);
-                                }
+                                if (!l.isVip) { markerLayer.current.removeLayer(l); clusterLayer.current.addLayer(l); }
                                 l.setZIndexOffset(0);
                             }
                         } else if (l.setStyle) {
@@ -411,25 +425,26 @@
                     setTimeout(() => {
                         try {
                             const bounds = activeFeatureGroup.getBounds();
-                            // [FIX: SET-ZOOM-01] Fly to bounds utilizing the user's custom maxAutoZoom setting
-                            if (bounds.isValid()) {
-                                map.flyToBounds(bounds, { animate: true, duration: 2.5, maxZoom: maxAutoZoom });
-                            }
+                            if (bounds.isValid()) map.flyToBounds(bounds, { animate: true, duration: 2.5, maxZoom: maxAutoZoom });
                             activeLayers.forEach(l => { if (l.openTooltip) l.openTooltip(); });
                         } catch(err) {}
                     }, 100);
                 }
             }, [activeIndex, data, maxAutoZoom]);
 
+            // [FIX: HUD-STATE-01] Calculate universal 100% relative base
+            const mapPct = Math.round(Math.pow(2, mapZoom - baseZoomRef.current) * 100);
+
             return html`
                 <div style="position: relative; width:100%; height:100%;">
                     <div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>
-                    <div class="map-zoom-indicator">Zoom: ${mapZoom}</div>
+                    <div class="map-zoom-indicator">Zoom: ${mapZoom} (${mapPct}%)</div>
+                    <div class="minimap-container" ref=${miniMapDomRef}></div>
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.14.0';
-        // === [ END MAJOR BLOCK: MapViewer v3.14.0 ] ===
+        MODULE_VERSIONS['MapViewer'] = 'v3.15.0';
+        // === [ END MAJOR BLOCK: MapViewer v3.15.0 ] ===
 
         // === [ MAJOR BLOCK: MediaViewer v2.1.0 ] ===
         const MediaViewer = ({ activeSlide }) => {
@@ -457,33 +472,26 @@
         MODULE_VERSIONS['MediaViewer'] = 'v2.1.0';
         // === [ END MAJOR BLOCK: MediaViewer v2.1.0 ] ===
 
-        // === [ MAJOR BLOCK: ContentSlider v3.8.1 ] ===
-        const ContentSlider = ({ data, activeIndex, setActiveIndex, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo }) => {
+        // === [ MAJOR BLOCK: ContentSlider v3.9.0 ] ===
+        const ContentSlider = ({ data, activeIndex, setActiveIndex, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo, visibleTimeSpan }) => {
             const slide = data[activeIndex];
             if (!slide) return null;
 
-            // --- [ SubBlock: Smart Date Formatter ] ---
             const formatSmartDate = (sD, eD) => {
                 if (!sD) return '';
-                
                 const hasTime = (d) => d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0;
-                
                 const fDate = (d) => {
                     const opts = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
-                    if (hasTime(d)) {
-                        opts.hour = '2-digit';
-                        opts.minute = '2-digit';
-                    }
+                    if (hasTime(d)) { opts.hour = '2-digit'; opts.minute = '2-digit'; }
                     return d.toLocaleString('en-GB', opts);
                 };
-                
                 return `${fDate(sD)}${eD && sD.getTime() !== eD.getTime() ? ` - ${fDate(eD)}` : ''}`;
             };
-            // --- [ End SubBlock: Smart Date Formatter ] ---
 
             const goPrev = () => { if (activeIndex > 0) setActiveIndex(activeIndex - 1); };
             const goNext = () => { if (activeIndex < data.length - 1) setActiveIndex(activeIndex + 1); };
 
+            // [FIX: UI-HUD-01] Semantic Span Dashboard centrally anchored
             return html`
                 <div class="content-pane-wrapper">
                     <div class="click-zone click-zone-left" onClick=${goPrev} title="Previous"></div>
@@ -513,6 +521,7 @@
                         </div>
                         <div class="status-center">
                             <button class="nav-btn-bottom" onClick=${goPrev} disabled=${activeIndex === 0}>◀ Prev</button>
+                            <span class="semantic-time-span" title="Visible Time Span">${visibleTimeSpan || '...'}</span>
                             <button class="nav-btn-bottom" onClick=${goNext} disabled=${activeIndex === data.length - 1}>Next ▶</button>
                         </div>
                         <div class="status-right" style="gap: 10px;">
@@ -523,16 +532,15 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['ContentSlider'] = 'v3.8.1';
-        // === [ END MAJOR BLOCK: ContentSlider v3.8.1 ] ===
+        MODULE_VERSIONS['ContentSlider'] = 'v3.9.0';
+        // === [ END MAJOR BLOCK: ContentSlider v3.9.0 ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v23.5.0 ] ===
-        const TimelineScrubber = ({ data, activeIndex, setActiveIndex }) => {
+        // === [ MAJOR BLOCK: TimelineScrubber v23.6.0 ] ===
+        const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
             const dragRef = useRef({ isDragging: false, startX: 0, scrollLeft: 0 });
             const touchZoomRef = useRef({ initialDist: 0, initialZoom: 1 });
-            const isManualZoomRef = useRef(false);
             const prevActiveIndexRef = useRef(-1);
             const [containerHeight, setContainerHeight] = useState(200);
 
@@ -543,7 +551,6 @@
                 return () => window.removeEventListener('resize', measure);
             }, []);
 
-            // --- [ SubBlock: Tag Matrix & Untagged Fallback ] ---
             const tagsMap = new Set();
             const tagPairs = [];
             data.forEach(d => {
@@ -568,9 +575,7 @@
                 }
                 if (!placed) orderedTags.push(remaining.shift());
             }
-            // --- [ End SubBlock: Tag Matrix & Untagged Fallback ] ---
 
-            // --- [ SubBlock: Temporal Math & Layout Engine ] ---
             const availableLanesHeight = Math.max(containerHeight - 28, 50); 
             const laneHeight = Math.max(24, availableLanesHeight / (orderedTags.length || 1));
 
@@ -595,7 +600,6 @@
             const formatLabelSmart = (titleStr) => {
                 const maxPx = 300; 
                 const words = titleStr.split(' ');
-                
                 let targetLines = words.length > 1 ? (measureTextWidth(titleStr) > 280 ? 3 : 2) : 1;
                 if (targetLines === 1) return { lines: [titleStr], pxWidth: measureTextWidth(titleStr) + 35 };
 
@@ -622,94 +626,65 @@
                 }
 
                 let lines = bestSplit.length ? bestSplit : [titleStr];
-                
-                if (lines.length === 3) {
-                     let last = lines[2];
-                     if (measureTextWidth(last) > maxPx) {
-                         while(measureTextWidth(last + '...') > maxPx && last.length > 0) last = last.slice(0, -1);
-                         lines[2] = last.trim() + '...';
-                     }
-                } else if (lines.length === 2) {
-                     let last = lines[1];
-                     if (measureTextWidth(last) > maxPx * 1.3) { 
-                         while(measureTextWidth(last + '...') > maxPx * 1.3 && last.length > 0) last = last.slice(0, -1);
-                         lines[1] = last.trim() + '...';
-                     }
-                }
+                if (lines.length === 3) { let last = lines[2]; if (measureTextWidth(last) > maxPx) { while(measureTextWidth(last + '...') > maxPx && last.length > 0) last = last.slice(0, -1); lines[2] = last.trim() + '...'; } }
+                else if (lines.length === 2) { let last = lines[1]; if (measureTextWidth(last) > maxPx * 1.3) { while(measureTextWidth(last + '...') > maxPx * 1.3 && last.length > 0) last = last.slice(0, -1); lines[1] = last.trim() + '...'; } }
 
                 const finalMaxW = Math.max(...lines.map(l => measureTextWidth(l)));
                 return { lines, pxWidth: Math.max(60, finalMaxW + 35) };
             };
-            // --- [ End SubBlock: Temporal Math & Layout Engine ] ---
 
-            // --- [ SubBlock: Zoom & Pan Physics ] ---
+            // [FIX: UI-HUD-01] Semantic Time Formatter Effect
+            useEffect(() => {
+                const visibleMs = renderTimeRange / zoomLevel;
+                const secs = visibleMs / 1000; const mins = secs / 60; const hrs = mins / 60;
+                const days = hrs / 24; const mos = days / 30.44; const yrs = days / 365.25;
+                
+                let str = `${Math.round(mins)} Minutes`;
+                if (yrs >= 1) str = `${Math.round(yrs)} Years`;
+                else if (mos >= 1) str = `${Math.round(mos)} Months`;
+                else if (days >= 1) str = `${Math.round(days)} Days`;
+                else if (hrs >= 1) str = `${Math.round(hrs)} Hours`;
+                
+                setVisibleTimeSpan(str);
+            }, [zoomLevel, renderTimeRange, setVisibleTimeSpan]);
+
+            // [FIX: TL-AUTO-01] The Cascade Auto-Zoom Engine
             useEffect(() => {
                 if (validData.length > 1 && wrapperRef.current && !dragRef.current.isDragging) {
                     if (activeIndex !== prevActiveIndexRef.current) {
                         prevActiveIndexRef.current = activeIndex;
-                        isManualZoomRef.current = false; 
+                        
+                        if (zoomLock === 'hard') return; // Do nothing if hard locked
+                        if (zoomLock === 'soft') setZoomLock('auto'); // Break soft lock on navigation
 
                         const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
-                        if (activeDataIndex >= 0 && !isManualZoomRef.current) {
-                            const item = validData[activeDataIndex];
-                            const sT = item.startDate.getTime();
-                            const eT = (item.endDate && !isNaN(item.endDate.getTime())) ? item.endDate.getTime() : sT;
-                            
-                            const activeTags = item.tags && item.tags.length > 0 ? item.tags : ['Untagged'];
-                            const { pxWidth } = formatLabelSmart(stripHTML(item.title));
+                        if (activeDataIndex >= 0) {
+                            const sT = validData[activeDataIndex].startDate.getTime();
                             const containerW = wrapperRef.current.clientWidth || 1000;
                             
-                            let minTimeGapSameLane = Infinity;
-                            let minTimeGapAnyLane = Infinity;
-                            
+                            let minGap = Infinity;
                             validData.forEach((d, idx) => {
                                 if (idx === activeDataIndex) return;
-                                const dSt = d.startDate.getTime();
-                                const dEt = (d.endDate && !isNaN(d.endDate.getTime())) ? d.endDate.getTime() : dSt;
-                                
-                                let gap = Math.abs(dSt - sT);
-                                if (gap === 0) gap = Math.max(Math.abs(dEt - eT), 60000); 
-                                gap = Math.max(gap, 60000); 
-                                
-                                if (gap < minTimeGapAnyLane) minTimeGapAnyLane = gap;
-                                
-                                const dTags = d.tags && d.tags.length > 0 ? d.tags : ['Untagged'];
-                                if (dTags.some(t => activeTags.includes(t))) {
-                                    if (gap < minTimeGapSameLane) minTimeGapSameLane = gap;
-                                }
+                                const gap = Math.abs(d.startDate.getTime() - sT);
+                                if (gap < minGap && gap > 0) minGap = gap;
                             });
 
-                            let collisionZoom = 1;
-                            if (minTimeGapSameLane !== Infinity) {
-                                const requiredTrackW = ((pxWidth + 20) * renderTimeRange) / minTimeGapSameLane;
-                                collisionZoom = requiredTrackW / containerW;
-                            }
-
-                            let contextZoom = 1;
-                            if (minTimeGapAnyLane !== Infinity) {
-                                const requiredTrackW = (150 * renderTimeRange) / minTimeGapAnyLane;
-                                contextZoom = requiredTrackW / containerW;
-                            }
-
-                            const idealZoom = Math.max(collisionZoom, contextZoom * 1.3); 
-                            setZoomLevel(prev => {
-                                const maxJump = prev * 0.5;
-                                if (idealZoom > prev + maxJump) return prev + maxJump;
-                                if (idealZoom < prev - maxJump) return Math.max(1, prev - maxJump);
-                                return Math.min(Math.max(1, idealZoom), 150);
-                            });
+                            // Enforce 10-Minute Floor (600,000 ms) and calculate Z to achieve 10px spacing
+                            const safeGap = Math.max(minGap, 600000); 
+                            const idealZoom = (10 * renderTimeRange) / (safeGap * containerW);
+                            const clampedZoom = Math.min(Math.max(1, idealZoom), 500); 
+                            
+                            setZoomLevel(clampedZoom);
                         }
                     }
                 }
-            }, [activeIndex, data]); 
+            }, [activeIndex, data, zoomLock, setZoomLock]); 
 
             useEffect(() => {
                 const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
                 if (activeDataIndex >= 0 && wrapperRef.current && !dragRef.current.isDragging) {
-                    const item = validData[activeDataIndex];
-                    const sT = item.startDate.getTime();
-                    
-                    const { pxWidth } = formatLabelSmart(stripHTML(item.title));
+                    const sT = validData[activeDataIndex].startDate.getTime();
+                    const { pxWidth } = formatLabelSmart(stripHTML(validData[activeDataIndex].title));
                     const containerW = wrapperRef.current.clientWidth || 1000;
                     const targetTrackW = Math.max(containerW, containerW * zoomLevel);
                     const sPct = (sT - renderMinTime) / renderTimeRange;
@@ -717,22 +692,25 @@
                     const visualCenterPx = (sPct * targetTrackW) + (pxWidth / 2);
                     const scrollPos = visualCenterPx - (containerW / 2);
                     
-                    requestAnimationFrame(() => {
-                        setTimeout(() => {
-                            if (wrapperRef.current) {
-                                wrapperRef.current.scrollTo({ left: scrollPos, behavior: 'smooth' });
-                            }
-                        }, 50); 
-                    });
+                    requestAnimationFrame(() => { setTimeout(() => { if (wrapperRef.current) wrapperRef.current.scrollTo({ left: scrollPos, behavior: 'smooth' }); }, 50); });
                 }
             }, [activeIndex, zoomLevel, data]);
 
+            // [FIX: TL-LOCK-01] Manual Zoom Triggers Soft Lock
+            const doManualZoom = (direction) => {
+                if (zoomLock !== 'hard') setZoomLock('soft');
+                setZoomLevel(p => direction === 'in' ? Math.min(p * 1.5, 500) : Math.max(p / 1.5, 1));
+            };
+
+            const toggleHardLock = () => {
+                setZoomLock(p => p === 'hard' ? 'auto' : 'hard');
+            };
+
             const onDown = (e) => { 
-                isManualZoomRef.current = true;
+                if (zoomLock !== 'hard') setZoomLock('soft');
                 if (e.touches && e.touches.length === 2) {
                     const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-                    touchZoomRef.current = { initialDist: dist, initialZoom: zoomLevel };
-                    return;
+                    touchZoomRef.current = { initialDist: dist, initialZoom: zoomLevel }; return;
                 }
                 const x = e.touches ? e.touches[0].clientX : e.clientX;
                 dragRef.current = { isDragging: true, startX: x - wrapperRef.current.offsetLeft, scrollLeft: wrapperRef.current.scrollLeft }; 
@@ -744,8 +722,7 @@
                     e.preventDefault(); 
                     const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
                     const scale = dist / touchZoomRef.current.initialDist;
-                    setZoomLevel(Math.min(Math.max(touchZoomRef.current.initialZoom * scale, 0.5), 150));
-                    return;
+                    setZoomLevel(Math.min(Math.max(touchZoomRef.current.initialZoom * scale, 1), 500)); return;
                 }
                 if (!dragRef.current.isDragging) return;
                 const x = e.touches ? e.touches[0].clientX : e.clientX;
@@ -753,15 +730,8 @@
                 wrapperRef.current.scrollLeft = dragRef.current.scrollLeft - ((x - wrapperRef.current.offsetLeft - dragRef.current.startX) * 2);
             };
 
-            const doManualZoom = (direction) => {
-                isManualZoomRef.current = true;
-                setZoomLevel(p => direction === 'in' ? Math.min(p + 0.5, 150) : Math.max(p - 0.5, 0.5));
-            };
-            // --- [ End SubBlock: Zoom & Pan Physics ] ---
-
             if (validData.length === 0) return html`<div style="padding:1rem;">No valid temporal data.</div>`;
 
-            // --- [ SubBlock: Axis Scale Resolution ] ---
             const containerW = wrapperRef.current ? wrapperRef.current.clientWidth : 1000;
             const trackWidthPx = Math.max(containerW, containerW * zoomLevel);
             const visibleMs = renderTimeRange / zoomLevel;
@@ -837,17 +807,12 @@
                 }
                 iterTime += majorStepMs; 
             }
-            // --- [ End SubBlock: Axis Scale Resolution ] ---
 
-            // --- [ SubBlock: DOM Generation & Geometry Placement ] ---
             const markers = validData.map((item, index) => {
                 const globalIndex = data.findIndex(d => d.id === item.id);
-                
                 const startPct = Number((((item.startDate.getTime() - renderMinTime) / renderTimeRange) * 100).toFixed(4));
                 let endPct = startPct;
-                if (item.endDate && !isNaN(item.endDate.getTime()) && item.endDate.getTime() > item.startDate.getTime()) {
-                    endPct = Number((((item.endDate.getTime() - renderMinTime) / renderTimeRange) * 100).toFixed(4));
-                }
+                if (item.endDate && !isNaN(item.endDate.getTime()) && item.endDate.getTime() > item.startDate.getTime()) endPct = Number((((item.endDate.getTime() - renderMinTime) / renderTimeRange) * 100).toFixed(4));
                 const hasDuration = (endPct - startPct) > 0.001;
                 
                 const isActive = globalIndex === activeIndex;
@@ -883,24 +848,26 @@
                     <div id="timeline-marker-${globalIndex}" class="event-group ${isActive ? 'active' : ''}" style="left: ${startPct}%; top: ${topPos}px; height: ${blockHeight}px; ${groupWidth}" onClick=${() => setActiveIndex(globalIndex)}>
                         ${activeAnchor}
                         <div class="event-block" style="position: absolute; top: 50%; transform: translateY(-50%); left: 0; --lane-h: ${laneHeight}px; background: ${isActive ? '#007acc' : '#f4f4f5'}; color: ${isActive ? '#fff' : '#444'}; z-index: 5; width: ${pxWidth}px;">
-                            <div class="event-text">
-                                ${lines.map(l => html`<div style="white-space: nowrap; overflow: hidden; width: 100%;">${l}</div>`)}
-                            </div>
+                            <div class="event-text">${lines.map(l => html`<div style="white-space: nowrap; overflow: hidden; width: 100%;">${l}</div>`)}</div>
                         </div>
                     </div>
                 `;
             });
 
+            // [FIX: TL-UI-01] Leaflet-style Vertical Zoom Controls
             return html`
                 <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;">
-                    <div class="timeline-controls" style="position: absolute; right: 20px; top: 10px; z-index: 1000; display: flex; gap: 5px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));">
-                        <button style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-weight: bold; color: #444;" onClick=${() => doManualZoom('in')}>+</button>
-                        <button style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-weight: bold; color: #444;" onClick=${() => setZoomLevel(1)}>O</button>
-                        <button style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-weight: bold; color: #444;" onClick=${() => doManualZoom('out')}>-</button>
+                    <div class="timeline-leaflet-controls">
+                        <div class="timeline-leaflet-btn" onClick=${() => doManualZoom('in')} title="Zoom In">+</div>
+                        <div class="timeline-leaflet-text" title="100% fits all data to screen">${Math.round(zoomLevel * 100)}%</div>
+                        <div class="timeline-leaflet-btn" style="font-size: 1rem; color: ${zoomLock === 'hard' ? '#d32f2f' : '#666'};" onClick=${toggleHardLock} title="Toggle Auto-Zoom Lock">
+                            ${zoomLock === 'hard' ? '🔒' : '🔓'}
+                        </div>
+                        <div class="timeline-leaflet-btn" onClick=${() => doManualZoom('out')} title="Zoom Out">-</div>
                     </div>
-                    <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${(e) => { e.preventDefault(); doManualZoom(e.deltaY < 0 ? 'out' : 'in'); }}>
+
+                    <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${(e) => { e.preventDefault(); doManualZoom(e.deltaY < 0 ? 'in' : 'out'); }}>
                         <div class="timeline-track-container" style="width: ${trackWidthPx}px; flex-shrink: 0; min-width: 100%; height: 100%;">
-                            
                             <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 28px; pointer-events: none; z-index: 0;">
                                 ${orderedTags.map((tag, i) => html`
                                     <div class="tag-lane" style="top: ${i * laneHeight}px; height: ${laneHeight}px; background: ${i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent'};">
@@ -908,23 +875,19 @@
                                     </div>
                                 `)}
                             </div>
-
-                            <div class="timeline-axis">
-                                ${rulerTicks}
-                            </div>
-                            
+                            <div class="timeline-axis">${rulerTicks}</div>
                             ${markers}
                         </div>
                     </div>
                 </div>
             `;
-            // --- [ End SubBlock: DOM Generation & Geometry Placement ] ---
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v23.5.0';
-        // === [ END MAJOR BLOCK: TimelineScrubber v23.5.0 ] ===
+        MODULE_VERSIONS['TimelineScrubber'] = 'v23.6.0';
+        // === [ END MAJOR BLOCK: TimelineScrubber v23.6.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.31.0 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.32.0 ] ===
         const App = () => {
+            // --- [ SubBlock: State Initializers ] ---
             const [logs, setLogs] = useState([]);
             
             const [rawCsvRows, setRawCsvRows] = useState([]);
@@ -937,13 +900,15 @@
             
             const [isMonitorOpen, setIsMonitorOpen] = useState(false); 
             const [isAboutOpen, setIsAboutOpen] = useState(false);
-            
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-            const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
             
-            // [FIX: MAP-SET-01] New Spatial Settings States
+            const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
             const [mapLocale, setMapLocale] = useState('english');
             const [maxAutoZoom, setMaxAutoZoom] = useState(15);
+            
+            // [FIX: HUD-STATE-01] New Global States for Synchronized Zoom & Scale
+            const [zoomLock, setZoomLock] = useState('auto'); // 'auto', 'soft', 'hard'
+            const [visibleTimeSpan, setVisibleTimeSpan] = useState('');
             
             const hasInitializedRef = useRef(false);
             const appRef = useRef(null);
@@ -964,7 +929,9 @@
                     setActiveIndex(prev);
                 }
             };
+            // --- [ End SubBlock: State Initializers ] ---
 
+            // --- [ SubBlock: Layout Resizers ] ---
             const startMapResize = (e) => {
                 e.preventDefault();
                 const startX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -1033,7 +1000,9 @@
                 document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
                 document.addEventListener('touchmove', onMove); document.addEventListener('touchend', onUp);
             };
+            // --- [ End SubBlock: Layout Resizers ] ---
 
+            // --- [ SubBlock: Stage 1 - Network Fetching ] ---
             useEffect(() => {
                 const urlParams = new URLSearchParams(window.location.search);
                 const paramTheme = urlParams.get('theme');
@@ -1095,7 +1064,9 @@
                     });
                 }).catch(err => { addLog(`Fetch failed: ${err.message}`, 'error'); setStatus({ text: `Connection Failed: ${err.message}`, progress: 0, isFading: false, active: false }); });
             }, []);
+            // --- [ End SubBlock: Stage 1 - Network Fetching ] ---
 
+            // --- [ SubBlock: Stage 2 - Dynamic Compilation ] ---
             useEffect(() => {
                 if (rawCsvRows.length === 0) return;
                 
@@ -1205,6 +1176,7 @@
                 setTimeout(() => { setStatus({ text: '', progress: 100, isFading: true, active: true }); }, 500);
 
             }, [rawCsvRows, dateFormat]); 
+            // --- [ End SubBlock: Stage 2 - Dynamic Compilation ] ---
 
             const activeSlide = data[activeIndex];
             const hasMedia = activeSlide?.media?.length > 0;
@@ -1235,6 +1207,7 @@
                 return html`<div class="logo-horizontal-about" style="flex-direction: column; align-items: flex-start; gap: 10px;"><div style="width: 200px; height: auto;">${svgIcon}</div></div>`;
             };
 
+            // --- [ SubBlock: Master Render ] ---
             return html`
                 <div id="tm-root">
                     ${!status.active ? html`
@@ -1259,12 +1232,12 @@
 
                             <div class="resizer-v" onMouseDown=${startTopResize} onTouchStart=${startTopResize}></div>
                             
-                            <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} slideHistory=${slideHistory} goBack=${goBack} aboutData=${aboutData} isAboutOpen=${isAboutOpen} setIsAboutOpen=${setIsAboutOpen} isMonitorOpen=${isMonitorOpen} setIsMonitorOpen=${setIsMonitorOpen} isSettingsOpen=${isSettingsOpen} setIsSettingsOpen=${setIsSettingsOpen} CarTiMapperLogo=${CarTiMapperLogo} />
+                            <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} slideHistory=${slideHistory} goBack=${goBack} aboutData=${aboutData} isAboutOpen=${isAboutOpen} setIsAboutOpen=${setIsAboutOpen} isMonitorOpen=${isMonitorOpen} setIsMonitorOpen=${setIsMonitorOpen} isSettingsOpen=${isSettingsOpen} setIsSettingsOpen=${setIsSettingsOpen} CarTiMapperLogo=${CarTiMapperLogo} visibleTimeSpan=${visibleTimeSpan} />
                             
                             <div class="resizer-v" onMouseDown=${startTimelineResize} onTouchStart=${startTimelineResize}></div>
 
                             <div class="timeline-pane">
-                                <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} />
+                                <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} zoomLock=${zoomLock} setZoomLock=${setZoomLock} setVisibleTimeSpan=${setVisibleTimeSpan} />
                             </div>
                         </div>
 
@@ -1316,9 +1289,10 @@
                     ` : ''}
                 </div>
             `;
+            // --- [ End SubBlock: Master Render ] ---
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.31.0';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.31.0 ] ===
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.32.0';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.32.0 ] ===
 
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
