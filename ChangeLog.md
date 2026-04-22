@@ -1,6 +1,13 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.1.3)
+MediaViewer (v2.4.0):
+[FIX: MED-02] Engineered a raw HTML interception loop. Entire iframe tags pasted into the media column now render flawlessly without triggering relative-path appending errors.
+[FIX: MED-UI-03] Built getCleanUrl() extractor. Captions bound to iframe snippets now correctly link to the map/video source instead of triggering browser panics. Added fallback interceptor for naked Google Map embed URLs.
+
+---
+
 Changelog (v6.2.0)
 GlobalStyles (v4.8.0): [FIX: MED-UI-01] Styled .media-meta-box a to inherit standard font weights while revealing anchor behaviors on hover.
 
