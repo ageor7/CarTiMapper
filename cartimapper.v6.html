@@ -242,7 +242,7 @@
         };
         // === [ END MAJOR BLOCK: VibeMonitor v2.0.0 ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v3.16.0 ] ===
+        // === [ MAJOR BLOCK: MapViewer v3.16.1 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, mapLocale, maxAutoZoom }) => {
             const mapDomRef = useRef(null);
             const miniMapDomRef = useRef(null);
@@ -278,6 +278,41 @@
                 return layers;
             };
 
+            // [FIX: CRASH-01] Manual Polyfill for GEOMETRYCOLLECTION
+            const parseGeometryCollection = (wktStr) => {
+                const cleanStr = wktStr.replace(/^GEOMETRYCOLLECTION\s*\(/i, '').replace(/\)$/, '');
+                
+                let inParen = 0;
+                let currentGeom = '';
+                const geometries = [];
+                
+                for (let i = 0; i < cleanStr.length; i++) {
+                    const char = cleanStr[i];
+                    if (char === '(') inParen++;
+                    if (char === ')') inParen--;
+                    
+                    if (char === ',' && inParen === 0) {
+                        geometries.push(currentGeom.trim());
+                        currentGeom = '';
+                    } else {
+                        currentGeom += char;
+                    }
+                }
+                if (currentGeom.trim()) geometries.push(currentGeom.trim());
+                
+                let extractedLayers = [];
+                geometries.forEach(geomStr => {
+                    try {
+                        const wkt = new window.Wkt.Wkt();
+                        wkt.read(geomStr);
+                        extractedLayers = extractedLayers.concat(extractLayers(wkt.toObject()));
+                    } catch (e) {
+                        console.warn("Failed to parse nested geometry:", geomStr);
+                    }
+                });
+                return extractedLayers;
+            };
+
             useEffect(() => {
                 if (mapDomRef.current && miniMapDomRef.current && !mapInstance.current && window.L) {
                     const urlParams = new URLSearchParams(window.location.search);
@@ -292,7 +327,7 @@
                     map.on('zoomend', () => setMapZoom(map.getZoom()));
 
                     tileLayerRef.current = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
-                        attribution: '&copy; Esri & OSM' 
+                        attribution: '© Esri & OSM' 
                     }).addTo(map);
                     
                     markerLayer.current = L.featureGroup().addTo(map);
@@ -351,7 +386,10 @@
                     let featureLayers = [];
 
                     try {
-                        if (locStr.match(/^[A-Z]+\s*\(/) || locStr.match(/^GEOMETRYCOLLECTION/)) {
+                        if (locStr.match(/^GEOMETRYCOLLECTION/i)) {
+                            // [FIX: CRASH-01] Route GEOMETRYCOLLECTION through the custom Polyfill
+                            featureLayers = parseGeometryCollection(locStr);
+                        } else if (locStr.match(/^[A-Z]+\s*\(/)) {
                             const wkt = new window.Wkt.Wkt(); wkt.read(locStr);
                             featureLayers = extractLayers(wkt.toObject());
                         } else if (locStr.startsWith('{') && locStr.includes('"type"')) {
@@ -463,8 +501,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.16.0';
-        // === [ END MAJOR BLOCK: MapViewer v3.16.0 ] ===
+        MODULE_VERSIONS['MapViewer'] = 'v3.16.1';
+        // === [ END MAJOR BLOCK: MapViewer v3.16.1 ] ===
 
         // === [ MAJOR BLOCK: MediaViewer v2.4.0 ] ===
         const MediaViewer = ({ activeSlide }) => {
@@ -523,9 +561,8 @@
         MODULE_VERSIONS['MediaViewer'] = 'v2.4.0';
         // === [ END MAJOR BLOCK: MediaViewer v2.4.0 ] ===
 
-        // === [ MAJOR BLOCK: ContentSlider v3.9.1 ] ===
-        // [FIX: DIAG-02] Restructured About Modal for System Metadata
-        const ContentSlider = ({ data, activeIndex, setActiveIndex, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo, visibleTimeSpan }) => {
+        // === [ MAJOR BLOCK: ContentSlider v3.9.2 ] ===
+        const ContentSlider = ({ data, activeIndex, setActiveIndex, jumpToSlide, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo, visibleTimeSpan }) => {
             const slide = data[activeIndex];
             if (!slide) return null;
 
@@ -611,8 +648,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['ContentSlider'] = 'v3.9.1';
-        // === [ END MAJOR BLOCK: ContentSlider v3.9.1 ] ===
+        MODULE_VERSIONS['ContentSlider'] = 'v3.9.2';
+        // === [ END MAJOR BLOCK: ContentSlider v3.9.2 ] ===
 
         // === [ MAJOR BLOCK: TimelineScrubber v23.7.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan }) => {
@@ -961,7 +998,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.7.0';
         // === [ END MAJOR BLOCK: TimelineScrubber v23.7.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.34.0 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.34.1 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             
@@ -1298,7 +1335,7 @@
 
                             <div class="resizer-v" onMouseDown=${startTopResize} onTouchStart=${startTopResize}></div>
                             
-                            <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} slideHistory=${slideHistory} goBack=${goBack} aboutData=${aboutData} isAboutOpen=${isAboutOpen} setIsAboutOpen=${setIsAboutOpen} isMonitorOpen=${isMonitorOpen} setIsMonitorOpen=${setIsMonitorOpen} isSettingsOpen=${isSettingsOpen} setIsSettingsOpen=${setIsSettingsOpen} CarTiMapperLogo=${CarTiMapperLogo} visibleTimeSpan=${visibleTimeSpan} />
+                            <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} jumpToSlide=${jumpToSlide} slideHistory=${slideHistory} goBack=${goBack} aboutData=${aboutData} isAboutOpen=${isAboutOpen} setIsAboutOpen=${setIsAboutOpen} isMonitorOpen=${isMonitorOpen} setIsMonitorOpen=${setIsMonitorOpen} isSettingsOpen=${isSettingsOpen} setIsSettingsOpen=${setIsSettingsOpen} CarTiMapperLogo=${CarTiMapperLogo} visibleTimeSpan=${visibleTimeSpan} />
                             
                             <div class="resizer-v" onMouseDown=${startTimelineResize} onTouchStart=${startTimelineResize}></div>
 
@@ -1346,8 +1383,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.34.0';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.34.0 ] ===
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.34.1';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.34.1 ] ===
 
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
