@@ -160,7 +160,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.1.0';
+        const APP_VERSION = 'v6.1.1';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.7.0', Globals: 'v1.0.51' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -437,34 +437,232 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.15.0';
-        // === [ END MAJOR BLOCK: MapViewer v3.15.0 ] ===
-
-        // === [ MAJOR BLOCK: MediaViewer v2.1.0 ] ===
-        const MediaViewer = ({ activeSlide }) => {
-            if (!activeSlide || !activeSlide.media || activeSlide.media.length === 0) return null;
+        // === [ MAJOR BLOCK: MapViewer v3.16.0 ] ===
+        const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, mapLocale, maxAutoZoom }) => {
+            const mapDomRef = useRef(null);
+            const miniMapDomRef = useRef(null);
             
-            const renderMedia = (url) => {
-                if (url.includes('youtube.com') || url.includes('youtu.be')) {
-                    const videoId = url.includes('v=') ? url.split('v=')[1].split('&')[0] : url.split('/').pop().split('?')[0];
-                    return html`<iframe src="https://www.youtube.com/embed/${videoId}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-                }
-                return html`<img src=${url} alt="Media" loading="lazy" />`;
+            const mapInstance = useRef(null);
+            const miniMapInstance = useRef(null);
+            const rectBoundsRef = useRef(null);
+            
+            const markerLayer = useRef(null); 
+            const clusterLayer = useRef(null); 
+            const tileLayerRef = useRef(null);
+            const markersRef = useRef({}); 
+            
+            const hasFitBounds = useRef(false);
+            const baseZoomRef = useRef(2); 
+            const [mapZoom, setMapZoom] = useState(2);
+
+            const createPinHtml = (isActive, isVip) => {
+                const color = isActive ? '#28a745' : (isVip ? '#ffb300' : '#007acc');
+                const scale = isActive ? 'scale(1.3)' : 'scale(1)';
+                const z = isActive ? '1000' : '0';
+                return `<div class="custom-map-pin" style="transform: ${scale}; z-index: ${z};">
+                            <div class="pin-head" style="background: ${color};"></div>
+                            <div class="pin-stem" style="background: ${isActive ? '#28a745' : '#333'}; width: ${isActive ? '3px' : '2px'};"></div>
+                        </div>`;
             };
 
+            const extractLayers = (layerObj) => {
+                let layers = [];
+                if (Array.isArray(layerObj)) layerObj.forEach(l => layers = layers.concat(extractLayers(l)));
+                else if (layerObj && layerObj.eachLayer) layerObj.eachLayer(l => layers = layers.concat(extractLayers(l)));
+                else if (layerObj) layers.push(layerObj);
+                return layers;
+            };
+
+            useEffect(() => {
+                if (mapDomRef.current && miniMapDomRef.current && !mapInstance.current && window.L) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const initialZoom = urlParams.get('mapzoom') ? parseInt(urlParams.get('mapzoom')) : 2;
+                    setMapZoom(initialZoom);
+                    
+                    const map = L.map(mapDomRef.current, { zoomControl: false }).setView([20, 0], initialZoom);
+                    L.control.zoom({ position: 'topright' }).addTo(map);
+                    
+                    L.control.scale({ position: 'bottomleft', imperial: true, metric: true }).addTo(map);
+                    
+                    map.on('zoomend', () => setMapZoom(map.getZoom()));
+
+                    tileLayerRef.current = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
+                        attribution: '&copy; Esri & OSM' 
+                    }).addTo(map);
+                    
+                    markerLayer.current = L.featureGroup().addTo(map);
+                    clusterLayer.current = L.markerClusterGroup({ maxClusterRadius: 40, spiderfyOnMaxZoom: true }).addTo(map);
+                    
+                    clusterLayer.current.on('clustermouseover', (c) => {
+                        const children = c.layer.getAllChildMarkers();
+                        const titles = [...new Set(children.map(m => m.getTooltip().getContent()))];
+                        let displayHtml = titles.slice(0, 5).join('<br/>');
+                        if (titles.length > 5) displayHtml += `<br/><em style="color: #666; font-size: 0.8em;">+${titles.length - 5} more locations...</em>`;
+                        c.layer.bindTooltip(displayHtml, { direction: 'top', className: 'centered-tooltip' }).openTooltip();
+                    });
+                    clusterLayer.current.on('clustermouseout', (c) => c.layer.unbindTooltip());
+
+                    const miniMap = L.map(miniMapDomRef.current, { zoomControl: false, attributionControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false }).setView([20, 0], 0);
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(miniMap);
+                    
+                    const boundsRect = L.rectangle(map.getBounds(), { color: '#007acc', weight: 2, fillOpacity: 0.15 }).addTo(miniMap);
+                    rectBoundsRef.current = boundsRect;
+
+                    map.on('move', () => { boundsRect.setBounds(map.getBounds()); });
+
+                    mapInstance.current = map;
+                    miniMapInstance.current = miniMap;
+                    
+                    if (window.ResizeObserver) {
+                        const ro = new ResizeObserver(() => { setTimeout(() => { if (mapInstance.current) mapInstance.current.invalidateSize(); if (miniMapInstance.current) miniMapInstance.current.invalidateSize(); }, 50); });
+                        ro.observe(mapDomRef.current.parentElement);
+                    }
+                }
+            }, []);
+
+            useEffect(() => {
+                if (tileLayerRef.current) {
+                    const url = mapLocale === 'english'
+                        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'
+                        : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+                    tileLayerRef.current.setUrl(url);
+                }
+            }, [mapLocale]);
+
+            useEffect(() => {
+                const map = mapInstance.current;
+                const miniMap = miniMapInstance.current;
+                if (!map || data.length === 0) return;
+                
+                markerLayer.current.clearLayers();
+                clusterLayer.current.clearLayers();
+                markersRef.current = {};
+                let validMarkers = 0;
+
+                data.forEach((item, idx) => {
+                    const locStr = String(item.location || '').trim();
+                    if (!locStr) return;
+                    const activeLayersArray = []; 
+                    let featureLayers = [];
+
+                    try {
+                        if (locStr.match(/^[A-Z]+\s*\(/) || locStr.match(/^GEOMETRYCOLLECTION/)) {
+                            const wkt = new window.Wkt.Wkt(); wkt.read(locStr);
+                            featureLayers = extractLayers(wkt.toObject());
+                        } else if (locStr.startsWith('{') && locStr.includes('"type"')) {
+                            featureLayers = extractLayers(L.geoJSON(JSON.parse(locStr)));
+                        } else {
+                            const coordMatch = locStr.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
+                            if (coordMatch) featureLayers.push(L.marker([parseFloat(coordMatch[1]), parseFloat(coordMatch[2])]));
+                        }
+
+                        const subLabels = item.subLabels ? item.subLabels.split(/[|\-·;]/).map(s=>s.trim()) : [];
+                        const isVip = String(item.priority).trim().toUpperCase() === 'VIP';
+
+                        featureLayers.forEach((layer, layerIdx) => {
+                            // [FIX: GEO-02] Differentiated Geometry Styling
+                            if (layer instanceof L.Polygon) {
+                                layer.setStyle({ stroke: false, fillColor: '#007acc', fillOpacity: 0.4 });
+                            } else if (layer instanceof L.Polyline) {
+                                layer.setStyle({ color: '#007acc', weight: 2, dashArray: '5, 5' });
+                            } else if (layer.setStyle) {
+                                layer.setStyle({ color: '#007acc', weight: 4 });
+                            }
+
+                            if (layer instanceof L.Marker) {
+                                layer.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
+                                layer.isVip = isVip;
+                            } 
+                            
+                            let labelText = subLabels[layerIdx] ? subLabels[layerIdx] : (item.place ? stripHTML(item.place) : stripHTML(item.title));
+                            layer.bindTooltip(labelText, { direction: 'top', offset: [0, -48], className: 'centered-tooltip' });
+                            layer.on('click', () => setActiveIndex(idx));
+
+                            if (layer instanceof L.Marker && !isVip) clusterLayer.current.addLayer(layer); 
+                            else markerLayer.current.addLayer(layer); 
+
+                            activeLayersArray.push(layer);
+                            validMarkers++;
+                        });
+
+                        if (activeLayersArray.length > 0) markersRef.current[idx] = activeLayersArray; 
+                    } catch(e) { console.error("Map Error Row", idx, e); }
+                });
+
+                setTimeout(() => {
+                    if (map && validMarkers > 0 && !hasFitBounds.current && !new URLSearchParams(window.location.search).get('mapzoom')) {
+                        const bounds = L.latLngBounds();
+                        markerLayer.current.eachLayer(l => { if (l.getLatLng) bounds.extend(l.getLatLng()); else if (l.getBounds) bounds.extend(l.getBounds()); });
+                        clusterLayer.current.eachLayer(l => bounds.extend(l.getLatLng()));
+                        if (bounds.isValid()) {
+                            map.fitBounds(bounds, { padding: [30, 30], maxZoom: 6 });
+                            miniMap.fitBounds(bounds, { padding: [5, 5] });
+                            baseZoomRef.current = map.getBoundsZoom(bounds);
+                            hasFitBounds.current = true;
+                        }
+                    }
+                }, 150);
+            }, [data]);
+
+            useEffect(() => {
+                const map = mapInstance.current;
+                const markers = markersRef.current;
+                if (!map || Object.keys(markers).length === 0) return;
+
+                Object.keys(markers).forEach(idxStr => {
+                    const isTarget = parseInt(idxStr, 10) === activeIndex;
+                    markers[idxStr].forEach(l => {
+                        // [FIX: GEO-02] Differentiated Active Geometry Styling
+                        if (l instanceof L.Polygon) {
+                            l.setStyle({ stroke: false, fillColor: isTarget ? '#28a745' : '#007acc', fillOpacity: isTarget ? 0.6 : 0.4 });
+                            if (isTarget && l.bringToFront) l.bringToFront();
+                        } else if (l instanceof L.Polyline) {
+                            l.setStyle({ color: isTarget ? '#28a745' : '#007acc', weight: isTarget ? 3 : 2, dashArray: '5, 5' });
+                            if (isTarget && l.bringToFront) l.bringToFront();
+                        } else if (l instanceof L.Marker) {
+                            if (isTarget) {
+                                l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(true, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
+                                if (!l.isVip) { clusterLayer.current.removeLayer(l); markerLayer.current.addLayer(l); }
+                                l.setZIndexOffset(1000);
+                            } else {
+                                l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
+                                if (!l.isVip) { markerLayer.current.removeLayer(l); clusterLayer.current.addLayer(l); }
+                                l.setZIndexOffset(0);
+                            }
+                        } else if (l.setStyle) {
+                            l.setStyle({ color: isTarget ? '#28a745' : '#007acc', weight: isTarget ? 5 : 4 });
+                            if (isTarget && l.bringToFront) l.bringToFront();
+                        }
+                    });
+                });
+
+                const activeLayers = markers[activeIndex];
+                if (activeLayers && activeLayers.length > 0) {
+                    const activeFeatureGroup = L.featureGroup(activeLayers);
+                    setTimeout(() => {
+                        try {
+                            const bounds = activeFeatureGroup.getBounds();
+                            if (bounds.isValid()) map.flyToBounds(bounds, { animate: true, duration: 2.5, maxZoom: maxAutoZoom });
+                            activeLayers.forEach(l => { if (l.openTooltip) l.openTooltip(); });
+                        } catch(err) {}
+                    }, 100);
+                }
+            }, [activeIndex, data, maxAutoZoom]);
+
+            // [FIX: UI-NUM-01] Changed percentage to x multiplier
+            const mapMult = Math.pow(2, mapZoom - baseZoomRef.current);
+            const mapX = (mapMult % 1 === 0 ? mapMult : mapMult.toFixed(1)) + 'x';
+
             return html`
-                <div class="media-carousel">
-                    ${activeSlide.media.map((url, i) => html`
-                        <div class="media-item" key=${i}>
-                            ${activeSlide.media.length > 1 ? html`<div class="media-counter">${i + 1} / ${activeSlide.media.length}</div>` : ''}
-                            <div class="media-content-wrapper">${renderMedia(url)}</div>
-                        </div>
-                    `)}
+                <div style="position: relative; width:100%; height:100%;">
+                    <div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>
+                    <div class="map-zoom-indicator">Zoom: ${mapZoom} (${mapX})</div>
+                    <div class="minimap-container" ref=${miniMapDomRef}></div>
                 </div>
             `;
         };
-        MODULE_VERSIONS['MediaViewer'] = 'v2.1.0';
-        // === [ END MAJOR BLOCK: MediaViewer v2.1.0 ] ===
+        MODULE_VERSIONS['MapViewer'] = 'v3.16.0';
+        // === [ END MAJOR BLOCK: MapViewer v3.16.0 ] ===
 
         // === [ MAJOR BLOCK: ContentSlider v3.9.0 ] ===
         const ContentSlider = ({ data, activeIndex, setActiveIndex, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo, visibleTimeSpan }) => {
@@ -528,7 +726,7 @@
         MODULE_VERSIONS['ContentSlider'] = 'v3.9.0';
         // === [ END MAJOR BLOCK: ContentSlider v3.9.0 ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v23.6.0 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v23.7.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -657,12 +855,13 @@
                             validData.forEach((d, idx) => {
                                 if (idx === activeDataIndex) return;
                                 const gap = Math.abs(d.startDate.getTime() - sT);
-                                if (gap < minGap && gap > 0) minGap = gap;
+                                // [FIX: TL-AUTO-02] Removed gap > 0 condition to correctly catch simultaneous events
+                                if (gap < minGap) minGap = gap;
                             });
 
                             const safeGap = Math.max(minGap, 600000); 
-                            const idealZoom = (10 * renderTimeRange) / (safeGap * containerW);
-                            const clampedZoom = Math.min(Math.max(1, idealZoom), 500); 
+                            const idealZoom = (20 * renderTimeRange) / (safeGap * containerW);
+                            const clampedZoom = Math.min(Math.max(1, idealZoom), 200); 
                             
                             setZoomLevel(clampedZoom);
                         }
@@ -843,18 +1042,21 @@
                 `;
             });
 
+            // [FIX: UI-NUM-01] Changed percentage to clean x multiplier
+            const timelineX = zoomLevel % 1 === 0 ? zoomLevel : zoomLevel.toFixed(1);
+
             return html`
                 <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;">
                     <div class="timeline-leaflet-controls">
                         <div class="timeline-leaflet-btn" onClick=${() => doManualZoom('in')} title="Zoom In">+</div>
-                        <div class="timeline-leaflet-text" title="100% fits all data to screen">${Math.round(zoomLevel * 100)}%</div>
+                        <div class="timeline-leaflet-text" title="1x fits all data to screen">${timelineX}x</div>
                         <div class="timeline-leaflet-btn" style="font-size: 1rem; color: ${zoomLock === 'hard' ? '#d32f2f' : '#666'};" onClick=${toggleHardLock} title="Toggle Auto-Zoom Lock">
                             ${zoomLock === 'hard' ? '🔒' : '🔓'}
                         </div>
                         <div class="timeline-leaflet-btn" onClick=${() => doManualZoom('out')} title="Zoom Out">-</div>
                     </div>
 
-                    <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${(e) => { e.preventDefault(); doManualZoom(e.deltaY < 0 ? 'out' : 'in'); }}>
+                    <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${(e) => { e.preventDefault(); doManualZoom(e.deltaY < 0 ? 'in' : 'out'); }}>
                         <div class="timeline-track-container" style="width: ${trackWidthPx}px; flex-shrink: 0; min-width: 100%; height: 100%;">
                             <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 28px; pointer-events: none; z-index: 0;">
                                 ${orderedTags.map((tag, i) => html`
@@ -870,8 +1072,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v23.6.0';
-        // === [ END MAJOR BLOCK: TimelineScrubber v23.6.0 ] ===
+        MODULE_VERSIONS['TimelineScrubber'] = 'v23.7.0';
+        // === [ END MAJOR BLOCK: TimelineScrubber v23.7.0 ] ===
 
         // === [ MAJOR BLOCK: AppOrchestrator v1.32.0 ] ===
         const App = () => {
