@@ -1,6 +1,15 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.2.0)
+GlobalStyles (v4.8.0): [FIX: MED-UI-01] Styled .media-meta-box a to inherit standard font weights while revealing anchor behaviors on hover.
+
+AppOrchestrator (v1.33.0): [FIX: MED-01] Upgraded parsedMedia regex to explicitly target comma-space and semicolon-space signatures, preserving URL integrity.
+
+MediaViewer (v2.2.0): [FIX: MED-UI-01] Extracted the img tags into <a> wrappers. Injected the .media-meta-box container directly inside the carousel items to permanently bind clickable captions and credits below the media focus.
+
+---
+
 Changelog (v6.1.1)
 MapViewer (v3.16.0):
 [FIX: GEO-02] Segregated polygon and linestring styling blocks to minimize visual dominance.
