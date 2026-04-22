@@ -1,6 +1,17 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.1.1)
+MapViewer (v3.16.0):
+[FIX: GEO-02] Segregated polygon and linestring styling blocks to minimize visual dominance.
+[FIX: UI-NUM-01] Converted map zoom HUD to report relative scaling using the x notation.
+
+TimelineScrubber (v23.7.0):
+[FIX: TL-AUTO-02] Removed the gap > 0 exclusionary logic. The autozoom engine now correctly identifies dense/simultaneous event clusters and correctly zooms in to construct visual cascades instead of aggressively zooming out.
+[FIX: UI-NUM-01] Converted timeline UI to report scale using the x notation.
+
+---
+
 Changelog (v6.1.0)
 GlobalStyles (v4.7.0): Injected .minimap-container CSS footprint and .timeline-leaflet-controls mimicry logic.
 
