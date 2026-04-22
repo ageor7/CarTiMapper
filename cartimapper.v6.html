@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CarTiMapper</title>
+    <title>CarTiMapper Core v6.1.0</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 100'%3E%3Cdefs%3E%3Cfilter id='g' x='-50%25' y='-50%25' width='200%25' height='200%25'%3E%3CfeGaussianBlur stdDeviation='1.2' result='b'/%3E%3CfeMerge%3E%3CfeMergeNode in='b'/%3E%3CfeMergeNode in='b'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Cpath d='M28,38 L45,15 L180,15 L180,85 L45,85 L28,62 Z' fill='%23222' stroke='%23007acc' stroke-width='2.5' stroke-linejoin='round'/%3E%3Cg fill='%23fff' opacity='0.9'%3E%3Crect x='55' y='19' width='4' height='6' rx='1'/%3E%3Crect x='71' y='19' width='4' height='6' rx='1'/%3E%3Crect x='87' y='19' width='4' height='6' rx='1'/%3E%3Crect x='103' y='19' width='4' height='6' rx='1'/%3E%3Crect x='119' y='19' width='4' height='6' rx='1'/%3E%3Crect x='135' y='19' width='4' height='6' rx='1'/%3E%3Crect x='151' y='19' width='4' height='6' rx='1'/%3E%3Crect x='167' y='19' width='4' height='6' rx='1'/%3E%3Crect x='55' y='75' width='4' height='6' rx='1'/%3E%3Crect x='71' y='75' width='4' height='6' rx='1'/%3E%3Crect x='87' y='75' width='4' height='6' rx='1'/%3E%3Crect x='103' y='75' width='4' height='6' rx='1'/%3E%3Crect x='119' y='75' width='4' height='6' rx='1'/%3E%3Crect x='135' y='75' width='4' height='6' rx='1'/%3E%3Crect x='151' y='75' width='4' height='6' rx='1'/%3E%3Crect x='167' y='75' width='4' height='6' rx='1'/%3E%3C/g%3E%3Cg transform='translate(112, 50)'%3E%3Cpath d='M0,-28 L4,-6 L28,0 L4,6 L0,28 L-4,6 L-28,0 L-4,-6 Z' fill='%23444' opacity='0.8'/%3E%3Cg fill='%23fcfcfc' font-family='Arial,sans-serif' font-size='7'%3E%3Ctext x='0' y='-21' text-anchor='middle'%3EN%3C/text%3E%3Ctext x='24' y='2.5' text-anchor='middle'%3EE%3C/text%3E%3Ctext x='0' y='27' text-anchor='middle'%3ES%3C/text%3E%3Ctext x='-24' y='2.5' text-anchor='middle'%3EW%3C/text%3E%3C/g%3E%3Cg fill='%238be9fd' filter='url(%23g)'%3E%3Ccircle cx='12.5' cy='-21.6' r='1.2'/%3E%3Ccircle cx='21.6' cy='-12.5' r='1.2'/%3E%3Ccircle cx='21.6' cy='12.5' r='1.2'/%3E%3Ccircle cx='12.5' cy='21.6' r='1.2'/%3E%3Ccircle cx='-12.5' cy='21.6' r='1.2'/%3E%3Ccircle cx='-21.6' cy='12.5' r='1.2'/%3E%3Ccircle cx='-21.6' cy='-12.5' r='1.2'/%3E%3Ccircle cx='-12.5' cy='-21.6' r='1.2'/%3E%3C/g%3E%3Cg transform='rotate(60)'%3E%3Cpath d='M0,0 L-1,-16 L1,-16 Z' fill='%23999'/%3E%3Ccircle cx='0' cy='-20' r='2.8' fill='%23007acc'/%3E%3C/g%3E%3Cg transform='rotate(270)'%3E%3Cpath d='M0,0 L-1.2,-9 L1.2,-9 Z' fill='%23999'/%3E%3Ccircle cx='0' cy='-13' r='2.8' fill='%2328a745'/%3E%3C/g%3E%3Ccircle cx='0' cy='0' r='1.5' fill='%23fff'/%3E%3C/g%3E%3C/svg%3E">
 
@@ -148,6 +148,7 @@
         .log-info { color: #8be9fd; } .log-success { color: #50fa7b; } .log-warn { color: #ffb86c; } .log-error { color: #ff5555; }
         /* --- [ End SubBlock: Vibe Monitor UI ] --- */
         /* === [ END MAJOR BLOCK: GlobalStyles v4.7.0 ] === */
+    </style>
 </head>
 <body>
     <div id="root"></div>
@@ -161,7 +162,7 @@
         const html = htm.bind(h);
         const APP_VERSION = 'v6.1.0';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v4.5.0', Globals: 'v1.0.51' }; 
+        const MODULE_VERSIONS = { Styles: 'v4.7.0', Globals: 'v1.0.51' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
         // === [ END MAJOR BLOCK: Imports & Globals v1.0.51 ] ===
 
@@ -244,7 +245,7 @@
             const markersRef = useRef({}); 
             
             const hasFitBounds = useRef(false);
-            const baseZoomRef = useRef(2); // 100% Fit-All Baseline
+            const baseZoomRef = useRef(2); 
             const [mapZoom, setMapZoom] = useState(2);
 
             const createPinHtml = (isActive, isVip) => {
@@ -271,11 +272,9 @@
                     const initialZoom = urlParams.get('mapzoom') ? parseInt(urlParams.get('mapzoom')) : 2;
                     setMapZoom(initialZoom);
                     
-                    // Main Map Init
                     const map = L.map(mapDomRef.current, { zoomControl: false }).setView([20, 0], initialZoom);
                     L.control.zoom({ position: 'topright' }).addTo(map);
                     
-                    // [FIX: MAP-13] Added Geographic Scale Indicator
                     L.control.scale({ position: 'bottomleft', imperial: true, metric: true }).addTo(map);
                     
                     map.on('zoomend', () => setMapZoom(map.getZoom()));
@@ -296,16 +295,13 @@
                     });
                     clusterLayer.current.on('clustermouseout', (c) => c.layer.unbindTooltip());
 
-                    // [FIX: MAP-12] Initialize Overview Map (Minimap)
                     const miniMap = L.map(miniMapDomRef.current, { zoomControl: false, attributionControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false }).setView([20, 0], 0);
                     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(miniMap);
                     
                     const boundsRect = L.rectangle(map.getBounds(), { color: '#007acc', weight: 2, fillOpacity: 0.15 }).addTo(miniMap);
                     rectBoundsRef.current = boundsRect;
 
-                    map.on('move', () => {
-                        boundsRect.setBounds(map.getBounds());
-                    });
+                    map.on('move', () => { boundsRect.setBounds(map.getBounds()); });
 
                     mapInstance.current = map;
                     miniMapInstance.current = miniMap;
@@ -384,7 +380,6 @@
                         markerLayer.current.eachLayer(l => { if (l.getLatLng) bounds.extend(l.getLatLng()); else if (l.getBounds) bounds.extend(l.getBounds()); });
                         clusterLayer.current.eachLayer(l => bounds.extend(l.getLatLng()));
                         if (bounds.isValid()) {
-                            // Sync 100% Fit bounds across Main and Overview
                             map.fitBounds(bounds, { padding: [30, 30], maxZoom: 6 });
                             miniMap.fitBounds(bounds, { padding: [5, 5] });
                             baseZoomRef.current = map.getBoundsZoom(bounds);
@@ -432,7 +427,6 @@
                 }
             }, [activeIndex, data, maxAutoZoom]);
 
-            // [FIX: HUD-STATE-01] Calculate universal 100% relative base
             const mapPct = Math.round(Math.pow(2, mapZoom - baseZoomRef.current) * 100);
 
             return html`
@@ -491,7 +485,6 @@
             const goPrev = () => { if (activeIndex > 0) setActiveIndex(activeIndex - 1); };
             const goNext = () => { if (activeIndex < data.length - 1) setActiveIndex(activeIndex + 1); };
 
-            // [FIX: UI-HUD-01] Semantic Span Dashboard centrally anchored
             return html`
                 <div class="content-pane-wrapper">
                     <div class="click-zone click-zone-left" onClick=${goPrev} title="Previous"></div>
@@ -633,7 +626,6 @@
                 return { lines, pxWidth: Math.max(60, finalMaxW + 35) };
             };
 
-            // [FIX: UI-HUD-01] Semantic Time Formatter Effect
             useEffect(() => {
                 const visibleMs = renderTimeRange / zoomLevel;
                 const secs = visibleMs / 1000; const mins = secs / 60; const hrs = mins / 60;
@@ -645,17 +637,16 @@
                 else if (days >= 1) str = `${Math.round(days)} Days`;
                 else if (hrs >= 1) str = `${Math.round(hrs)} Hours`;
                 
-                setVisibleTimeSpan(str);
+                setVisibleTimeSpan(`Viewing: ${str}`);
             }, [zoomLevel, renderTimeRange, setVisibleTimeSpan]);
 
-            // [FIX: TL-AUTO-01] The Cascade Auto-Zoom Engine
             useEffect(() => {
                 if (validData.length > 1 && wrapperRef.current && !dragRef.current.isDragging) {
                     if (activeIndex !== prevActiveIndexRef.current) {
                         prevActiveIndexRef.current = activeIndex;
                         
-                        if (zoomLock === 'hard') return; // Do nothing if hard locked
-                        if (zoomLock === 'soft') setZoomLock('auto'); // Break soft lock on navigation
+                        if (zoomLock === 'hard') return; 
+                        if (zoomLock === 'soft') setZoomLock('auto'); 
 
                         const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
                         if (activeDataIndex >= 0) {
@@ -669,7 +660,6 @@
                                 if (gap < minGap && gap > 0) minGap = gap;
                             });
 
-                            // Enforce 10-Minute Floor (600,000 ms) and calculate Z to achieve 10px spacing
                             const safeGap = Math.max(minGap, 600000); 
                             const idealZoom = (10 * renderTimeRange) / (safeGap * containerW);
                             const clampedZoom = Math.min(Math.max(1, idealZoom), 500); 
@@ -696,7 +686,6 @@
                 }
             }, [activeIndex, zoomLevel, data]);
 
-            // [FIX: TL-LOCK-01] Manual Zoom Triggers Soft Lock
             const doManualZoom = (direction) => {
                 if (zoomLock !== 'hard') setZoomLock('soft');
                 setZoomLevel(p => direction === 'in' ? Math.min(p * 1.5, 500) : Math.max(p / 1.5, 1));
@@ -854,7 +843,6 @@
                 `;
             });
 
-            // [FIX: TL-UI-01] Leaflet-style Vertical Zoom Controls
             return html`
                 <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;">
                     <div class="timeline-leaflet-controls">
@@ -866,7 +854,7 @@
                         <div class="timeline-leaflet-btn" onClick=${() => doManualZoom('out')} title="Zoom Out">-</div>
                     </div>
 
-                    <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${(e) => { e.preventDefault(); doManualZoom(e.deltaY < 0 ? 'in' : 'out'); }}>
+                    <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${(e) => { e.preventDefault(); doManualZoom(e.deltaY < 0 ? 'out' : 'in'); }}>
                         <div class="timeline-track-container" style="width: ${trackWidthPx}px; flex-shrink: 0; min-width: 100%; height: 100%;">
                             <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 28px; pointer-events: none; z-index: 0;">
                                 ${orderedTags.map((tag, i) => html`
@@ -887,7 +875,6 @@
 
         // === [ MAJOR BLOCK: AppOrchestrator v1.32.0 ] ===
         const App = () => {
-            // --- [ SubBlock: State Initializers ] ---
             const [logs, setLogs] = useState([]);
             
             const [rawCsvRows, setRawCsvRows] = useState([]);
@@ -906,8 +893,7 @@
             const [mapLocale, setMapLocale] = useState('english');
             const [maxAutoZoom, setMaxAutoZoom] = useState(15);
             
-            // [FIX: HUD-STATE-01] New Global States for Synchronized Zoom & Scale
-            const [zoomLock, setZoomLock] = useState('auto'); // 'auto', 'soft', 'hard'
+            const [zoomLock, setZoomLock] = useState('auto'); 
             const [visibleTimeSpan, setVisibleTimeSpan] = useState('');
             
             const hasInitializedRef = useRef(false);
@@ -929,9 +915,7 @@
                     setActiveIndex(prev);
                 }
             };
-            // --- [ End SubBlock: State Initializers ] ---
 
-            // --- [ SubBlock: Layout Resizers ] ---
             const startMapResize = (e) => {
                 e.preventDefault();
                 const startX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -1000,9 +984,7 @@
                 document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
                 document.addEventListener('touchmove', onMove); document.addEventListener('touchend', onUp);
             };
-            // --- [ End SubBlock: Layout Resizers ] ---
 
-            // --- [ SubBlock: Stage 1 - Network Fetching ] ---
             useEffect(() => {
                 const urlParams = new URLSearchParams(window.location.search);
                 const paramTheme = urlParams.get('theme');
@@ -1064,9 +1046,7 @@
                     });
                 }).catch(err => { addLog(`Fetch failed: ${err.message}`, 'error'); setStatus({ text: `Connection Failed: ${err.message}`, progress: 0, isFading: false, active: false }); });
             }, []);
-            // --- [ End SubBlock: Stage 1 - Network Fetching ] ---
 
-            // --- [ SubBlock: Stage 2 - Dynamic Compilation ] ---
             useEffect(() => {
                 if (rawCsvRows.length === 0) return;
                 
@@ -1176,7 +1156,6 @@
                 setTimeout(() => { setStatus({ text: '', progress: 100, isFading: true, active: true }); }, 500);
 
             }, [rawCsvRows, dateFormat]); 
-            // --- [ End SubBlock: Stage 2 - Dynamic Compilation ] ---
 
             const activeSlide = data[activeIndex];
             const hasMedia = activeSlide?.media?.length > 0;
@@ -1207,7 +1186,6 @@
                 return html`<div class="logo-horizontal-about" style="flex-direction: column; align-items: flex-start; gap: 10px;"><div style="width: 200px; height: auto;">${svgIcon}</div></div>`;
             };
 
-            // --- [ SubBlock: Master Render ] ---
             return html`
                 <div id="tm-root">
                     ${!status.active ? html`
@@ -1289,7 +1267,6 @@
                     ` : ''}
                 </div>
             `;
-            // --- [ End SubBlock: Master Render ] ---
         };
         MODULE_VERSIONS['AppOrchestrator'] = 'v1.32.0';
         // === [ END MAJOR BLOCK: AppOrchestrator v1.32.0 ] ===
