@@ -109,6 +109,13 @@
 * **[REF: MAP-10] Active State Elevation (Unclustering):** The visual engine must guarantee spatial visibility of the `activeIndex`. Active markers are dynamically detached from the `MarkerClusterGroup` and elevated to the root map layer to prevent them from being hidden inside cluster aggregates. 
 * **[REF: MAP-11] Cluster Metadata Aggregation:** Map clusters utilize dynamic event listeners (`clustermouseover`) to aggregate and display a list of child-marker tooltips upon user hover.
 * **[REF: UI-TYPO-01] Dynamic Badge Typography:** Text badges in the narrative UI (e.g., Place labels) utilize `text-wrap: balance` and widened layout containers to ensure multi-line labels break mathematically and align their left margins elegantly with parent text bodies without exceeding container bounds.
+* **[REF: MAP-12] Overview Map (Minimap):** The spatial engine includes a secondary, non-interactive Leaflet instance synchronized to the primary viewport. A dynamic bounding box (`L.rectangle`) updates via `move` listeners to provide permanent spatial reference.
+* **[REF: MAP-13] Geographic Scale Validation:** The `MapViewer` renders a native metric/imperial scale bar to provide physical distance context.
+* **[REF: UI-HUD-01] Semantic Status Dashboard:** The Unified Status Bar acts as a Heads-Up Display (HUD), dynamically formatting the mathematical `visibleMs` from the timeline into a semantic string (e.g., "5 Years").
+* **[REF: TL-AUTO-01] The Cascade Auto-Zoom:** To gracefully visualize data density without logic whiplash, the engine identifies the absolute closest chronological event to the active index and calculates a zoom multiplier ensuring a precise `10px` visual separation. The gap math enforces a strict 10-minute floor to generate overlapping "cascades".
+* **[REF: TL-LOCK-01] The Dual-Tier Zoom Lock:** * *Soft Lock:* Engaged dynamically upon manual zoom/scroll. Decouples scaling from navigation until the next slide jump.
+  * *Hard Lock:* Engaged via explicit UI toggle (`🔒`). Permanently freezes the zoom scalar; navigation triggers panning strictly.
+* **[REF: HUD-STATE-01] Unified 100% Spatial/Temporal Mapping:** "100%" globally signifies the minimum scale required to view the entire bounds of the dataset. Map multipliers use mathematical exponents against the `getBoundsZoom()` base relative to the active zoom state.
 
 ---
 
