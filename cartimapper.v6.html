@@ -242,7 +242,7 @@
         };
         // === [ END MAJOR BLOCK: VibeMonitor v2.0.0 ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v3.16.1 ] ===
+        // === [ MAJOR BLOCK: MapViewer v3.16.2 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, mapLocale, maxAutoZoom }) => {
             const mapDomRef = useRef(null);
             const miniMapDomRef = useRef(null);
@@ -278,9 +278,9 @@
                 return layers;
             };
 
-            // [FIX: CRASH-01] Manual Polyfill for GEOMETRYCOLLECTION
+            // [FIX: CRASH-01.5] Invincible Micro-Parser Fallback
             const parseGeometryCollection = (wktStr) => {
-                const cleanStr = wktStr.replace(/^GEOMETRYCOLLECTION\s*\(/i, '').replace(/\)$/, '');
+                const cleanStr = wktStr.trim().replace(/^GEOMETRYCOLLECTION\s*\(/i, '').replace(/\)\s*$/, '');
                 
                 let inParen = 0;
                 let currentGeom = '';
@@ -307,7 +307,18 @@
                         wkt.read(geomStr);
                         extractedLayers = extractedLayers.concat(extractLayers(wkt.toObject()));
                     } catch (e) {
-                        console.warn("Failed to parse nested geometry:", geomStr);
+                        // If Wicket chokes, bypass it and manually extract the geometry
+                        const upper = geomStr.toUpperCase();
+                        if (upper.startsWith('POINT')) {
+                            const m = geomStr.match(/(-?\d+\.?\d*)\s+(-?\d+\.?\d*)/);
+                            if (m) extractedLayers.push(L.marker([parseFloat(m[2]), parseFloat(m[1])])); // Leaflet expects Lat, Lon
+                        } else if (upper.startsWith('LINESTRING')) {
+                            const m = [...geomStr.matchAll(/(-?\d+\.?\d*)\s+(-?\d+\.?\d*)/g)];
+                            if (m.length > 0) extractedLayers.push(L.polyline(m.map(x => [parseFloat(x[2]), parseFloat(x[1])])));
+                        } else if (upper.startsWith('POLYGON')) {
+                            const m = [...geomStr.matchAll(/(-?\d+\.?\d*)\s+(-?\d+\.?\d*)/g)];
+                            if (m.length > 0) extractedLayers.push(L.polygon(m.map(x => [parseFloat(x[2]), parseFloat(x[1])])));
+                        }
                     }
                 });
                 return extractedLayers;
@@ -387,7 +398,6 @@
 
                     try {
                         if (locStr.match(/^GEOMETRYCOLLECTION/i)) {
-                            // [FIX: CRASH-01] Route GEOMETRYCOLLECTION through the custom Polyfill
                             featureLayers = parseGeometryCollection(locStr);
                         } else if (locStr.match(/^[A-Z]+\s*\(/)) {
                             const wkt = new window.Wkt.Wkt(); wkt.read(locStr);
@@ -501,8 +511,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.16.1';
-        // === [ END MAJOR BLOCK: MapViewer v3.16.1 ] ===
+        MODULE_VERSIONS['MapViewer'] = 'v3.16.2';
+        // === [ END MAJOR BLOCK: MapViewer v3.16.2 ] ===
 
         // === [ MAJOR BLOCK: MediaViewer v2.4.0 ] ===
         const MediaViewer = ({ activeSlide }) => {
