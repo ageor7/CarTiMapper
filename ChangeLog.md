@@ -1,6 +1,19 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.1.0)
+GlobalStyles (v4.7.0): Injected .minimap-container CSS footprint and .timeline-leaflet-controls mimicry logic.
+
+AppOrchestrator (v1.32.0): Configured central zoomLock and visibleTimeSpan HUD properties and propagated them to visual children.
+
+MapViewer (v3.15.0): [FIX: MAP-12] Instantiated the synchronized Overview Minimap bounded explicitly to the dataset scope. [FIX: MAP-13] Deployed L.control.scale(). Engineered dynamic 100% calculation based on relative deviation from the baseZoomRef.
+
+TimelineScrubber (v23.6.0): [FIX: TL-AUTO-01] Remodeled Auto-Zoom engine to strictly enforce 10px spacing with a 10-minute cascade floor. [FIX: TL-LOCK-01] Implemented Soft/Hard tracking states. [FIX: TL-UI-01] Repackaged timeline controls into a Leaflet-style vertical stack for unified visual cadence.
+
+ContentSlider (v3.9.0): [FIX: UI-HUD-01] Formatted the unified status bar to display the semantic timeline extent readout.
+
+---
+
 Changelog (v6.0.26)
 GlobalStyles (v4.6.0): * [FIX: MAP-UI-02] Overrode default Leaflet Cluster CSS to deploy the Warm Segregation Palette.
 
