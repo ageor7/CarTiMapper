@@ -1,6 +1,12 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.1.5)
+MapViewer (v3.16.3):
+[FIX: SUB-02] Updated sublabel parsing. Inserted \n into the RegExp delimiter block to support CHAR(10) line breaks and chained a split/index call to dynamically truncate label strings at the first comma encountered.
+
+---
+
 Changelog (v6.1.4)
 ContentSlider (v3.9.2): [FIX: CRASH-02] Added missing jumpToSlide prop assignment. The "View overview as slide" button now correctly triggers timeline navigation without causing a fatal ReferenceError crash.
 
