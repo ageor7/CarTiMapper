@@ -85,6 +85,7 @@
 [REF: GEO-02] Differentiated Geometry Styling: The spatial renderer actively intercepts GeoJSON layer structures. `LINESTRING` objects are constrained to dashed lines with a weight of 2. `POLYGON` objects are rendered without strokes, relying entirely on a transparent fill, maintaining clear distinction from primary event markers.
 * **[REF: MED-01] Safe URL Splitting:** Media URLs are strictly parsed via `/[;,]\s+/`. The engine mathematically protects inline URL parameters containing commas or semicolons by only splitting strings if the delimiter is followed by a legitimate whitespace character.
 [REF: MED-02] Iframe String Interception: The MediaViewer dynamically intercepts string values beginning with an iframe declaration. To prevent DOM corruption via malformed href attributes, these strings bypass anchor-tag encapsulation and are executed via direct HTML injection.
+[REF: SUB-02] Line-Break & Comma Interception: The spatial engine's sublabels regex parser includes the \n literal to inherently catch Google Sheets' CHAR(10) outputs. The mapping function enforces a .split(',')[0] truncation sequence, mathematically guaranteeing that context appearing after a comma is discarded prior to rendering tooltips on the Map engine.
 
 ---
 
