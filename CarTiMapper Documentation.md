@@ -127,6 +127,9 @@
 [REF: MED-UI-03] Iframe Caption Anchors: If an iframe snippet is parsed, the engine utilizes a secondary regex extraction routine (src=["']([^"']+)["']) to isolate the absolute URI. This extracted URI safely populates the associated caption anchor tag.
 * **[REF: UI-HUD-02] Absolute Spatial Centering:** The core navigation cluster (`Prev/Next/TimeSpan`) within the Unified Status Bar utilizes absolute positioning (`left: 50%; transform: translateX(-50%)`) to guarantee mathematical centering independent of adjacent flex-box sibling widths.
 * **[REF: UI-TYPO-02] Neutral Weighting:** Default application typography defaults to `font-weight: 400`. Bold weights are explicitly restricted across primary text, status buttons, map indicators, and modal headers.
+* **[REF: TL-AUTO-03] Cluster Window Contextual Autozoom:** The timeline scaling engine abandons nearest-neighbor scaling in favor of a contextual cluster bounding box (`activeSlide ± 2`). This logically normalizes data densities by calculating the temporal span of 5 neighboring events, enforcing a 30-minute floor, and zooming uniformly to fit exactly 60% of the viewport width.
+* **[REF: TL-UI-03] Swimlane Bleed Control:** Events blocks (Hexagons) explicitly pull a 4-pixel margin off their parent lane container, reducing visual cross-talk. The collective lane container calculates a `5px` physical Y-axis lift relative to the absolute `28px` base timeline axis marker.
+* **[REF: TL-UI-04] Contextual Minor Labels:** The timeline implements a spatial collision-detection logic on minor coordinate boundaries (`pxBetweenMinor > 45`). When layout bounds expand sufficiently, the engine natively cascades format variants down one metric scale (e.g., Year ➔ Months, Day ➔ HH:MM) rendering semantic context directly onto minor structural ticks in a secondary `#888` weight constraint.
 
 ---
 
