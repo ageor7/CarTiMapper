@@ -1,6 +1,17 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.2.2)
+GlobalStyles (v4.11.0): [FIX: TL-UI-05] Retained the v6.1.3 flat-edge .event-block boundary box and preserved the 8px internal vertical padding expansion to strictly support native 3-line string wrapping.
+
+TimelineScrubber (v23.10.0): [FIX: TL-UI-07] Injected a symmetrical top: 5px offset into the internal lane layout boundary. This geometrically balances the bottom margin, providing a 5px positive breather above the uppermost active swimlane.
+
+[FIX: TL-UI-08] Engineered the Infinite Calendar Scale Matrix. Deprecated static increments. Major/Minor axes ticks are now calculated via dynamic Gregorian interpolation against an array of 16 context thresholds (spanning 1000 Years down to 1 Minute). Resolves extreme-zoom label collision while natively accommodating leap variations.
+
+[FIX: TL-ANIM-03] Deleted the sub-second micro-pan useEffect hook. Cross-domain sequence limits transitions to native CSS-driven auto-zoom width expansion post-pan, permanently preventing DOM coordinate stutter.
+
+---
+
 Changelog (v6.2.1)
 GlobalStyles (v4.11.0): * [FIX: TL-UI-05] Restored the flat-edge structural geometry to the .event-block class and compressed internal top/bottom padding to 2px to natively support 3-line string wraps without clipping.
 
