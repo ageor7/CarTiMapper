@@ -1,6 +1,13 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.2.3)
+MapViewer (v3.17.0): * [FIX: MAP-UI-01] Dropped the mathematically inconsistent spatial multipliers from the map zoom indicator. HUD now natively reports absolute zoom scale.
+
+[FIX: MAP-GRID-01] Engineered a dependency-free Micro-Graticule Engine. Parses the absolute bounds of the map view and dynamically loops native L.polyline injections based on variable degree intervals (10° down to 0.01°) synced seamlessly to the Leaflet moveend camera trigger. Included an interactive toggle boolean in the map HUD cluster.
+
+---
+
 Changelog (v6.2.2)
 GlobalStyles (v4.11.0): [FIX: TL-UI-05] Retained the v6.1.3 flat-edge .event-block boundary box and preserved the 8px internal vertical padding expansion to strictly support native 3-line string wrapping.
 
