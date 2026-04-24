@@ -1,6 +1,17 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.2.4)
+Imports & Globals (v1.0.52): * [FIX: CORE-01] Injected the useLayoutEffect hook into the global scope array to support synchronous DOM painting.
+
+TimelineScrubber (v23.11.0): * [FIX: TL-ANIM-05] Transferred the Cluster Auto-Zoom step of the animation state machine from a standard useEffect to a synchronous useLayoutEffect. The width stretch and the scrollTo re-centering now execute in the exact same millisecond, flawlessly eliminating timeline stretch-flicker.
+
+[FIX: TL-UI-09] Engineered an isFirstRenderedTick gate inside the axis generation loop to strictly enforce a full absolute date context on the leading edge of the timeline viewport.
+
+[FIX: UI-NUM-02] Wrapped the active zoomLevel readout in Math.round() for a clean, whole-number GUI presentation.
+
+---
+
 Changelog (v6.2.3)
 MapViewer (v3.17.0): * [FIX: MAP-UI-01] Dropped the mathematically inconsistent spatial multipliers from the map zoom indicator. HUD now natively reports absolute zoom scale.
 
