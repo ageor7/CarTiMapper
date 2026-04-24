@@ -87,6 +87,7 @@
 [REF: MED-02] Iframe String Interception: The MediaViewer dynamically intercepts string values beginning with an iframe declaration. To prevent DOM corruption via malformed href attributes, these strings bypass anchor-tag encapsulation and are executed via direct HTML injection.
 [REF: SUB-02] Line-Break & Comma Interception: The spatial engine's sublabels regex parser includes the \n literal to inherently catch Google Sheets' CHAR(10) outputs. The mapping function enforces a .split(',')[0] truncation sequence, mathematically guaranteeing that context appearing after a comma is discarded prior to rendering tooltips on the Map engine.
 * **[REF: MED-03] Array-Synchronized Telemetry (`CHAR(10)`):** The MediaViewer natively intercepts Google Sheets `Alt+Enter` newline markers (`\n`) within the `Media`, `Caption`, and `Credit` columns. The parser splits these cells into strictly sequenced, parallel arrays. The rendering loop enforces a 1:1 index mapping constraint (`mediaItems[i]` mapped strictly to `captions[i]`), ensuring highly specific sublabels synchronize precisely with their target media items during scroll operations, gracefully defaulting to empty strings to prevent misalignment.
+* **[REF: MED-08] Aggressive Sublabel CRLF Sanitization:** To accommodate cross-platform spreadsheet encodings, the regex delimiter parsing `CHAR(10)` array clusters (`Media`, `Caption`, `Credit`) utilizes `/\||\r?\n/`. This guarantees the engine identifies and strips invisible Windows-style carriage return `\r` ghosts, preventing them from fusing to URL end-strings and triggering silent HTTP 404 failures.
 
 ---
 
@@ -144,6 +145,7 @@
 * **[REF: MED-04] Event Propagation Unblocking:** Rendered `<img>` tags are completely decoupled from `<a>` hyperlink wrappers. This removes DOM click-event hijacking, allowing overlay structural elements (e.g., hidden `click-zone` navigators) to correctly interpret standard user input actions across the entire visual surface.
 * **[REF: MED-05] Isolated Link Vectors:** Raw asset URLs are routed to a dedicated external link icon `[↗]` pinned to the absolute right (`margin-left: auto`) of the `.media-meta-box` flex-container, isolating hyperlink telemetry away from navigational click regions.
 * **[REF: MED-06] CSS Snap-Scroll Intersection Exclusions:** Images loaded within the Media Carousel dynamically bypass standard browser `loading="lazy"` optimizations. Due to the `.media-carousel` utilizing a horizontal `scroll-snap-type` CSS layout, native intersection observers frequently fail to calculate physical bounding boxes for off-axis elements, resulting in infinite fetch deferral. Forcing eager rendering guarantees all carousel assets initialize synchronously.
+* **[REF: MED-07] Immutable Flexbox Targeting:** Rendered image entities (`<img>`) bypass external bounding containers, instead inheriting strict explicit sizing logic (`width: 100%; height: 100%; object-fit: contain; min-height: 0; min-width: 0;`). This overrides the native browser Flexbox collision model, ensuring direct-child images never collapse to `0px` coordinates inside fluid layout structures.
 
 ---
 
