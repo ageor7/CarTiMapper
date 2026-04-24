@@ -1,6 +1,13 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.3.5)
+MediaViewer (v2.6.1): * [FIX: MED-14] Reverted a fatal prop hallucination (data/activeIndex to activeSlide) that caused an absolute void render state. Implemented safe line-break (\n, \r\n) delimiter execution across media, caption, and credit data objects to preserve embedded comma structures.
+
+[FIX: MED-15] Synchronized metadata array indices natively 1:1 with media loop instances. Stripped the <a> wrapper from the visual image render to restore unblocked prev/next DOM click-zone telemetry, relegating outward bound links to a targeted interactive icon inside the metadata block.
+
+---
+
 Changelog (v6.3.4)
 MediaViewer (v2.5.4): * [FIX: MED-11] Simplified delimiter parsing regex to exclusively target line-breaks (/\r\n|\n|\r/). This resolves a critical bug where legitimate commas embedded inside image filenames were inadvertently triggering destructive URL array splits, leading to blank renders and 404 network errors.
 
