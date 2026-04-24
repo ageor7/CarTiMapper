@@ -168,7 +168,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.2.4';
+        const APP_VERSION = 'v6.2.6';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -702,7 +702,7 @@
         MODULE_VERSIONS['ContentSlider'] = 'v3.9.2';
         // === [ END MAJOR BLOCK: ContentSlider v3.9.2 ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v23.12.0 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v23.13.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -710,7 +710,10 @@
             const touchZoomRef = useRef({ initialDist: 0, initialZoom: 1 });
             const prevActiveIndexRef = useRef(-1);
             const scrollTargetRef = useRef(null);
+            const scrollTimeout = useRef(null);
+            
             const [containerHeight, setContainerHeight] = useState(200);
+            const [viewLeftEdge, setViewLeftEdge] = useState(0);
 
             useEffect(() => {
                 const measure = () => { if (wrapperRef.current) setContainerHeight(wrapperRef.current.clientHeight); };
@@ -812,7 +815,6 @@
                 setVisibleTimeSpan(`Viewing: ${str}`);
             }, [zoomLevel, renderTimeRange, setVisibleTimeSpan]);
 
-            // [FIX: TL-ANIM-06] The Viewport-Anchored State Machine (No More Fly-Aways)
             useEffect(() => {
                 const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
                 if (activeDataIndex >= 0 && wrapperRef.current && !dragRef.current.isDragging) {
@@ -825,6 +827,7 @@
                     const scrollPos = visualCenterPx - (containerW / 2);
                     
                     wrapperRef.current.scrollTo({ left: scrollPos, behavior: 'smooth' });
+                    setViewLeftEdge(Math.max(0, scrollPos));
                 }
             }, [activeIndex]);
 
@@ -874,6 +877,7 @@
             useLayoutEffect(() => {
                 if (scrollTargetRef.current !== null && wrapperRef.current) {
                     wrapperRef.current.scrollTo({ left: scrollTargetRef.current, behavior: 'auto' });
+                    setViewLeftEdge(Math.max(0, scrollTargetRef.current));
                     scrollTargetRef.current = null;
                 }
             }, [zoomLevel]);
@@ -912,7 +916,11 @@
                 dragRef.current = { isDragging: true, startX: x - wrapperRef.current.offsetLeft, scrollLeft: wrapperRef.current.scrollLeft }; 
                 wrapperRef.current.classList.add('is-dragging'); 
             };
-            const onUp = () => { dragRef.current.isDragging = false; wrapperRef.current?.classList.remove('is-dragging'); };
+            const onUp = () => { 
+                dragRef.current.isDragging = false; 
+                wrapperRef.current?.classList.remove('is-dragging'); 
+                if (wrapperRef.current) setViewLeftEdge(wrapperRef.current.scrollLeft);
+            };
             const onMove = (e) => {
                 if (e.touches && e.touches.length === 2) {
                     e.preventDefault(); 
@@ -932,6 +940,14 @@
                 const rect = wrapperRef.current.getBoundingClientRect();
                 const eventX = e.clientX - rect.left;
                 handleManualZoom(newZoom, 'mouse', eventX);
+            };
+
+            // [FIX: TL-UI-12] Native DOM debouncer for manual dragging/trackpad scrolls
+            const onScroll = (e) => {
+                if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+                scrollTimeout.current = setTimeout(() => {
+                    if (wrapperRef.current) setViewLeftEdge(wrapperRef.current.scrollLeft);
+                }, 100);
             };
 
             if (validData.length === 0) return html`<div style="padding:1rem;">No valid temporal data.</div>`;
@@ -978,12 +994,11 @@
             else if (activeScale.type === 'minute') { iterDate.setSeconds(0); iterDate.setMinutes(Math.floor(iterDate.getMinutes() / activeScale.step) * activeScale.step); }
 
             let safety = 0;
-            let isFirstRenderedTick = true;
             
-            // [FIX: TL-UI-10] Viewport-Awareness: Find the start of the visible pane based on Active Context
-            let expectedVisibleMin = renderMinTime;
-            const activeDataIndexForView = validData.findIndex(d => d.id === activeIndex);
-            if (activeDataIndexForView >= 0) expectedVisibleMin = validData[activeDataIndexForView].startDate.getTime() - (visibleMs / 2);
+            // [FIX: TL-UI-12] Calculate true left edge based on debounced scroll state
+            let expectedVisibleMin = renderMinTime + (viewLeftEdge / trackWidthPx) * renderTimeRange;
+            let firstVisibleMajorTickTime = null;
+            let firstVisibleMajorTickPx = -1;
 
             while (iterDate.getTime() <= renderMaxTime && safety < 2000) {
                 safety++;
@@ -991,11 +1006,18 @@
                 
                 if (t >= renderMinTime) {
                     const pctLeft = ((t - renderMinTime) / renderTimeRange) * 100;
+                    const currentTickPx = (pctLeft / 100) * trackWidthPx;
                     let label = '';
+                    let isFirstVisibleMajor = false;
                     
-                    if (t >= expectedVisibleMin && isFirstRenderedTick) {
+                    if (t >= expectedVisibleMin && firstVisibleMajorTickTime === null) {
+                        firstVisibleMajorTickTime = t;
+                        firstVisibleMajorTickPx = currentTickPx;
+                        isFirstVisibleMajor = true;
+                    }
+
+                    if (isFirstVisibleMajor) {
                         label = iterDate.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: (activeScale.type==='hour'||activeScale.type==='minute')?'2-digit':undefined, minute: (activeScale.type==='hour'||activeScale.type==='minute')?'2-digit':undefined });
-                        isFirstRenderedTick = false;
                     } else {
                         if (activeScale.type === 'year') label = iterDate.getFullYear();
                         else if (activeScale.type === 'month') label = iterDate.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
@@ -1003,10 +1025,11 @@
                         else if (activeScale.type === 'hour' || activeScale.type === 'minute') label = iterDate.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
                     }
 
+                    // [FIX: TL-UI-13] Right-align logic for the absolute date to prevent left-edge cutoff
                     rulerTicks.push(html`
-                        <div class="timeline-ruler-tick" style="left: ${pctLeft}%; position: absolute; bottom: 3px; display: flex; flex-direction: column; align-items: center; z-index: 5;">
+                        <div class="timeline-ruler-tick" style="left: ${pctLeft}%; position: absolute; bottom: 3px; display: flex; flex-direction: column; align-items: ${isFirstVisibleMajor ? 'flex-start' : 'center'}; z-index: 6; transform: translateX(${isFirstVisibleMajor ? '-1px' : '-50%'});">
                             <div style="width: 2px; height: 10px; background: #666; margin-bottom: 2px;"></div>
-                            <div style="font-size: 0.75rem; color: #444; white-space: nowrap;">${label}</div>
+                            <div style="font-size: 0.75rem; color: #444; white-space: nowrap; font-weight: 400; ${isFirstVisibleMajor ? 'padding-left: 6px;' : ''}">${label}</div>
                         </div>
                     `);
                 }
@@ -1033,10 +1056,17 @@
                     
                     const minorT = minorIter.getTime();
                     if (minorT >= renderMinTime && minorT <= renderMaxTime) {
-                        const gapPx = ((minorT - t) / renderTimeRange) * trackWidthPx; 
+                        const mPct = ((minorT - renderMinTime) / renderTimeRange) * 100;
+                        const minorTickPx = (mPct / 100) * trackWidthPx;
+                        const gapPx = minorTickPx - ((t - renderMinTime) / renderTimeRange) * trackWidthPx; 
 
-                        if (gapPx > 15) { 
-                            const mPct = ((minorT - renderMinTime) / renderTimeRange) * 100;
+                        // [FIX: TL-UI-13] Mathematical 120px safe-zone. Minor ticks abort rendering if they physically collide with the first-tick absolute date string.
+                        let hideMinor = false;
+                        if (firstVisibleMajorTickPx !== -1 && minorTickPx >= firstVisibleMajorTickPx - 10 && minorTickPx <= firstVisibleMajorTickPx + 120) {
+                            hideMinor = true;
+                        }
+
+                        if (!hideMinor && gapPx > 15) { 
                             let minorLabel = '';
                             
                             if (gapPx > 45) { 
@@ -1068,10 +1098,10 @@
                 const minIdx = Math.min(...tagIndices);
                 const maxIdx = Math.max(...tagIndices);
                 
-                // [FIX: TL-UI-11] Unification of Y-Axis geometry to account for 5px top offset
+                // [FIX: TL-UI-14] Absolute Y-Axis Baseline Math
                 const topPos = (minIdx * laneHeight) + 5;
                 const blockHeight = (maxIdx - minIdx + 1) * laneHeight; 
-                const distanceToAxis = (containerHeight - 33) - topPos; 
+                const distanceToAxis = (containerHeight - 28) - topPos; 
 
                 let activeAnchor = '';
                 if (isActive) {
@@ -1079,12 +1109,11 @@
                         activeAnchor = html`
                             <div style="position: absolute; left: 0; top: 50%; height: ${distanceToAxis - (blockHeight / 2)}px; width: 2px; background: #007acc; z-index: 999;"></div>
                             <div style="position: absolute; top: ${distanceToAxis - 16}px; left: 0; width: 100%; min-width: 2px; height: 16px; background: rgba(0,122,204,0.3); clip-path: polygon(0 0, 100% calc(100% - 5px), 100% 100%, 0 100%); filter: drop-shadow(0 2px 2px rgba(0,122,204,0.4)); z-index: 998;"></div>
-                            <div style="position: absolute; top: ${distanceToAxis - 8}px; right: 0; width: 2px; height: 8px; background: #007acc; z-index: 999;"></div>
                         `;
                     } else {
                         activeAnchor = html`
                             <div style="position: absolute; left: 0; top: 50%; height: ${distanceToAxis - (blockHeight / 2)}px; width: 2px; background: #007acc; z-index: 999;"></div>
-                            <div style="position: absolute; top: ${distanceToAxis - 4}px; left: -3px; width: 8px; height: 8px; border-radius: 50%; background: #007acc; border: 1px solid #fff; z-index: 998;"></div>
+                            <div style="position: absolute; top: ${distanceToAxis - 4}px; left: -3px; width: 6px; height: 6px; border-radius: 50%; background: #007acc; border: 1px solid #fff; z-index: 998; box-sizing: content-box;"></div>
                         `;
                     }
                 }
@@ -1115,7 +1144,7 @@
                         <div class="timeline-leaflet-btn" onClick=${() => doManualZoom('out')} title="Zoom Out">-</div>
                     </div>
 
-                    <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${onWheel}>
+                    <div class="timeline-scroll-wrapper" ref=${wrapperRef} onScroll=${onScroll} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${onWheel}>
                         <div class="timeline-track-container" style="width: ${trackWidthPx}px; flex-shrink: 0; min-width: 100%; height: 100%;">
                             <div style="position: absolute; top: 5px; left: 0; right: 0; bottom: 33px; pointer-events: none; z-index: 0;">
                                 ${orderedTags.map((tag, i) => html`
@@ -1131,8 +1160,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v23.12.0';
-        // === [ END MAJOR BLOCK: TimelineScrubber v23.12.0 ] ===
+        MODULE_VERSIONS['TimelineScrubber'] = 'v23.13.0';
+        // === [ END MAJOR BLOCK: TimelineScrubber v23.13.0 ] ===
 
         // === [ MAJOR BLOCK: AppOrchestrator v1.34.1 ] ===
         const App = () => {
