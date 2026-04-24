@@ -15,7 +15,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/wicket/1.3.8/wicket.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/wicket/1.3.8/wicket-leaflet.min.js"></script>
     <style>
-        /* === [ MAJOR BLOCK: GlobalStyles v4.9.0 ] === */
+        /* === [ MAJOR BLOCK: GlobalStyles v4.10.0 ] === */
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;1,400&display=swap');
 
         /* --- [ SubBlock: Root & Base ] --- */
@@ -106,7 +106,6 @@
         /* --- [ SubBlock: Status Bar & Modals ] --- */
         .unified-status-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 40px; background: #fff; border-top: 1px solid #ddd; display: flex; align-items: center; padding: 0 15px; box-shadow: 0 -2px 5px rgba(0,0,0,0.02); z-index: 20; }
         .status-left { display: flex; align-items: center; gap: 10px; z-index: 2; }
-        /* [FIX: UI-HUD-02] Absolute centering for the navigation controls */
         .status-center { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; align-items: center; z-index: 1; }
         .status-right { position: absolute; right: 15px; display: flex; align-items: center; font-size: 0.85rem; color: #666; gap: 10px; z-index: 2; }
         
@@ -131,10 +130,12 @@
         .tag-lane-label { position: sticky; left: 0; z-index: 100; padding: 0 10px; font-size: 0.75rem; color: #555; display: flex; align-items: center; height: 100%; background: inherit; border-right: 1px solid #ccc; box-shadow: 2px 0 4px rgba(0,0,0,0.05);}
         .event-group { position: absolute; z-index: 10; transition: z-index 0.2s; display: flex; align-items: flex-start; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.15)); }
         .event-group.active { z-index: 30; filter: drop-shadow(0 4px 6px rgba(0,122,204,0.4)); }
+        
+        /* [FIX: TL-UI-02] Cleaned Hexagon Clip-Path and 4px Squeeze gap */
         .event-block { 
             display: flex; flex-direction: column; align-items: flex-start; justify-content: center; text-align: left; font-size: 0.75rem; cursor: pointer; transition: filter 0.2s ease; box-sizing: border-box;
-            --diag-w: 10px; min-height: var(--lane-h); padding: 6px 12px 6px calc(var(--diag-w) + 8px); 
-            clip-path: polygon( 0 calc(50% - (var(--lane-h) / 2) + 0.5px), var(--diag-w) 0, 100% 0, 100% 100%, var(--diag-w) 100%, 0 calc(50% + (var(--lane-h) / 2) - 0.5px) );
+            height: calc(var(--lane-h) - 4px); margin-top: 2px; padding: 2px 12px 2px 18px; 
+            clip-path: polygon(0 50%, 10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%);
         }
         .event-block:hover { filter: brightness(1.05); z-index: 40; }
         .timeline-axis { position: absolute; bottom: 0; left: 0; right: 0; height: 28px; background: #e0e0e0; border-top: 2px solid #999; z-index: 5; }
@@ -154,7 +155,7 @@
         #vibe-logs { flex: 1; overflow-y: auto; padding: 10px; font-size: 12px; line-height: 1.4; word-wrap: break-word; }
         .log-info { color: #8be9fd; } .log-success { color: #50fa7b; } .log-warn { color: #ffb86c; } .log-error { color: #ff5555; }
         /* --- [ End SubBlock: Vibe Monitor UI ] --- */
-        /* === [ END MAJOR BLOCK: GlobalStyles v4.9.0 ] === */
+        /* === [ END MAJOR BLOCK: GlobalStyles v4.10.0 ] === */
     </style>
 </head>
 <body>
@@ -167,7 +168,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.1.5';
+        const APP_VERSION = 'v6.2.0';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.9.0', Globals: 'v1.0.51' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -660,7 +661,7 @@
         MODULE_VERSIONS['ContentSlider'] = 'v3.9.2';
         // === [ END MAJOR BLOCK: ContentSlider v3.9.2 ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v23.7.0 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v23.8.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -701,7 +702,8 @@
                 if (!placed) orderedTags.push(remaining.shift());
             }
 
-            const availableLanesHeight = Math.max(containerHeight - 28, 50); 
+            // [FIX: TL-UI-03] Elevated swimlanes 33px from the bottom (leaving 5px visual gap above the 28px X-Axis)
+            const availableLanesHeight = Math.max(containerHeight - 33, 50); 
             const laneHeight = Math.max(24, availableLanesHeight / (orderedTags.length || 1));
 
             const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
@@ -772,6 +774,7 @@
                 setVisibleTimeSpan(`Viewing: ${str}`);
             }, [zoomLevel, renderTimeRange, setVisibleTimeSpan]);
 
+            // [FIX: TL-AUTO-03] Cluster Window Contextual Autozoom
             useEffect(() => {
                 if (validData.length > 1 && wrapperRef.current && !dragRef.current.isDragging) {
                     if (activeIndex !== prevActiveIndexRef.current) {
@@ -782,19 +785,26 @@
 
                         const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
                         if (activeDataIndex >= 0) {
-                            const sT = validData[activeDataIndex].startDate.getTime();
                             const containerW = wrapperRef.current.clientWidth || 1000;
                             
-                            let minGap = Infinity;
-                            validData.forEach((d, idx) => {
-                                if (idx === activeDataIndex) return;
-                                const gap = Math.abs(d.startDate.getTime() - sT);
-                                if (gap < minGap) minGap = gap;
-                            });
-
-                            const safeGap = Math.max(minGap, 600000); 
-                            const idealZoom = (20 * renderTimeRange) / (safeGap * containerW);
-                            const clampedZoom = Math.min(Math.max(1, idealZoom), 200); 
+                            let startIdx = Math.max(0, activeDataIndex - 2);
+                            let endIdx = Math.min(validData.length - 1, activeDataIndex + 2);
+                            
+                            let clusterMin = validData[startIdx].startDate.getTime();
+                            let clusterMax = validData[endIdx].startDate.getTime();
+                            
+                            for (let i = startIdx; i <= endIdx; i++) {
+                                if (validData[i].endDate && !isNaN(validData[i].endDate.getTime())) {
+                                    clusterMax = Math.max(clusterMax, validData[i].endDate.getTime());
+                                }
+                                clusterMax = Math.max(clusterMax, validData[i].startDate.getTime());
+                                clusterMin = Math.min(clusterMin, validData[i].startDate.getTime());
+                            }
+                            
+                            let clusterSpan = clusterMax - clusterMin;
+                            const safeSpan = Math.max(clusterSpan, 1800000); 
+                            const idealZoom = (0.6 * renderTimeRange) / safeSpan;
+                            const clampedZoom = Math.min(Math.max(1, idealZoom), 300); 
                             
                             setZoomLevel(clampedZoom);
                         }
@@ -919,9 +929,22 @@
                     let minorCount = 0;
                     while (minorIter < iterTime + majorStepMs && minorCount < 30) {
                         minorCount++;
-                        if ((minorStepMs / msPerPixel) > 15) { 
+                        const pxBetweenMinor = minorStepMs / msPerPixel;
+                        if (pxBetweenMinor > 15) { 
                             const mPctLeft = ((minorIter - renderMinTime) / renderTimeRange) * 100;
-                            rulerTicks.push(html`<div style="position: absolute; left: ${mPctLeft}%; top: 0; width: 1px; height: 5px; background: #aaa; z-index: 4;"></div>`);
+                            
+                            // [FIX: TL-UI-04] Contextual Minor Labels based on spatial gap collision detection
+                            let minorLabelHtml = '';
+                            if (pxBetweenMinor > 45) {
+                                const mDate = new Date(minorIter);
+                                let mText = '';
+                                if (formatType === 'year') mText = mDate.toLocaleString('en-GB', { month: 'short' });
+                                else if (formatType === 'month') mText = mDate.getDate();
+                                else if (formatType === 'day' || formatType === 'time') mText = mDate.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                                minorLabelHtml = html`<div style="position: absolute; left: -20px; right: -20px; top: 7px; text-align: center; font-size: 0.6rem; color: #888;">${mText}</div>`;
+                            }
+                            
+                            rulerTicks.push(html`<div style="position: absolute; left: ${mPctLeft}%; top: 0; width: 1px; height: ${minorLabelHtml ? '7px' : '5px'}; background: #aaa; z-index: 4;">${minorLabelHtml}</div>`);
                         }
                         minorIter += minorStepMs;
                     }
@@ -990,7 +1013,7 @@
 
                     <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${(e) => { e.preventDefault(); doManualZoom(e.deltaY < 0 ? 'in' : 'out'); }}>
                         <div class="timeline-track-container" style="width: ${trackWidthPx}px; flex-shrink: 0; min-width: 100%; height: 100%;">
-                            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 28px; pointer-events: none; z-index: 0;">
+                            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 33px; pointer-events: none; z-index: 0;">
                                 ${orderedTags.map((tag, i) => html`
                                     <div class="tag-lane" style="top: ${i * laneHeight}px; height: ${laneHeight}px; background: ${i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent'};">
                                         <div class="tag-lane-label" style="background: ${i % 2 === 0 ? '#f4f4f4' : '#fcfcfc'}; pointer-events: auto;">${tag}</div>
@@ -1004,8 +1027,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v23.7.0';
-        // === [ END MAJOR BLOCK: TimelineScrubber v23.7.0 ] ===
+        MODULE_VERSIONS['TimelineScrubber'] = 'v23.8.0';
+        // === [ END MAJOR BLOCK: TimelineScrubber v23.8.0 ] ===
 
         // === [ MAJOR BLOCK: AppOrchestrator v1.34.1 ] ===
         const App = () => {
