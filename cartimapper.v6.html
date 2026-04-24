@@ -161,18 +161,18 @@
 <body>
     <div id="root"></div>
     <script type="module">
-        // === [ MAJOR BLOCK: Imports & Globals v1.0.51 ] ===
+        // === [ MAJOR BLOCK: Imports & Globals v1.0.52 ] ===
         import { h, render, Component } from 'https://esm.sh/preact';
-        import { useState, useEffect, useRef } from 'https://esm.sh/preact/hooks';
+        import { useState, useEffect, useLayoutEffect, useRef } from 'https://esm.sh/preact/hooks';
         import htm from 'https://esm.sh/htm';
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.2.1';
+        const APP_VERSION = 'v6.2.4';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v4.9.0', Globals: 'v1.0.51' }; 
+        const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
-        // === [ END MAJOR BLOCK: Imports & Globals v1.0.51 ] ===
+        // === [ END MAJOR BLOCK: Imports & Globals v1.0.52 ] ===
 
         // === [ MAJOR BLOCK: Utilities v1.0.0 ] ===
         const stripHTML = (htmlStr) => {
@@ -702,7 +702,7 @@
         MODULE_VERSIONS['ContentSlider'] = 'v3.9.2';
         // === [ END MAJOR BLOCK: ContentSlider v3.9.2 ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v23.10.0 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v23.11.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -743,7 +743,6 @@
                 if (!placed) orderedTags.push(remaining.shift());
             }
 
-            // [FIX: TL-UI-07] Deducted additional 5px for the top breather (33px bottom + 5px top = 38px)
             const availableLanesHeight = Math.max(containerHeight - 38, 50); 
             const laneHeight = Math.max(24, availableLanesHeight / (orderedTags.length || 1));
 
@@ -839,7 +838,6 @@
                         const timeoutId = setTimeout(() => {
                             const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
                             if (activeDataIndex >= 0) {
-                                const containerW = wrapperRef.current.clientWidth || 1000;
                                 let startIdx = Math.max(0, activeDataIndex - 2);
                                 let endIdx = Math.min(validData.length - 1, activeDataIndex + 2);
                                 
@@ -855,15 +853,28 @@
                                 const safeSpan = Math.max(clusterMax - clusterMin, 1800000); 
                                 const idealZoom = (0.6 * renderTimeRange) / safeSpan;
                                 const clampedZoom = Math.min(Math.max(1, idealZoom), 300); 
-                                setZoomLevel(clampedZoom);
+                                setZoomLevel(clampedZoom); 
                             }
-                        }, 400);
+                        }, 500); 
                         return () => clearTimeout(timeoutId);
                     }
                 }
             }, [activeIndex, data, zoomLock, setZoomLock]); 
 
-            // [FIX: TL-ANIM-03] Deleted the micro-pan transition hook to eliminate React DOM stutter.
+            useLayoutEffect(() => {
+                const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
+                if (activeDataIndex >= 0 && wrapperRef.current && !dragRef.current.isDragging) {
+                    const sT = validData[activeDataIndex].startDate.getTime();
+                    const { pxWidth } = formatLabelSmart(stripHTML(validData[activeDataIndex].title));
+                    const containerW = wrapperRef.current.clientWidth || 1000;
+                    const targetTrackW = Math.max(containerW, containerW * zoomLevel);
+                    const sPct = (sT - renderMinTime) / renderTimeRange;
+                    const visualCenterPx = (sPct * targetTrackW) + (pxWidth / 2);
+                    const scrollPos = visualCenterPx - (containerW / 2);
+                    
+                    wrapperRef.current.scrollTo({ left: scrollPos, behavior: 'auto' });
+                }
+            }, [zoomLevel]);
 
             const doManualZoom = (direction) => {
                 if (zoomLock !== 'hard') setZoomLock('soft');
@@ -903,7 +914,6 @@
             const visibleMs = renderTimeRange / zoomLevel;
             const msPerPixel = renderTimeRange / trackWidthPx;
             
-            // [FIX: TL-UI-08] The Infinite Calendar Matrix (Centuries to Seconds)
             const targetMsPerMajorTick = (200 / containerW) * visibleMs; 
             const SECOND = 1000; const MINUTE = 60 * SECOND; const HOUR = 60 * MINUTE; 
             const DAY = 24 * HOUR; const MONTH = 30 * DAY; const YEAR = 365.25 * DAY;
@@ -934,7 +944,6 @@
             let iterDate = new Date(renderMinTime);
             iterDate.setMilliseconds(0);
             
-            // Floor the start date to align with standard chronological boundaries
             if (activeScale.type === 'year') { iterDate.setMonth(0, 1); iterDate.setHours(0,0,0); iterDate.setFullYear(Math.floor(iterDate.getFullYear() / activeScale.step) * activeScale.step); }
             else if (activeScale.type === 'month') { iterDate.setDate(1); iterDate.setHours(0,0,0); iterDate.setMonth(Math.floor(iterDate.getMonth() / activeScale.step) * activeScale.step); }
             else if (activeScale.type === 'day') { iterDate.setHours(0,0,0); }
@@ -942,6 +951,8 @@
             else if (activeScale.type === 'minute') { iterDate.setSeconds(0); iterDate.setMinutes(Math.floor(iterDate.getMinutes() / activeScale.step) * activeScale.step); }
 
             let safety = 0;
+            let isFirstRenderedTick = true;
+
             while (iterDate.getTime() <= renderMaxTime && safety < 2000) {
                 safety++;
                 const t = iterDate.getTime();
@@ -949,20 +960,25 @@
                 if (t >= renderMinTime) {
                     const pctLeft = ((t - renderMinTime) / renderTimeRange) * 100;
                     let label = '';
-                    if (activeScale.type === 'year') label = iterDate.getFullYear();
-                    else if (activeScale.type === 'month') label = iterDate.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
-                    else if (activeScale.type === 'day') label = iterDate.toLocaleString('en-GB', { day: 'numeric', month: 'short' });
-                    else if (activeScale.type === 'hour' || activeScale.type === 'minute') label = iterDate.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                    
+                    if (isFirstRenderedTick) {
+                        label = iterDate.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: (activeScale.type==='hour'||activeScale.type==='minute')?'2-digit':undefined, minute: (activeScale.type==='hour'||activeScale.type==='minute')?'2-digit':undefined });
+                        isFirstRenderedTick = false;
+                    } else {
+                        if (activeScale.type === 'year') label = iterDate.getFullYear();
+                        else if (activeScale.type === 'month') label = iterDate.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
+                        else if (activeScale.type === 'day') label = iterDate.toLocaleString('en-GB', { day: 'numeric', month: 'short' });
+                        else if (activeScale.type === 'hour' || activeScale.type === 'minute') label = iterDate.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                    }
 
                     rulerTicks.push(html`
                         <div class="timeline-ruler-tick" style="left: ${pctLeft}%; position: absolute; bottom: 3px; display: flex; flex-direction: column; align-items: center; z-index: 5;">
                             <div style="width: 2px; height: 10px; background: #666; margin-bottom: 2px;"></div>
-                            <div style="font-size: 0.75rem; color: #444; white-space: nowrap;">${label}</div>
+                            <div style="font-size: 0.75rem; color: #444; white-space: nowrap; font-weight: 700;">${label}</div>
                         </div>
                     `);
                 }
 
-                // Calculate the next Major boundary
                 let nextMajor = new Date(iterDate);
                 if (activeScale.type === 'year') nextMajor.setFullYear(nextMajor.getFullYear() + activeScale.step);
                 else if (activeScale.type === 'month') nextMajor.setMonth(nextMajor.getMonth() + activeScale.step);
@@ -970,7 +986,6 @@
                 else if (activeScale.type === 'hour') nextMajor.setHours(nextMajor.getHours() + activeScale.step);
                 else if (activeScale.type === 'minute') nextMajor.setMinutes(nextMajor.getMinutes() + activeScale.step);
 
-                // Dynamically cascade Minor ticks inside the boundary
                 let minorIter = new Date(iterDate);
                 let minorSafety = 0;
                 while (minorSafety < 100) {
@@ -986,7 +1001,6 @@
                     
                     const minorT = minorIter.getTime();
                     if (minorT >= renderMinTime && minorT <= renderMaxTime) {
-                        const pxPerMinor = minorStepMs => (minorStepMs / msPerPixel); 
                         const gapPx = ((minorT - t) / renderTimeRange) * trackWidthPx; 
 
                         if (gapPx > 15) { 
@@ -1055,13 +1069,13 @@
                 `;
             });
 
-            const timelineX = zoomLevel % 1 === 0 ? zoomLevel : zoomLevel.toFixed(1);
+            const timelineX = Math.round(zoomLevel) + 'x';
 
             return html`
                 <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;">
                     <div class="timeline-leaflet-controls">
                         <div class="timeline-leaflet-btn" onClick=${() => doManualZoom('in')} title="Zoom In">+</div>
-                        <div class="timeline-leaflet-text" title="1x fits all data to screen">${timelineX}x</div>
+                        <div class="timeline-leaflet-text" title="1x fits all data to screen">${timelineX}</div>
                         <div class="timeline-leaflet-btn" style="font-size: 1rem; color: ${zoomLock === 'hard' ? '#d32f2f' : '#666'};" onClick=${toggleHardLock} title="Toggle Auto-Zoom Lock">
                             ${zoomLock === 'hard' ? '🔒' : '🔓'}
                         </div>
@@ -1084,8 +1098,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v23.10.0';
-        // === [ END MAJOR BLOCK: TimelineScrubber v23.10.0 ] ===
+        MODULE_VERSIONS['TimelineScrubber'] = 'v23.11.0';
+        // === [ END MAJOR BLOCK: TimelineScrubber v23.11.0 ] ===
 
         // === [ MAJOR BLOCK: AppOrchestrator v1.34.1 ] ===
         const App = () => {
