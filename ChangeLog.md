@@ -1,6 +1,15 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.3.0)
+MediaViewer (v2.5.0): * [FIX: MED-03] Injected \n logic into the parsing loop to support CHAR(10). Separated Media, Captions, and Credits into synchronized parallel arrays to map context 1:1 within the carousel layout.
+
+[FIX: MED-04] Stripped HTML anchor (<a>) wrappers from dynamically rendered image targets to unblock invisible navigation click-zone interactions.
+
+[FIX: MED-05] Deployed a dedicated Flexbox layout row inside the metadata block, explicitly routing the raw target URL into an isolated [↗] external window link. Updated the multi-image HUD counter to clarify scroll intent (N Items (Scroll ➔)).
+
+---
+
 Changelog (v6.2.8)
 TimelineScrubber (v23.15.0): * [FIX: TL-UI-16] Implemented the 60px Safe-Threshold algorithm. The engine dynamically assigns the absolute date context strictly to the first major tick that physically clears 60 pixels from the left viewport edge. The collision array was expanded to ±65px to symmetrically block minor ticks from rendering beneath the full width of the centered absolute string.
 
