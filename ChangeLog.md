@@ -1,6 +1,11 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.2.8)
+TimelineScrubber (v23.15.0): * [FIX: TL-UI-16] Implemented the 60px Safe-Threshold algorithm. The engine dynamically assigns the absolute date context strictly to the first major tick that physically clears 60 pixels from the left viewport edge. The collision array was expanded to ±65px to symmetrically block minor ticks from rendering beneath the full width of the centered absolute string.
+
+---
+
 Changelog (v6.2.6)
 TimelineScrubber (v23.13.0): * [FIX: TL-UI-14] Recalculated distanceToAxis to intercept the containerHeight - 28 boundary. Reduced active single-point anchor dot to 6px and mathematically offset it (-4px) to center perfectly on the axis floor. Adjusted the background trapezoid height constraints and deleted the right vertical bar.
 
