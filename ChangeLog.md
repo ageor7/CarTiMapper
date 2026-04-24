@@ -1,6 +1,15 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.2.6)
+TimelineScrubber (v23.13.0): * [FIX: TL-UI-14] Recalculated distanceToAxis to intercept the containerHeight - 28 boundary. Reduced active single-point anchor dot to 6px and mathematically offset it (-4px) to center perfectly on the axis floor. Adjusted the background trapezoid height constraints and deleted the right vertical bar.
+
+[FIX: TL-UI-12] Injected a debounced onScroll state trigger into the wrapper element to wake React up following a manual viewport drag, forcing real-time evaluations of the viewLeftEdge boundary.
+
+[FIX: TL-UI-13] Built a collision-avoidance sub-routine into the axis generation loop. Left-aligns the firstVisibleMajorTick to prevent left-edge cutoff, and institutes a 120-pixel rendering block for minor ticks falling within the absolute date string's bounding box.
+
+---
+
 Changelog (v6.2.5)
 TimelineScrubber (v23.12.0): * [FIX: TL-ANIM-06] Detached Manual zooming from Auto-centering constraints. Scrolling the mouse-wheel dynamically assigns the cursor's coordinate as the CSS stretch origin.
 
