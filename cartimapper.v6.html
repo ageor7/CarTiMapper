@@ -661,7 +661,7 @@
         MODULE_VERSIONS['ContentSlider'] = 'v3.9.2';
         // === [ END MAJOR BLOCK: ContentSlider v3.9.2 ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v23.9.0 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v23.10.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -702,7 +702,8 @@
                 if (!placed) orderedTags.push(remaining.shift());
             }
 
-            const availableLanesHeight = Math.max(containerHeight - 33, 50); 
+            // [FIX: TL-UI-07] Deducted additional 5px for the top breather (33px bottom + 5px top = 38px)
+            const availableLanesHeight = Math.max(containerHeight - 38, 50); 
             const laneHeight = Math.max(24, availableLanesHeight / (orderedTags.length || 1));
 
             const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
@@ -729,9 +730,7 @@
                 let targetLines = words.length > 1 ? (measureTextWidth(titleStr) > 280 ? 3 : 2) : 1;
                 if (targetLines === 1) return { lines: [titleStr], pxWidth: measureTextWidth(titleStr) + 35 };
 
-                let bestSplit = [];
-                let bestScore = Infinity;
-
+                let bestSplit = []; let bestScore = Infinity;
                 if (targetLines === 2) {
                     for (let i = 1; i < words.length; i++) {
                         let l1 = words.slice(0, i).join(' '), l2 = words.slice(i).join(' ');
@@ -773,7 +772,6 @@
                 setVisibleTimeSpan(`Viewing: ${str}`);
             }, [zoomLevel, renderTimeRange, setVisibleTimeSpan]);
 
-            // [FIX: TL-ANIM-01] Step 1 & 2: Pan immediately to Active Hexagon at current zoom
             useEffect(() => {
                 const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
                 if (activeDataIndex >= 0 && wrapperRef.current && !dragRef.current.isDragging) {
@@ -789,7 +787,6 @@
                 }
             }, [activeIndex]);
 
-            // [FIX: TL-ANIM-02] Step 3: Wait 400ms for pan to finish, then calculate and apply Cluster Autozoom
             useEffect(() => {
                 if (validData.length > 1 && wrapperRef.current && !dragRef.current.isDragging) {
                     if (activeIndex !== prevActiveIndexRef.current) {
@@ -825,21 +822,7 @@
                 }
             }, [activeIndex, data, zoomLock, setZoomLock]); 
 
-            // [FIX: TL-ANIM-03] Instant Snap to keep hexagon perfectly centered while track width mutates
-            useEffect(() => {
-                const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
-                if (activeDataIndex >= 0 && wrapperRef.current && !dragRef.current.isDragging) {
-                    const sT = validData[activeDataIndex].startDate.getTime();
-                    const { pxWidth } = formatLabelSmart(stripHTML(validData[activeDataIndex].title));
-                    const containerW = wrapperRef.current.clientWidth || 1000;
-                    const targetTrackW = Math.max(containerW, containerW * zoomLevel);
-                    const sPct = (sT - renderMinTime) / renderTimeRange;
-                    const visualCenterPx = (sPct * targetTrackW) + (pxWidth / 2);
-                    const scrollPos = visualCenterPx - (containerW / 2);
-                    
-                    wrapperRef.current.scrollTo({ left: scrollPos, behavior: 'auto' });
-                }
-            }, [zoomLevel]);
+            // [FIX: TL-ANIM-03] Deleted the micro-pan transition hook to eliminate React DOM stutter.
 
             const doManualZoom = (direction) => {
                 if (zoomLock !== 'hard') setZoomLock('soft');
@@ -879,34 +862,56 @@
             const visibleMs = renderTimeRange / zoomLevel;
             const msPerPixel = renderTimeRange / trackWidthPx;
             
-            // [FIX: TL-UI-06] Gregorian Semantic Calendar Generation Engine
+            // [FIX: TL-UI-08] The Infinite Calendar Matrix (Centuries to Seconds)
             const targetMsPerMajorTick = (200 / containerW) * visibleMs; 
-            let scale = 'year';
-            if (targetMsPerMajorTick <= 86400000) scale = 'time'; 
-            else if (targetMsPerMajorTick <= 7 * 86400000) scale = 'day'; 
-            else if (targetMsPerMajorTick <= 31 * 86400000) scale = 'month'; 
-            else scale = 'year';
+            const SECOND = 1000; const MINUTE = 60 * SECOND; const HOUR = 60 * MINUTE; 
+            const DAY = 24 * HOUR; const MONTH = 30 * DAY; const YEAR = 365.25 * DAY;
+
+            const scaleConfigs = [
+                { ms: 1000 * YEAR, type: 'year', step: 1000, minorType: 'year', minorStep: 100 },
+                { ms: 100 * YEAR, type: 'year', step: 100, minorType: 'year', minorStep: 10 },
+                { ms: 10 * YEAR, type: 'year', step: 10, minorType: 'year', minorStep: 1 },
+                { ms: YEAR, type: 'year', step: 1, minorType: 'month', minorStep: 1 },
+                { ms: 6 * MONTH, type: 'month', step: 6, minorType: 'month', minorStep: 1 },
+                { ms: 3 * MONTH, type: 'month', step: 3, minorType: 'month', minorStep: 1 },
+                { ms: MONTH, type: 'month', step: 1, minorType: 'day', minorStep: 5 },
+                { ms: 7 * DAY, type: 'day', step: 7, minorType: 'day', minorStep: 1 },
+                { ms: 2 * DAY, type: 'day', step: 2, minorType: 'hour', minorStep: 12 },
+                { ms: DAY, type: 'day', step: 1, minorType: 'hour', minorStep: 4 },
+                { ms: 12 * HOUR, type: 'hour', step: 12, minorType: 'hour', minorStep: 2 },
+                { ms: 6 * HOUR, type: 'hour', step: 6, minorType: 'hour', minorStep: 1 },
+                { ms: HOUR, type: 'hour', step: 1, minorType: 'minute', minorStep: 15 },
+                { ms: 30 * MINUTE, type: 'minute', step: 30, minorType: 'minute', minorStep: 5 },
+                { ms: 15 * MINUTE, type: 'minute', step: 15, minorType: 'minute', minorStep: 1 },
+                { ms: MINUTE, type: 'minute', step: 1, minorType: 'second', minorStep: 15 }
+            ];
+
+            let activeScale = scaleConfigs[0];
+            for (let c of scaleConfigs) { if (targetMsPerMajorTick <= c.ms) activeScale = c; }
 
             const rulerTicks = [];
             let iterDate = new Date(renderMinTime);
+            iterDate.setMilliseconds(0);
             
-            iterDate.setMinutes(0, 0, 0);
-            if (scale === 'day' || scale === 'month' || scale === 'year') iterDate.setHours(0);
-            if (scale === 'month' || scale === 'year') iterDate.setDate(1);
-            if (scale === 'year') iterDate.setMonth(0);
+            // Floor the start date to align with standard chronological boundaries
+            if (activeScale.type === 'year') { iterDate.setMonth(0, 1); iterDate.setHours(0,0,0); iterDate.setFullYear(Math.floor(iterDate.getFullYear() / activeScale.step) * activeScale.step); }
+            else if (activeScale.type === 'month') { iterDate.setDate(1); iterDate.setHours(0,0,0); iterDate.setMonth(Math.floor(iterDate.getMonth() / activeScale.step) * activeScale.step); }
+            else if (activeScale.type === 'day') { iterDate.setHours(0,0,0); }
+            else if (activeScale.type === 'hour') { iterDate.setMinutes(0,0); iterDate.setHours(Math.floor(iterDate.getHours() / activeScale.step) * activeScale.step); }
+            else if (activeScale.type === 'minute') { iterDate.setSeconds(0); iterDate.setMinutes(Math.floor(iterDate.getMinutes() / activeScale.step) * activeScale.step); }
 
             let safety = 0;
             while (iterDate.getTime() <= renderMaxTime && safety < 2000) {
                 safety++;
                 const t = iterDate.getTime();
-                const pctLeft = ((t - renderMinTime) / renderTimeRange) * 100;
                 
                 if (t >= renderMinTime) {
+                    const pctLeft = ((t - renderMinTime) / renderTimeRange) * 100;
                     let label = '';
-                    if (scale === 'year') label = iterDate.getFullYear();
-                    else if (scale === 'month') label = iterDate.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
-                    else if (scale === 'day') label = iterDate.toLocaleString('en-GB', { day: 'numeric', month: 'short' });
-                    else label = iterDate.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                    if (activeScale.type === 'year') label = iterDate.getFullYear();
+                    else if (activeScale.type === 'month') label = iterDate.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
+                    else if (activeScale.type === 'day') label = iterDate.toLocaleString('en-GB', { day: 'numeric', month: 'short' });
+                    else if (activeScale.type === 'hour' || activeScale.type === 'minute') label = iterDate.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
                     rulerTicks.push(html`
                         <div class="timeline-ruler-tick" style="left: ${pctLeft}%; position: absolute; bottom: 3px; display: flex; flex-direction: column; align-items: center; z-index: 5;">
@@ -916,47 +921,50 @@
                     `);
                 }
 
+                // Calculate the next Major boundary
                 let nextMajor = new Date(iterDate);
-                if (scale === 'year') nextMajor.setFullYear(nextMajor.getFullYear() + 1);
-                if (scale === 'month') nextMajor.setMonth(nextMajor.getMonth() + 1);
-                if (scale === 'day') nextMajor.setDate(nextMajor.getDate() + 1);
-                if (scale === 'time') nextMajor.setHours(nextMajor.getHours() + 1);
+                if (activeScale.type === 'year') nextMajor.setFullYear(nextMajor.getFullYear() + activeScale.step);
+                else if (activeScale.type === 'month') nextMajor.setMonth(nextMajor.getMonth() + activeScale.step);
+                else if (activeScale.type === 'day') nextMajor.setDate(nextMajor.getDate() + activeScale.step);
+                else if (activeScale.type === 'hour') nextMajor.setHours(nextMajor.getHours() + activeScale.step);
+                else if (activeScale.type === 'minute') nextMajor.setMinutes(nextMajor.getMinutes() + activeScale.step);
 
-                let minorCount = 0;
-                if (scale === 'year') minorCount = 12; 
-                else if (scale === 'month') minorCount = new Date(iterDate.getFullYear(), iterDate.getMonth() + 1, 0).getDate();
-                else if (scale === 'day') minorCount = 24; 
-                else if (scale === 'time') minorCount = 4; 
+                // Dynamically cascade Minor ticks inside the boundary
+                let minorIter = new Date(iterDate);
+                let minorSafety = 0;
+                while (minorSafety < 100) {
+                    minorSafety++;
+                    if (activeScale.minorType === 'year') minorIter.setFullYear(minorIter.getFullYear() + activeScale.minorStep);
+                    else if (activeScale.minorType === 'month') minorIter.setMonth(minorIter.getMonth() + activeScale.minorStep);
+                    else if (activeScale.minorType === 'day') minorIter.setDate(minorIter.getDate() + activeScale.minorStep);
+                    else if (activeScale.minorType === 'hour') minorIter.setHours(minorIter.getHours() + activeScale.minorStep);
+                    else if (activeScale.minorType === 'minute') minorIter.setMinutes(minorIter.getMinutes() + activeScale.minorStep);
+                    else if (activeScale.minorType === 'second') minorIter.setSeconds(minorIter.getSeconds() + activeScale.minorStep);
 
-                const pxPerMinor = (((nextMajor.getTime() - t) / renderTimeRange) * trackWidthPx) / minorCount;
-                
-                if (pxPerMinor > 15) {
-                    for (let i = 1; i < minorCount; i++) {
-                        let minorT; let minorLabel = '';
-                        if (scale === 'year') {
-                            let mDate = new Date(iterDate); mDate.setMonth(mDate.getMonth() + i); minorT = mDate.getTime();
-                            if (pxPerMinor > 45) minorLabel = mDate.toLocaleString('en-GB', { month: 'short' });
-                        } else if (scale === 'month') {
-                            let mDate = new Date(iterDate); mDate.setDate(mDate.getDate() + i); minorT = mDate.getTime();
-                            if (pxPerMinor > 45) minorLabel = mDate.getDate();
-                            else if (pxPerMinor * 5 > 45 && i % 5 === 0) minorLabel = mDate.getDate(); 
-                        } else if (scale === 'day') {
-                            let mDate = new Date(iterDate); mDate.setHours(mDate.getHours() + i); minorT = mDate.getTime();
-                            if (pxPerMinor > 45) minorLabel = mDate.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
-                            else if (pxPerMinor * 3 > 45 && i % 3 === 0) minorLabel = mDate.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
-                        } else if (scale === 'time') {
-                            let mDate = new Date(iterDate); mDate.setMinutes(mDate.getMinutes() + (i * 15)); minorT = mDate.getTime();
-                            if (pxPerMinor > 45) minorLabel = mDate.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
-                        }
+                    if (minorIter.getTime() >= nextMajor.getTime()) break;
+                    
+                    const minorT = minorIter.getTime();
+                    if (minorT >= renderMinTime && minorT <= renderMaxTime) {
+                        const pxPerMinor = minorStepMs => (minorStepMs / msPerPixel); 
+                        const gapPx = ((minorT - t) / renderTimeRange) * trackWidthPx; 
 
-                        if (minorT >= renderMinTime && minorT <= renderMaxTime) {
+                        if (gapPx > 15) { 
                             const mPct = ((minorT - renderMinTime) / renderTimeRange) * 100;
+                            let minorLabel = '';
+                            
+                            if (gapPx > 45) { 
+                                if (activeScale.minorType === 'year') minorLabel = minorIter.getFullYear();
+                                else if (activeScale.minorType === 'month') minorLabel = minorIter.toLocaleString('en-GB', { month: 'short' });
+                                else if (activeScale.minorType === 'day') minorLabel = minorIter.getDate();
+                                else if (activeScale.minorType === 'hour' || activeScale.minorType === 'minute') minorLabel = minorIter.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                                else if (activeScale.minorType === 'second') minorLabel = minorIter.toLocaleString('en-GB', { second: '2-digit' }) + 's';
+                            }
+
                             const labelHtml = minorLabel ? html`<div style="position: absolute; left: -20px; right: -20px; top: 7px; text-align: center; font-size: 0.6rem; color: #888;">${minorLabel}</div>` : '';
                             rulerTicks.push(html`<div style="position: absolute; left: ${mPct}%; top: 0; width: 1px; height: ${minorLabel ? '7px' : '5px'}; background: #aaa; z-index: 4;">${labelHtml}</div>`);
                         }
                     }
                 }
-                if (nextMajor.getTime() <= iterDate.getTime()) break; // Safety net
                 iterDate = nextMajor;
             }
 
@@ -1021,7 +1029,7 @@
 
                     <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${(e) => { e.preventDefault(); doManualZoom(e.deltaY < 0 ? 'in' : 'out'); }}>
                         <div class="timeline-track-container" style="width: ${trackWidthPx}px; flex-shrink: 0; min-width: 100%; height: 100%;">
-                            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 33px; pointer-events: none; z-index: 0;">
+                            <div style="position: absolute; top: 5px; left: 0; right: 0; bottom: 33px; pointer-events: none; z-index: 0;">
                                 ${orderedTags.map((tag, i) => html`
                                     <div class="tag-lane" style="top: ${i * laneHeight}px; height: ${laneHeight}px; background: ${i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent'};">
                                         <div class="tag-lane-label" style="background: ${i % 2 === 0 ? '#f4f4f4' : '#fcfcfc'}; pointer-events: auto;">${tag}</div>
@@ -1035,8 +1043,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v23.9.0';
-        // === [ END MAJOR BLOCK: TimelineScrubber v23.9.0 ] ===
+        MODULE_VERSIONS['TimelineScrubber'] = 'v23.10.0';
+        // === [ END MAJOR BLOCK: TimelineScrubber v23.10.0 ] ===
 
         // === [ MAJOR BLOCK: AppOrchestrator v1.34.1 ] ===
         const App = () => {
