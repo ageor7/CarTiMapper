@@ -15,7 +15,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/wicket/1.3.8/wicket.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/wicket/1.3.8/wicket-leaflet.min.js"></script>
     <style>
-        /* === [ MAJOR BLOCK: GlobalStyles v4.10.0 ] === */
+        /* === [ MAJOR BLOCK: GlobalStyles v4.11.0 ] === */
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;1,400&display=swap');
 
         /* --- [ SubBlock: Root & Base ] --- */
@@ -131,11 +131,11 @@
         .event-group { position: absolute; z-index: 10; transition: z-index 0.2s; display: flex; align-items: flex-start; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.15)); }
         .event-group.active { z-index: 30; filter: drop-shadow(0 4px 6px rgba(0,122,204,0.4)); }
         
-        /* [FIX: TL-UI-02] Cleaned Hexagon Clip-Path and 4px Squeeze gap */
+        /* [FIX: TL-UI-05] Restored v6.1.3 flat-edge geometry, trimmed internal whitespace by reducing vertical padding */
         .event-block { 
             display: flex; flex-direction: column; align-items: flex-start; justify-content: center; text-align: left; font-size: 0.75rem; cursor: pointer; transition: filter 0.2s ease; box-sizing: border-box;
-            height: calc(var(--lane-h) - 4px); margin-top: 2px; padding: 2px 12px 2px 18px; 
-            clip-path: polygon(0 50%, 10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%);
+            --diag-w: 10px; min-height: var(--lane-h); padding: 2px 12px 2px calc(var(--diag-w) + 8px); 
+            clip-path: polygon( 0 calc(50% - (var(--lane-h) / 2) + 0.5px), var(--diag-w) 0, 100% 0, 100% 100%, var(--diag-w) 100%, 0 calc(50% + (var(--lane-h) / 2) - 0.5px) );
         }
         .event-block:hover { filter: brightness(1.05); z-index: 40; }
         .timeline-axis { position: absolute; bottom: 0; left: 0; right: 0; height: 28px; background: #e0e0e0; border-top: 2px solid #999; z-index: 5; }
@@ -155,7 +155,7 @@
         #vibe-logs { flex: 1; overflow-y: auto; padding: 10px; font-size: 12px; line-height: 1.4; word-wrap: break-word; }
         .log-info { color: #8be9fd; } .log-success { color: #50fa7b; } .log-warn { color: #ffb86c; } .log-error { color: #ff5555; }
         /* --- [ End SubBlock: Vibe Monitor UI ] --- */
-        /* === [ END MAJOR BLOCK: GlobalStyles v4.10.0 ] === */
+        /* === [ END MAJOR BLOCK: GlobalStyles v4.11.0 ] === */
     </style>
 </head>
 <body>
@@ -168,7 +168,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.2.0';
+        const APP_VERSION = 'v6.2.1';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.9.0', Globals: 'v1.0.51' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -661,7 +661,7 @@
         MODULE_VERSIONS['ContentSlider'] = 'v3.9.2';
         // === [ END MAJOR BLOCK: ContentSlider v3.9.2 ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v23.8.0 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v23.9.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -702,7 +702,6 @@
                 if (!placed) orderedTags.push(remaining.shift());
             }
 
-            // [FIX: TL-UI-03] Elevated swimlanes 33px from the bottom (leaving 5px visual gap above the 28px X-Axis)
             const availableLanesHeight = Math.max(containerHeight - 33, 50); 
             const laneHeight = Math.max(24, availableLanesHeight / (orderedTags.length || 1));
 
@@ -774,44 +773,7 @@
                 setVisibleTimeSpan(`Viewing: ${str}`);
             }, [zoomLevel, renderTimeRange, setVisibleTimeSpan]);
 
-            // [FIX: TL-AUTO-03] Cluster Window Contextual Autozoom
-            useEffect(() => {
-                if (validData.length > 1 && wrapperRef.current && !dragRef.current.isDragging) {
-                    if (activeIndex !== prevActiveIndexRef.current) {
-                        prevActiveIndexRef.current = activeIndex;
-                        
-                        if (zoomLock === 'hard') return; 
-                        if (zoomLock === 'soft') setZoomLock('auto'); 
-
-                        const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
-                        if (activeDataIndex >= 0) {
-                            const containerW = wrapperRef.current.clientWidth || 1000;
-                            
-                            let startIdx = Math.max(0, activeDataIndex - 2);
-                            let endIdx = Math.min(validData.length - 1, activeDataIndex + 2);
-                            
-                            let clusterMin = validData[startIdx].startDate.getTime();
-                            let clusterMax = validData[endIdx].startDate.getTime();
-                            
-                            for (let i = startIdx; i <= endIdx; i++) {
-                                if (validData[i].endDate && !isNaN(validData[i].endDate.getTime())) {
-                                    clusterMax = Math.max(clusterMax, validData[i].endDate.getTime());
-                                }
-                                clusterMax = Math.max(clusterMax, validData[i].startDate.getTime());
-                                clusterMin = Math.min(clusterMin, validData[i].startDate.getTime());
-                            }
-                            
-                            let clusterSpan = clusterMax - clusterMin;
-                            const safeSpan = Math.max(clusterSpan, 1800000); 
-                            const idealZoom = (0.6 * renderTimeRange) / safeSpan;
-                            const clampedZoom = Math.min(Math.max(1, idealZoom), 300); 
-                            
-                            setZoomLevel(clampedZoom);
-                        }
-                    }
-                }
-            }, [activeIndex, data, zoomLock, setZoomLock]); 
-
+            // [FIX: TL-ANIM-01] Step 1 & 2: Pan immediately to Active Hexagon at current zoom
             useEffect(() => {
                 const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
                 if (activeDataIndex >= 0 && wrapperRef.current && !dragRef.current.isDragging) {
@@ -820,22 +782,71 @@
                     const containerW = wrapperRef.current.clientWidth || 1000;
                     const targetTrackW = Math.max(containerW, containerW * zoomLevel);
                     const sPct = (sT - renderMinTime) / renderTimeRange;
-                    
                     const visualCenterPx = (sPct * targetTrackW) + (pxWidth / 2);
                     const scrollPos = visualCenterPx - (containerW / 2);
                     
-                    requestAnimationFrame(() => { setTimeout(() => { if (wrapperRef.current) wrapperRef.current.scrollTo({ left: scrollPos, behavior: 'smooth' }); }, 50); });
+                    wrapperRef.current.scrollTo({ left: scrollPos, behavior: 'smooth' });
                 }
-            }, [activeIndex, zoomLevel, data]);
+            }, [activeIndex]);
+
+            // [FIX: TL-ANIM-02] Step 3: Wait 400ms for pan to finish, then calculate and apply Cluster Autozoom
+            useEffect(() => {
+                if (validData.length > 1 && wrapperRef.current && !dragRef.current.isDragging) {
+                    if (activeIndex !== prevActiveIndexRef.current) {
+                        prevActiveIndexRef.current = activeIndex;
+                        
+                        if (zoomLock === 'hard') return; 
+                        if (zoomLock === 'soft') setZoomLock('auto'); 
+
+                        const timeoutId = setTimeout(() => {
+                            const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
+                            if (activeDataIndex >= 0) {
+                                const containerW = wrapperRef.current.clientWidth || 1000;
+                                let startIdx = Math.max(0, activeDataIndex - 2);
+                                let endIdx = Math.min(validData.length - 1, activeDataIndex + 2);
+                                
+                                let clusterMin = validData[startIdx].startDate.getTime();
+                                let clusterMax = validData[endIdx].startDate.getTime();
+                                
+                                for (let i = startIdx; i <= endIdx; i++) {
+                                    if (validData[i].endDate && !isNaN(validData[i].endDate.getTime())) clusterMax = Math.max(clusterMax, validData[i].endDate.getTime());
+                                    clusterMax = Math.max(clusterMax, validData[i].startDate.getTime());
+                                    clusterMin = Math.min(clusterMin, validData[i].startDate.getTime());
+                                }
+                                
+                                const safeSpan = Math.max(clusterMax - clusterMin, 1800000); 
+                                const idealZoom = (0.6 * renderTimeRange) / safeSpan;
+                                const clampedZoom = Math.min(Math.max(1, idealZoom), 300); 
+                                setZoomLevel(clampedZoom);
+                            }
+                        }, 400);
+                        return () => clearTimeout(timeoutId);
+                    }
+                }
+            }, [activeIndex, data, zoomLock, setZoomLock]); 
+
+            // [FIX: TL-ANIM-03] Instant Snap to keep hexagon perfectly centered while track width mutates
+            useEffect(() => {
+                const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
+                if (activeDataIndex >= 0 && wrapperRef.current && !dragRef.current.isDragging) {
+                    const sT = validData[activeDataIndex].startDate.getTime();
+                    const { pxWidth } = formatLabelSmart(stripHTML(validData[activeDataIndex].title));
+                    const containerW = wrapperRef.current.clientWidth || 1000;
+                    const targetTrackW = Math.max(containerW, containerW * zoomLevel);
+                    const sPct = (sT - renderMinTime) / renderTimeRange;
+                    const visualCenterPx = (sPct * targetTrackW) + (pxWidth / 2);
+                    const scrollPos = visualCenterPx - (containerW / 2);
+                    
+                    wrapperRef.current.scrollTo({ left: scrollPos, behavior: 'auto' });
+                }
+            }, [zoomLevel]);
 
             const doManualZoom = (direction) => {
                 if (zoomLock !== 'hard') setZoomLock('soft');
                 setZoomLevel(p => direction === 'in' ? Math.min(p * 1.5, 500) : Math.max(p / 1.5, 1));
             };
 
-            const toggleHardLock = () => {
-                setZoomLock(p => p === 'hard' ? 'auto' : 'hard');
-            };
+            const toggleHardLock = () => { setZoomLock(p => p === 'hard' ? 'auto' : 'hard'); };
 
             const onDown = (e) => { 
                 if (zoomLock !== 'hard') setZoomLock('soft');
@@ -868,55 +879,34 @@
             const visibleMs = renderTimeRange / zoomLevel;
             const msPerPixel = renderTimeRange / trackWidthPx;
             
+            // [FIX: TL-UI-06] Gregorian Semantic Calendar Generation Engine
             const targetMsPerMajorTick = (200 / containerW) * visibleMs; 
-
-            const MINUTE = 60000; const HOUR = 60 * MINUTE; const DAY = 24 * HOUR; const MONTH = 30 * DAY; const YEAR = 365.25 * DAY;
-            const majorSteps = [ 100 * YEAR, 50 * YEAR, 10 * YEAR, YEAR, 6 * MONTH, MONTH, 7 * DAY, DAY, 12 * HOUR, 6 * HOUR, HOUR ];
-            
-            let majorStepMs = majorSteps[0];
-            for (let s of majorSteps) { if (targetMsPerMajorTick <= s) majorStepMs = s; }
-
-            let formatType = 'year'; let minorStepMs = MONTH;
-            if (majorStepMs <= YEAR) { formatType = 'month'; minorStepMs = DAY; }
-            if (majorStepMs <= MONTH) { formatType = 'day'; minorStepMs = 7 * DAY; } 
-            if (majorStepMs <= 7 * DAY) { formatType = 'day'; minorStepMs = DAY; }   
-            if (majorStepMs <= DAY) { formatType = 'time'; minorStepMs = 4 * HOUR; }
-            if (majorStepMs <= 12 * HOUR) { formatType = 'time'; minorStepMs = 2 * HOUR; }
-            if (majorStepMs <= 6 * HOUR) { formatType = 'time'; minorStepMs = HOUR; }
+            let scale = 'year';
+            if (targetMsPerMajorTick <= 86400000) scale = 'time'; 
+            else if (targetMsPerMajorTick <= 7 * 86400000) scale = 'day'; 
+            else if (targetMsPerMajorTick <= 31 * 86400000) scale = 'month'; 
+            else scale = 'year';
 
             const rulerTicks = [];
-            const minDate = new Date(renderMinTime);
-            let startTickTime = renderMinTime;
+            let iterDate = new Date(renderMinTime);
             
-            if (formatType === 'year') startTickTime = new Date(minDate.getFullYear(), 0, 1).getTime();
-            if (formatType === 'month') startTickTime = new Date(minDate.getFullYear(), minDate.getMonth(), 1).getTime();
-            if (formatType === 'day') startTickTime = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate()).getTime();
-            if (formatType === 'time') {
-                const hours = minDate.getHours();
-                const flooredHours = Math.floor(hours / (majorStepMs / HOUR)) * (majorStepMs / HOUR);
-                startTickTime = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate(), flooredHours, 0, 0).getTime();
-            }
-            
-            let iterTime = startTickTime;
-            let safety = 0;
+            iterDate.setMinutes(0, 0, 0);
+            if (scale === 'day' || scale === 'month' || scale === 'year') iterDate.setHours(0);
+            if (scale === 'month' || scale === 'year') iterDate.setDate(1);
+            if (scale === 'year') iterDate.setMonth(0);
 
-            while (iterTime <= renderMaxTime && safety < 1000) {
+            let safety = 0;
+            while (iterDate.getTime() <= renderMaxTime && safety < 2000) {
                 safety++;
-                if (iterTime >= renderMinTime) {
-                    const d = new Date(iterTime);
+                const t = iterDate.getTime();
+                const pctLeft = ((t - renderMinTime) / renderTimeRange) * 100;
+                
+                if (t >= renderMinTime) {
                     let label = '';
-                    const pctLeft = ((iterTime - renderMinTime) / renderTimeRange) * 100;
-                    
-                    const isMidnight = (d.getHours() === 0 && d.getMinutes() === 0);
-                    const isFirstTick = iterTime === startTickTime;
-                    
-                    if (formatType === 'year') label = d.getFullYear();
-                    else if (formatType === 'month') label = d.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
-                    else if (formatType === 'day') label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-                    else if (formatType === 'time') {
-                        if (isMidnight || isFirstTick) label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-                        else label = d.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
-                    }
+                    if (scale === 'year') label = iterDate.getFullYear();
+                    else if (scale === 'month') label = iterDate.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
+                    else if (scale === 'day') label = iterDate.toLocaleString('en-GB', { day: 'numeric', month: 'short' });
+                    else label = iterDate.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
                     rulerTicks.push(html`
                         <div class="timeline-ruler-tick" style="left: ${pctLeft}%; position: absolute; bottom: 3px; display: flex; flex-direction: column; align-items: center; z-index: 5;">
@@ -924,32 +914,50 @@
                             <div style="font-size: 0.75rem; color: #444; white-space: nowrap;">${label}</div>
                         </div>
                     `);
+                }
 
-                    let minorIter = iterTime + minorStepMs;
-                    let minorCount = 0;
-                    while (minorIter < iterTime + majorStepMs && minorCount < 30) {
-                        minorCount++;
-                        const pxBetweenMinor = minorStepMs / msPerPixel;
-                        if (pxBetweenMinor > 15) { 
-                            const mPctLeft = ((minorIter - renderMinTime) / renderTimeRange) * 100;
-                            
-                            // [FIX: TL-UI-04] Contextual Minor Labels based on spatial gap collision detection
-                            let minorLabelHtml = '';
-                            if (pxBetweenMinor > 45) {
-                                const mDate = new Date(minorIter);
-                                let mText = '';
-                                if (formatType === 'year') mText = mDate.toLocaleString('en-GB', { month: 'short' });
-                                else if (formatType === 'month') mText = mDate.getDate();
-                                else if (formatType === 'day' || formatType === 'time') mText = mDate.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
-                                minorLabelHtml = html`<div style="position: absolute; left: -20px; right: -20px; top: 7px; text-align: center; font-size: 0.6rem; color: #888;">${mText}</div>`;
-                            }
-                            
-                            rulerTicks.push(html`<div style="position: absolute; left: ${mPctLeft}%; top: 0; width: 1px; height: ${minorLabelHtml ? '7px' : '5px'}; background: #aaa; z-index: 4;">${minorLabelHtml}</div>`);
+                let nextMajor = new Date(iterDate);
+                if (scale === 'year') nextMajor.setFullYear(nextMajor.getFullYear() + 1);
+                if (scale === 'month') nextMajor.setMonth(nextMajor.getMonth() + 1);
+                if (scale === 'day') nextMajor.setDate(nextMajor.getDate() + 1);
+                if (scale === 'time') nextMajor.setHours(nextMajor.getHours() + 1);
+
+                let minorCount = 0;
+                if (scale === 'year') minorCount = 12; 
+                else if (scale === 'month') minorCount = new Date(iterDate.getFullYear(), iterDate.getMonth() + 1, 0).getDate();
+                else if (scale === 'day') minorCount = 24; 
+                else if (scale === 'time') minorCount = 4; 
+
+                const pxPerMinor = (((nextMajor.getTime() - t) / renderTimeRange) * trackWidthPx) / minorCount;
+                
+                if (pxPerMinor > 15) {
+                    for (let i = 1; i < minorCount; i++) {
+                        let minorT; let minorLabel = '';
+                        if (scale === 'year') {
+                            let mDate = new Date(iterDate); mDate.setMonth(mDate.getMonth() + i); minorT = mDate.getTime();
+                            if (pxPerMinor > 45) minorLabel = mDate.toLocaleString('en-GB', { month: 'short' });
+                        } else if (scale === 'month') {
+                            let mDate = new Date(iterDate); mDate.setDate(mDate.getDate() + i); minorT = mDate.getTime();
+                            if (pxPerMinor > 45) minorLabel = mDate.getDate();
+                            else if (pxPerMinor * 5 > 45 && i % 5 === 0) minorLabel = mDate.getDate(); 
+                        } else if (scale === 'day') {
+                            let mDate = new Date(iterDate); mDate.setHours(mDate.getHours() + i); minorT = mDate.getTime();
+                            if (pxPerMinor > 45) minorLabel = mDate.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                            else if (pxPerMinor * 3 > 45 && i % 3 === 0) minorLabel = mDate.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                        } else if (scale === 'time') {
+                            let mDate = new Date(iterDate); mDate.setMinutes(mDate.getMinutes() + (i * 15)); minorT = mDate.getTime();
+                            if (pxPerMinor > 45) minorLabel = mDate.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
                         }
-                        minorIter += minorStepMs;
+
+                        if (minorT >= renderMinTime && minorT <= renderMaxTime) {
+                            const mPct = ((minorT - renderMinTime) / renderTimeRange) * 100;
+                            const labelHtml = minorLabel ? html`<div style="position: absolute; left: -20px; right: -20px; top: 7px; text-align: center; font-size: 0.6rem; color: #888;">${minorLabel}</div>` : '';
+                            rulerTicks.push(html`<div style="position: absolute; left: ${mPct}%; top: 0; width: 1px; height: ${minorLabel ? '7px' : '5px'}; background: #aaa; z-index: 4;">${labelHtml}</div>`);
+                        }
                     }
                 }
-                iterTime += majorStepMs; 
+                if (nextMajor.getTime() <= iterDate.getTime()) break; // Safety net
+                iterDate = nextMajor;
             }
 
             const markers = validData.map((item, index) => {
@@ -1027,8 +1035,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v23.8.0';
-        // === [ END MAJOR BLOCK: TimelineScrubber v23.8.0 ] ===
+        MODULE_VERSIONS['TimelineScrubber'] = 'v23.9.0';
+        // === [ END MAJOR BLOCK: TimelineScrubber v23.9.0 ] ===
 
         // === [ MAJOR BLOCK: AppOrchestrator v1.34.1 ] ===
         const App = () => {
