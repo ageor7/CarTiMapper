@@ -1,6 +1,17 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.2.1)
+GlobalStyles (v4.11.0): * [FIX: TL-UI-05] Restored the flat-edge structural geometry to the .event-block class and compressed internal top/bottom padding to 2px to natively support 3-line string wraps without clipping.
+
+TimelineScrubber (v23.9.0): * [FIX: TL-ANIM-01] Implemented a 3-step delayed state machine (Highlight ➔ Smooth Pan ➔ 400ms Delay ➔ Cluster Zoom & Snap) for timeline navigation, mathematically eliminating visual stretch-whiplash.
+
+[FIX: TL-UI-06] Rewrote the timeline ruler generation loop. Replaced static millisecond addition with a Semantic Gregorian Calendar Engine, guaranteeing perfect chronological alignment across variable-length months and leap years.
+
+[FIX: TL-UI-04] Integrated spatial collision detection to intelligently format and mount semantic minor tick labels based on dynamic track width.
+
+---
+
 Changelog (v6.2.0)
 GlobalStyles (v4.10.0): * [FIX: TL-UI-03] Recalibrated .event-block clip-paths with a 4px squeeze and elevated the .timeline-track-container 5px to eliminate visual bleed across swimlanes and the X-Axis.
 
