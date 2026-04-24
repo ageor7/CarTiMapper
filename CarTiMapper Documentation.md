@@ -143,6 +143,7 @@
 * **[REF: TL-UI-16] The Viewport Safe-Margin Engine:** The absolute context generator (`firstVisibleMajorTick`) relies on a mathematically defined 60-pixel threshold (`viewLeftEdge + 60`). The system iterates past any ticks occurring within the immediate 60px left-margin of the monitor, guaranteeing that the globally-centered context string (`DD/MM/YYYY`) has 100% adequate spatial clearance to render its left-most characters without clipping into the invisible scroll boundary.
 * **[REF: MED-04] Event Propagation Unblocking:** Rendered `<img>` tags are completely decoupled from `<a>` hyperlink wrappers. This removes DOM click-event hijacking, allowing overlay structural elements (e.g., hidden `click-zone` navigators) to correctly interpret standard user input actions across the entire visual surface.
 * **[REF: MED-05] Isolated Link Vectors:** Raw asset URLs are routed to a dedicated external link icon `[↗]` pinned to the absolute right (`margin-left: auto`) of the `.media-meta-box` flex-container, isolating hyperlink telemetry away from navigational click regions.
+* **[REF: MED-06] CSS Snap-Scroll Intersection Exclusions:** Images loaded within the Media Carousel dynamically bypass standard browser `loading="lazy"` optimizations. Due to the `.media-carousel` utilizing a horizontal `scroll-snap-type` CSS layout, native intersection observers frequently fail to calculate physical bounding boxes for off-axis elements, resulting in infinite fetch deferral. Forcing eager rendering guarantees all carousel assets initialize synchronously.
 
 ---
 
