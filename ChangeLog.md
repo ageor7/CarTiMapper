@@ -1,6 +1,11 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.3.4)
+MediaViewer (v2.5.4): * [FIX: MED-11] Simplified delimiter parsing regex to exclusively target line-breaks (/\r\n|\n|\r/). This resolves a critical bug where legitimate commas embedded inside image filenames were inadvertently triggering destructive URL array splits, leading to blank renders and 404 network errors.
+
+---
+
 Changelog (v6.3.2)
 MediaViewer (v2.5.2): * [FIX: MED-07] Deployed aggressive inline dimensional bounds to the <img> renderer to mathematically prevent flex-child DOM collapse. Restored standard "..." quote wrapping to src targets for safe Preact string-interpolation parsing.
 
