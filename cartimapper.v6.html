@@ -243,7 +243,7 @@
         };
         // === [ END MAJOR BLOCK: VibeMonitor v2.0.0 ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v3.16.3 ] ===
+        // === [ MAJOR BLOCK: MapViewer v3.17.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, mapLocale, maxAutoZoom }) => {
             const mapDomRef = useRef(null);
             const miniMapDomRef = useRef(null);
@@ -255,11 +255,12 @@
             const markerLayer = useRef(null); 
             const clusterLayer = useRef(null); 
             const tileLayerRef = useRef(null);
+            const gridLayerRef = useRef(null);
             const markersRef = useRef({}); 
             
             const hasFitBounds = useRef(false);
-            const baseZoomRef = useRef(2); 
             const [mapZoom, setMapZoom] = useState(2);
+            const [showGrid, setShowGrid] = useState(false);
 
             const createPinHtml = (isActive, isVip) => {
                 const color = isActive ? '#28a745' : (isVip ? '#ffb300' : '#007acc');
@@ -342,6 +343,7 @@
                     
                     markerLayer.current = L.featureGroup().addTo(map);
                     clusterLayer.current = L.markerClusterGroup({ maxClusterRadius: 40, spiderfyOnMaxZoom: true }).addTo(map);
+                    gridLayerRef.current = L.layerGroup().addTo(map);
                     
                     clusterLayer.current.on('clustermouseover', (c) => {
                         const children = c.layer.getAllChildMarkers();
@@ -369,6 +371,46 @@
                     }
                 }
             }, []);
+
+            // [FIX: MAP-GRID-01] Micro-Graticule Engine logic
+            useEffect(() => {
+                const map = mapInstance.current;
+                if (!map || !gridLayerRef.current) return;
+                
+                const updateGrid = () => {
+                    gridLayerRef.current.clearLayers();
+                    if (!showGrid) return;
+
+                    const z = map.getZoom();
+                    let step = 20;
+                    if (z > 3) step = 10;
+                    if (z > 5) step = 5;
+                    if (z > 7) step = 1;
+                    if (z > 9) step = 0.5;
+                    if (z > 11) step = 0.1;
+                    if (z > 13) step = 0.05;
+                    if (z > 15) step = 0.01;
+
+                    const b = map.getBounds();
+                    const w = Math.floor(b.getWest() / step) * step - step;
+                    const e = Math.ceil(b.getEast() / step) * step + step;
+                    const s = Math.floor(b.getSouth() / step) * step - step;
+                    const n = Math.ceil(b.getNorth() / step) * step + step;
+
+                    const style = { color: '#007acc', weight: 1, opacity: 0.25, dashArray: '2, 6', interactive: false };
+
+                    for (let lat = s; lat <= n; lat += step) {
+                        if (lat >= -90 && lat <= 90) L.polyline([[lat, w], [lat, e]], style).addTo(gridLayerRef.current);
+                    }
+                    for (let lng = w; lng <= e; lng += step) {
+                        L.polyline([[-90, lng], [90, lng]], style).addTo(gridLayerRef.current);
+                    }
+                };
+
+                updateGrid();
+                map.on('moveend', updateGrid);
+                return () => map.off('moveend', updateGrid);
+            }, [showGrid]);
 
             useEffect(() => {
                 if (tileLayerRef.current) {
@@ -408,7 +450,6 @@
                             if (coordMatch) featureLayers.push(L.marker([parseFloat(coordMatch[1]), parseFloat(coordMatch[2])]));
                         }
 
-                        /* [FIX: SUB-02] Added \n for Google Sheets CHAR(10) and forced truncation at the first comma */
                         const subLabels = item.subLabels ? item.subLabels.split(/[|\-·;\n]/).map(s => s.split(',')[0].trim()) : [];
                         const isVip = String(item.priority).trim().toUpperCase() === 'VIP';
 
@@ -500,19 +541,19 @@
                 }
             }, [activeIndex, data, maxAutoZoom]);
 
-            const mapMult = Math.pow(2, mapZoom - baseZoomRef.current);
-            const mapX = (mapMult % 1 === 0 ? mapMult : mapMult.toFixed(1)) + 'x';
-
             return html`
                 <div style="position: relative; width:100%; height:100%;">
                     <div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>
-                    <div class="map-zoom-indicator">Zoom: ${mapZoom} (${mapX})</div>
+                    <div style="position: absolute; bottom: 15px; right: 15px; z-index: 1000; display: flex; gap: 8px; align-items: center;">
+                        <button onClick=${() => setShowGrid(!showGrid)} style="background: ${showGrid ? '#007acc' : '#fcfcfc'}; color: ${showGrid ? '#fff' : '#333'}; border: 1px solid #ccc; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.2); transition: all 0.2s;">Lat/Lon</button>
+                        <div style="background: rgba(255,255,255,0.9); padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; color: #333; border: 1px solid #ccc; box-shadow: 0 1px 4px rgba(0,0,0,0.2);">Zoom: ${mapZoom}</div>
+                    </div>
                     <div class="minimap-container" ref=${miniMapDomRef}></div>
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.16.3';
-        // === [ END MAJOR BLOCK: MapViewer v3.16.3 ] ===
+        MODULE_VERSIONS['MapViewer'] = 'v3.17.0';
+        // === [ END MAJOR BLOCK: MapViewer v3.17.0 ] ===
 
         // === [ MAJOR BLOCK: MediaViewer v2.4.0 ] ===
         const MediaViewer = ({ activeSlide }) => {
