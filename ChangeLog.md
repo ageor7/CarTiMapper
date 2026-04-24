@@ -1,6 +1,15 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.2.5)
+TimelineScrubber (v23.12.0): * [FIX: TL-ANIM-06] Detached Manual zooming from Auto-centering constraints. Scrolling the mouse-wheel dynamically assigns the cursor's coordinate as the CSS stretch origin.
+
+[FIX: TL-UI-11] Recalculated timeline geometry variables (topPos + 5, distanceToAxis referenced to containerHeight - 33) to correctly integrate the 5px structural top breather.
+
+[FIX: TL-UI-10] Upgraded isFirstRenderedTick gate. It now computes an expectedVisibleMin derived from the active event focus, ensuring the absolute date stamp renders physically inside the viewport rather than invisibly off-screen inside the padding barrier. Scrubbed bold font-weight from major ticks.
+
+---
+
 Changelog (v6.2.4)
 Imports & Globals (v1.0.52): * [FIX: CORE-01] Injected the useLayoutEffect hook into the global scope array to support synchronous DOM painting.
 
