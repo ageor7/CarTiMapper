@@ -168,7 +168,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.3.5';
+        const APP_VERSION = 'v6.3.6';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -555,8 +555,8 @@
         MODULE_VERSIONS['MapViewer'] = 'v3.17.0';
         // === [ END MAJOR BLOCK: MapViewer v3.17.0 ] ===
 
-        // === [ MAJOR BLOCK: MediaViewer v2.5.5 ] ===
-        const MediaViewer = ({ data, activeIndex }) => {
+        // === [ MAJOR BLOCK: MediaViewer v2.5.7 ] ===
+        const MediaViewer = ({ data, activeIndex, addLog }) => {
             const carouselRef = useRef(null);
 
             useEffect(() => {
@@ -569,12 +569,24 @@
             const item = data[activeIndex];
             
             const rawMedia = String(item.media || '').trim();
+            
+            // [FIX: MED-12] Native Telemetry: Pipe raw string to the app's dedicated monitor
+            useEffect(() => {
+                if (addLog && rawMedia) addLog(`[Media Debug] Raw String: ${rawMedia}`);
+            }, [activeIndex, rawMedia, addLog]);
+
             if (!rawMedia) return html`<div class="media-pane" style="display:none;"></div>`;
 
+            // Strict newline delimiter to protect commas in filenames
             const splitRegex = /\r\n|\n|\r/;
             const mediaItems = rawMedia.split(splitRegex).map(s => s.trim()).filter(Boolean);
             const captions = item.mediaCaption ? String(item.mediaCaption).split(splitRegex).map(s => s.trim()) : [];
             const credits = item.mediaCredit ? String(item.mediaCredit).split(splitRegex).map(s => s.trim()) : [];
+
+            // [FIX: MED-12] Native Telemetry: Pipe the resulting array to the app's dedicated monitor
+            useEffect(() => {
+                if (addLog && mediaItems.length > 0) addLog(`[Media Debug] Array Output: ${JSON.stringify(mediaItems)}`);
+            }, [activeIndex, mediaItems, addLog]);
 
             const renderMediaItem = (url, idx) => {
                 let content;
@@ -589,20 +601,17 @@
                 if (isIframeStr) {
                     content = html`<div dangerouslySetInnerHTML=${{ __html: url }} style="width: 100%; height: 100%;"></div>`;
                 } else if (url.match(/\.(mp4|webm|ogg)$/i)) {
-                    content = html`<video controls style="max-width: 100%; max-height: 100%; object-fit: contain; min-width: 0; min-height: 0;"><source src=${url} /></video>`;
+                    content = html`<video controls style="max-width: 100%; max-height: 100%; object-fit: contain;"><source src="${url}" /></video>`;
                 } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
                     let ytId = '';
                     if (url.includes('youtu.be/')) ytId = url.split('youtu.be/')[1].split('?')[0];
                     else if (url.includes('v=')) ytId = url.split('v=')[1].split('&')[0];
                     const ytEmbed = `https://www.youtube.com/embed/${ytId}`;
-                    content = html`<iframe src=${ytEmbed} allowfullscreen></iframe>`;
+                    content = html`<iframe src="${ytEmbed}" allowfullscreen></iframe>`;
                     cleanUrl = url;
                 } else {
-                    content = html`
-                        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; min-height: 0; min-width: 0;">
-                            <img src=${url} alt="Media Item" style="max-width: 100%; max-height: 100%; object-fit: contain; flex-shrink: 0;" />
-                        </div>
-                    `;
+                    // [FIX: MED-13] Stripped invasive inline flexbox wrappers. Native image element restored with safe quote bindings.
+                    content = html`<img src="${url}" alt="Media Item" style="max-width: 100%; max-height: 100%; object-fit: contain;" />`;
                 }
 
                 const itemCaption = captions[idx] || '';
@@ -615,7 +624,7 @@
                             ${itemCaption ? html`<div class="media-caption">${itemCaption}</div>` : ''}
                             <div style="display: flex; align-items: center; width: 100%; margin-top: 2px;">
                                 <div class="media-credit">${itemCredit ? `Credit: ${itemCredit}` : ''}</div>
-                                ${cleanUrl ? html`<a href=${cleanUrl} target="_blank" title="Open media in new tab" style="color: #8be9fd; text-decoration: none; font-size: 0.9rem; margin-left: auto; letter-spacing: 1px;">[↗]</a>` : ''}
+                                ${cleanUrl ? html`<a href="${cleanUrl}" target="_blank" title="Open media in new tab" style="color: #8be9fd; text-decoration: none; font-size: 0.9rem; margin-left: auto; letter-spacing: 1px;">[↗]</a>` : ''}
                             </div>
                         </div>
                     `;
@@ -629,29 +638,17 @@
                 `;
             };
 
-            // [DIAGNOSTIC HUD] Injected into the DOM to track raw data vs parsed outputs
-            const diagnosticMonitor = html`
-                <div style="background: #1e1e1e; border-top: 2px solid #d32f2f; padding: 10px; font-family: monospace; font-size: 0.75rem; color: #fff; overflow-y: auto; flex-shrink: 0; max-height: 35%;">
-                    <div style="color: #d32f2f; font-weight: bold; margin-bottom: 5px;">[ DATA MONITOR ]</div>
-                    <div style="margin-bottom: 4px;"><span style="color: #ffb86c;">RAW MEDIA:</span> <span style="color: #aaa;">${rawMedia}</span></div>
-                    <div style="margin-bottom: 4px;"><span style="color: #8be9fd;">PARSED URLS [${mediaItems.length}]:</span> <span style="color: #aaa;">${JSON.stringify(mediaItems)}</span></div>
-                    <div style="margin-bottom: 4px;"><span style="color: #ff79c6;">CAPTIONS [${captions.length}]:</span> <span style="color: #aaa;">${JSON.stringify(captions)}</span></div>
-                    <div><span style="color: #50fa7b;">CREDITS [${credits.length}]:</span> <span style="color: #aaa;">${JSON.stringify(credits)}</span></div>
-                </div>
-            `;
-
             return html`
-                <div class="media-pane" style="width: 100%; height: 100%; display: flex; flex-direction: column;">
-                    <div class="media-carousel" ref=${carouselRef} style="flex-grow: 1;">
+                <div class="media-pane">
+                    <div class="media-carousel" ref=${carouselRef}>
                         ${mediaItems.map((url, idx) => renderMediaItem(url, idx))}
                     </div>
-                    ${mediaItems.length > 1 ? html`<div class="media-counter" style="position: absolute; top: 10px; right: 10px; z-index: 100;">${mediaItems.length} Items (Scroll ➔)</div>` : ''}
-                    ${diagnosticMonitor}
+                    ${mediaItems.length > 1 ? html`<div class="media-counter">${mediaItems.length} Items (Scroll ➔)</div>` : ''}
                 </div>
             `;
         };
-        MODULE_VERSIONS['MediaViewer'] = 'v2.5.5';
-        // === [ END MAJOR BLOCK: MediaViewer v2.5.5 ] ===
+        MODULE_VERSIONS['MediaViewer'] = 'v2.5.7';
+        // === [ END MAJOR BLOCK: MediaViewer v2.5.7 ] ===
 
         // === [ MAJOR BLOCK: ContentSlider v3.9.2 ] ===
         const ContentSlider = ({ data, activeIndex, setActiveIndex, jumpToSlide, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo, visibleTimeSpan }) => {
