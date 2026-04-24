@@ -168,7 +168,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.3.6';
+        const APP_VERSION = 'v6.3.5';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -555,100 +555,85 @@
         MODULE_VERSIONS['MapViewer'] = 'v3.17.0';
         // === [ END MAJOR BLOCK: MapViewer v3.17.0 ] ===
 
-        // === [ MAJOR BLOCK: MediaViewer v2.5.7 ] ===
-        const MediaViewer = ({ data, activeIndex, addLog }) => {
-            const carouselRef = useRef(null);
-
-            useEffect(() => {
-                if (carouselRef.current) {
-                    carouselRef.current.scrollTo({ left: 0, behavior: 'smooth' });
-                }
-            }, [activeIndex]);
-
-            if (!data || data.length === 0 || activeIndex < 0) return html`<div class="media-pane"></div>`;
-            const item = data[activeIndex];
+        // === [ MAJOR BLOCK: MediaViewer v2.6.1 ] ===
+        const MediaViewer = ({ activeSlide }) => {
+            if (!activeSlide || !activeSlide.media || activeSlide.media.length === 0) return null;
             
-            const rawMedia = String(item.media || '').trim();
+            // [FIX: MED-14] Strict Newline Splitter to protect file commas and natural grammar
+            const splitRegex = /\r?\n/;
             
-            // [FIX: MED-12] Native Telemetry: Pipe raw string to the app's dedicated monitor
-            useEffect(() => {
-                if (addLog && rawMedia) addLog(`[Media Debug] Raw String: ${rawMedia}`);
-            }, [activeIndex, rawMedia, addLog]);
+            let mediaItems = [];
+            if (typeof activeSlide.media === 'string') {
+                mediaItems = activeSlide.media.split(splitRegex).map(s => s.trim()).filter(Boolean);
+            } else if (Array.isArray(activeSlide.media)) {
+                mediaItems = activeSlide.media; 
+            }
 
-            if (!rawMedia) return html`<div class="media-pane" style="display:none;"></div>`;
+            const captions = typeof activeSlide.mediaCaption === 'string' ? activeSlide.mediaCaption.split(splitRegex).map(s => s.trim()) : [];
+            const credits = typeof activeSlide.mediaCredit === 'string' ? activeSlide.mediaCredit.split(splitRegex).map(s => s.trim()) : [];
 
-            // Strict newline delimiter to protect commas in filenames
-            const splitRegex = /\r\n|\n|\r/;
-            const mediaItems = rawMedia.split(splitRegex).map(s => s.trim()).filter(Boolean);
-            const captions = item.mediaCaption ? String(item.mediaCaption).split(splitRegex).map(s => s.trim()) : [];
-            const credits = item.mediaCredit ? String(item.mediaCredit).split(splitRegex).map(s => s.trim()) : [];
+            const getCleanUrl = (rawUrl) => {
+                const url = rawUrl.trim();
+                if (url.toLowerCase().startsWith('<iframe')) {
+                    const match = url.match(/src=["']([^"']+)["']/);
+                    return match ? match[1] : '#';
+                }
+                return url;
+            };
 
-            // [FIX: MED-12] Native Telemetry: Pipe the resulting array to the app's dedicated monitor
-            useEffect(() => {
-                if (addLog && mediaItems.length > 0) addLog(`[Media Debug] Array Output: ${JSON.stringify(mediaItems)}`);
-            }, [activeIndex, mediaItems, addLog]);
+            const renderMedia = (rawUrl) => {
+                const url = rawUrl.trim();
 
-            const renderMediaItem = (url, idx) => {
-                let content;
-                const isIframeStr = url.toLowerCase().startsWith('<iframe');
-                
-                let cleanUrl = url;
-                if (isIframeStr) {
-                    const match = url.match(/src=["'](.*?)["']/);
-                    if (match) cleanUrl = match[1];
+                if (url.toLowerCase().startsWith('<iframe')) {
+                    return html`<div dangerouslySetInnerHTML=${{ __html: url }} style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; pointer-events: auto;"></div>`;
                 }
 
-                if (isIframeStr) {
-                    content = html`<div dangerouslySetInnerHTML=${{ __html: url }} style="width: 100%; height: 100%;"></div>`;
-                } else if (url.match(/\.(mp4|webm|ogg)$/i)) {
-                    content = html`<video controls style="max-width: 100%; max-height: 100%; object-fit: contain;"><source src="${url}" /></video>`;
-                } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
-                    let ytId = '';
-                    if (url.includes('youtu.be/')) ytId = url.split('youtu.be/')[1].split('?')[0];
-                    else if (url.includes('v=')) ytId = url.split('v=')[1].split('&')[0];
-                    const ytEmbed = `https://www.youtube.com/embed/${ytId}`;
-                    content = html`<iframe src="${ytEmbed}" allowfullscreen></iframe>`;
-                    cleanUrl = url;
-                } else {
-                    // [FIX: MED-13] Stripped invasive inline flexbox wrappers. Native image element restored with safe quote bindings.
-                    content = html`<img src="${url}" alt="Media Item" style="max-width: 100%; max-height: 100%; object-fit: contain;" />`;
+                if (url.includes('youtube.com') || url.includes('youtu.be')) {
+                    const videoId = url.includes('v=') ? url.split('v=')[1].split('&')[0] : url.split('/').pop().split('?')[0];
+                    return html`<iframe src="https://www.youtube.com/embed/${videoId}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
                 }
 
-                const itemCaption = captions[idx] || '';
-                const itemCredit = credits[idx] || '';
-
-                let metaBox = '';
-                if (itemCaption || itemCredit || cleanUrl) {
-                    metaBox = html`
-                        <div class="media-meta-box">
-                            ${itemCaption ? html`<div class="media-caption">${itemCaption}</div>` : ''}
-                            <div style="display: flex; align-items: center; width: 100%; margin-top: 2px;">
-                                <div class="media-credit">${itemCredit ? `Credit: ${itemCredit}` : ''}</div>
-                                ${cleanUrl ? html`<a href="${cleanUrl}" target="_blank" title="Open media in new tab" style="color: #8be9fd; text-decoration: none; font-size: 0.9rem; margin-left: auto; letter-spacing: 1px;">[↗]</a>` : ''}
-                            </div>
-                        </div>
-                    `;
+                if (url.includes('google.com/maps/embed') || url.includes('googleusercontent.com/maps')) {
+                     return html`<iframe src="${url}" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
                 }
 
+                // [FIX: MED-15] Stripped greedy <a> wrapper to unblock UI click-zones
                 return html`
-                    <div class="media-item">
-                        <div class="media-content-wrapper">${content}</div>
-                        ${metaBox}
+                    <div style="display:flex; height:100%; width:100%; align-items:center; justify-content:center;">
+                        <img src=${url} alt="Media" loading="lazy" />
                     </div>
                 `;
             };
 
             return html`
-                <div class="media-pane">
-                    <div class="media-carousel" ref=${carouselRef}>
-                        ${mediaItems.map((url, idx) => renderMediaItem(url, idx))}
-                    </div>
-                    ${mediaItems.length > 1 ? html`<div class="media-counter">${mediaItems.length} Items (Scroll ➔)</div>` : ''}
+                <div class="media-carousel">
+                    ${mediaItems.map((rawUrl, i) => {
+                        const cleanUrl = getCleanUrl(rawUrl);
+                        const itemCaption = captions[i] || '';
+                        const itemCredit = credits[i] || '';
+
+                        return html`
+                            <div class="media-item" key=${i}>
+                                ${mediaItems.length > 1 ? html`<div class="media-counter">${i + 1} / ${mediaItems.length}</div>` : ''}
+                                <div class="media-content-wrapper">${renderMedia(rawUrl)}</div>
+                                
+                                ${(itemCaption || itemCredit || cleanUrl !== '#') ? html`
+                                    <div class="media-meta-box">
+                                        ${itemCaption ? html`<div class="media-caption">${itemCaption}</div>` : ''}
+                                        <div style="display: flex; align-items: center; width: 100%; margin-top: 2px;">
+                                            <div class="media-credit">${itemCredit ? `Credit: ${itemCredit}` : ''}</div>
+                                            ${cleanUrl !== '#' ? html`<a href=${cleanUrl} target="_blank" rel="noopener noreferrer" title="Open source media" style="color: #8be9fd; text-decoration: none; font-size: 0.9rem; margin-left: auto; letter-spacing: 1px;">[↗]</a>` : ''}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    })}
                 </div>
             `;
         };
-        MODULE_VERSIONS['MediaViewer'] = 'v2.5.7';
-        // === [ END MAJOR BLOCK: MediaViewer v2.5.7 ] ===
+        MODULE_VERSIONS['MediaViewer'] = 'v2.6.1';
+        // === [ END MAJOR BLOCK: MediaViewer v2.6.1 ] ===
 
         // === [ MAJOR BLOCK: ContentSlider v3.9.2 ] ===
         const ContentSlider = ({ data, activeIndex, setActiveIndex, jumpToSlide, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo, visibleTimeSpan }) => {
