@@ -702,13 +702,14 @@
         MODULE_VERSIONS['ContentSlider'] = 'v3.9.2';
         // === [ END MAJOR BLOCK: ContentSlider v3.9.2 ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v23.11.0 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v23.12.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
             const dragRef = useRef({ isDragging: false, startX: 0, scrollLeft: 0 });
             const touchZoomRef = useRef({ initialDist: 0, initialZoom: 1 });
             const prevActiveIndexRef = useRef(-1);
+            const scrollTargetRef = useRef(null);
             const [containerHeight, setContainerHeight] = useState(200);
 
             useEffect(() => {
@@ -789,7 +790,6 @@
                         }
                     }
                 }
-
                 let lines = bestSplit.length ? bestSplit : [titleStr];
                 if (lines.length === 3) { let last = lines[2]; if (measureTextWidth(last) > maxPx) { while(measureTextWidth(last + '...') > maxPx && last.length > 0) last = last.slice(0, -1); lines[2] = last.trim() + '...'; } }
                 else if (lines.length === 2) { let last = lines[1]; if (measureTextWidth(last) > maxPx * 1.3) { while(measureTextWidth(last + '...') > maxPx * 1.3 && last.length > 0) last = last.slice(0, -1); lines[1] = last.trim() + '...'; } }
@@ -812,6 +812,7 @@
                 setVisibleTimeSpan(`Viewing: ${str}`);
             }, [zoomLevel, renderTimeRange, setVisibleTimeSpan]);
 
+            // [FIX: TL-ANIM-06] The Viewport-Anchored State Machine (No More Fly-Aways)
             useEffect(() => {
                 const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
                 if (activeDataIndex >= 0 && wrapperRef.current && !dragRef.current.isDragging) {
@@ -853,6 +854,15 @@
                                 const safeSpan = Math.max(clusterMax - clusterMin, 1800000); 
                                 const idealZoom = (0.6 * renderTimeRange) / safeSpan;
                                 const clampedZoom = Math.min(Math.max(1, idealZoom), 300); 
+                                
+                                const sT = validData[activeDataIndex].startDate.getTime();
+                                const { pxWidth } = formatLabelSmart(stripHTML(validData[activeDataIndex].title));
+                                const containerW = wrapperRef.current.clientWidth || 1000;
+                                const targetTrackW = Math.max(containerW, containerW * clampedZoom);
+                                const sPct = (sT - renderMinTime) / renderTimeRange;
+                                const visualCenterPx = (sPct * targetTrackW) + (pxWidth / 2);
+                                scrollTargetRef.current = visualCenterPx - (containerW / 2);
+
                                 setZoomLevel(clampedZoom); 
                             }
                         }, 500); 
@@ -862,25 +872,34 @@
             }, [activeIndex, data, zoomLock, setZoomLock]); 
 
             useLayoutEffect(() => {
-                const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
-                if (activeDataIndex >= 0 && wrapperRef.current && !dragRef.current.isDragging) {
-                    const sT = validData[activeDataIndex].startDate.getTime();
-                    const { pxWidth } = formatLabelSmart(stripHTML(validData[activeDataIndex].title));
-                    const containerW = wrapperRef.current.clientWidth || 1000;
-                    const targetTrackW = Math.max(containerW, containerW * zoomLevel);
-                    const sPct = (sT - renderMinTime) / renderTimeRange;
-                    const visualCenterPx = (sPct * targetTrackW) + (pxWidth / 2);
-                    const scrollPos = visualCenterPx - (containerW / 2);
-                    
-                    wrapperRef.current.scrollTo({ left: scrollPos, behavior: 'auto' });
+                if (scrollTargetRef.current !== null && wrapperRef.current) {
+                    wrapperRef.current.scrollTo({ left: scrollTargetRef.current, behavior: 'auto' });
+                    scrollTargetRef.current = null;
                 }
             }, [zoomLevel]);
 
-            const doManualZoom = (direction) => {
-                if (zoomLock !== 'hard') setZoomLock('soft');
-                setZoomLevel(p => direction === 'in' ? Math.min(p * 1.5, 500) : Math.max(p / 1.5, 1));
+            const handleManualZoom = (newZoom, centerType = 'center', eventX = 0) => {
+                if (!wrapperRef.current) return;
+                const containerW = wrapperRef.current.clientWidth;
+                const scrollPos = wrapperRef.current.scrollLeft;
+                const currentTrackW = Math.max(containerW, containerW * zoomLevel);
+                
+                let anchorPx = scrollPos + (containerW / 2); 
+                if (centerType === 'mouse') anchorPx = scrollPos + eventX;
+
+                const centerPct = anchorPx / currentTrackW;
+                const newTrackW = Math.max(containerW, containerW * newZoom);
+                const newAnchorPx = centerPct * newTrackW;
+                
+                scrollTargetRef.current = newAnchorPx - (centerType === 'mouse' ? eventX : (containerW / 2));
+                setZoomLevel(newZoom);
             };
 
+            const doManualZoom = (direction) => {
+                if (zoomLock !== 'hard') setZoomLock('soft');
+                const newZoom = direction === 'in' ? Math.min(zoomLevel * 1.5, 500) : Math.max(zoomLevel / 1.5, 1);
+                handleManualZoom(newZoom, 'center');
+            };
             const toggleHardLock = () => { setZoomLock(p => p === 'hard' ? 'auto' : 'hard'); };
 
             const onDown = (e) => { 
@@ -899,12 +918,20 @@
                     e.preventDefault(); 
                     const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
                     const scale = dist / touchZoomRef.current.initialDist;
-                    setZoomLevel(Math.min(Math.max(touchZoomRef.current.initialZoom * scale, 1), 500)); return;
+                    handleManualZoom(Math.min(Math.max(touchZoomRef.current.initialZoom * scale, 1), 500), 'center'); return;
                 }
                 if (!dragRef.current.isDragging) return;
                 const x = e.touches ? e.touches[0].clientX : e.clientX;
                 if (!e.touches) e.preventDefault(); 
                 wrapperRef.current.scrollLeft = dragRef.current.scrollLeft - ((x - wrapperRef.current.offsetLeft - dragRef.current.startX) * 2);
+            };
+            const onWheel = (e) => {
+                e.preventDefault();
+                if (zoomLock !== 'hard') setZoomLock('soft');
+                const newZoom = e.deltaY < 0 ? Math.min(zoomLevel * 1.5, 500) : Math.max(zoomLevel / 1.5, 1);
+                const rect = wrapperRef.current.getBoundingClientRect();
+                const eventX = e.clientX - rect.left;
+                handleManualZoom(newZoom, 'mouse', eventX);
             };
 
             if (validData.length === 0) return html`<div style="padding:1rem;">No valid temporal data.</div>`;
@@ -952,6 +979,11 @@
 
             let safety = 0;
             let isFirstRenderedTick = true;
+            
+            // [FIX: TL-UI-10] Viewport-Awareness: Find the start of the visible pane based on Active Context
+            let expectedVisibleMin = renderMinTime;
+            const activeDataIndexForView = validData.findIndex(d => d.id === activeIndex);
+            if (activeDataIndexForView >= 0) expectedVisibleMin = validData[activeDataIndexForView].startDate.getTime() - (visibleMs / 2);
 
             while (iterDate.getTime() <= renderMaxTime && safety < 2000) {
                 safety++;
@@ -961,7 +993,7 @@
                     const pctLeft = ((t - renderMinTime) / renderTimeRange) * 100;
                     let label = '';
                     
-                    if (isFirstRenderedTick) {
+                    if (t >= expectedVisibleMin && isFirstRenderedTick) {
                         label = iterDate.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: (activeScale.type==='hour'||activeScale.type==='minute')?'2-digit':undefined, minute: (activeScale.type==='hour'||activeScale.type==='minute')?'2-digit':undefined });
                         isFirstRenderedTick = false;
                     } else {
@@ -974,7 +1006,7 @@
                     rulerTicks.push(html`
                         <div class="timeline-ruler-tick" style="left: ${pctLeft}%; position: absolute; bottom: 3px; display: flex; flex-direction: column; align-items: center; z-index: 5;">
                             <div style="width: 2px; height: 10px; background: #666; margin-bottom: 2px;"></div>
-                            <div style="font-size: 0.75rem; color: #444; white-space: nowrap; font-weight: 700;">${label}</div>
+                            <div style="font-size: 0.75rem; color: #444; white-space: nowrap;">${label}</div>
                         </div>
                     `);
                 }
@@ -1036,16 +1068,17 @@
                 const minIdx = Math.min(...tagIndices);
                 const maxIdx = Math.max(...tagIndices);
                 
-                const topPos = minIdx * laneHeight;
+                // [FIX: TL-UI-11] Unification of Y-Axis geometry to account for 5px top offset
+                const topPos = (minIdx * laneHeight) + 5;
                 const blockHeight = (maxIdx - minIdx + 1) * laneHeight; 
+                const distanceToAxis = (containerHeight - 33) - topPos; 
 
                 let activeAnchor = '';
                 if (isActive) {
-                    const distanceToAxis = availableLanesHeight - topPos;
                     if (hasDuration) {
                         activeAnchor = html`
                             <div style="position: absolute; left: 0; top: 50%; height: ${distanceToAxis - (blockHeight / 2)}px; width: 2px; background: #007acc; z-index: 999;"></div>
-                            <div style="position: absolute; top: ${distanceToAxis - 16}px; left: 0; width: 100%; min-width: 2px; height: 16px; background: rgba(0,122,204,0.3); clip-path: polygon(0 0, 100% 50%, 100% 100%, 0 100%); z-index: 998;"></div>
+                            <div style="position: absolute; top: ${distanceToAxis - 16}px; left: 0; width: 100%; min-width: 2px; height: 16px; background: rgba(0,122,204,0.3); clip-path: polygon(0 0, 100% calc(100% - 5px), 100% 100%, 0 100%); filter: drop-shadow(0 2px 2px rgba(0,122,204,0.4)); z-index: 998;"></div>
                             <div style="position: absolute; top: ${distanceToAxis - 8}px; right: 0; width: 2px; height: 8px; background: #007acc; z-index: 999;"></div>
                         `;
                     } else {
@@ -1082,7 +1115,7 @@
                         <div class="timeline-leaflet-btn" onClick=${() => doManualZoom('out')} title="Zoom Out">-</div>
                     </div>
 
-                    <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${(e) => { e.preventDefault(); doManualZoom(e.deltaY < 0 ? 'in' : 'out'); }}>
+                    <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${onWheel}>
                         <div class="timeline-track-container" style="width: ${trackWidthPx}px; flex-shrink: 0; min-width: 100%; height: 100%;">
                             <div style="position: absolute; top: 5px; left: 0; right: 0; bottom: 33px; pointer-events: none; z-index: 0;">
                                 ${orderedTags.map((tag, i) => html`
@@ -1098,8 +1131,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v23.11.0';
-        // === [ END MAJOR BLOCK: TimelineScrubber v23.11.0 ] ===
+        MODULE_VERSIONS['TimelineScrubber'] = 'v23.12.0';
+        // === [ END MAJOR BLOCK: TimelineScrubber v23.12.0 ] ===
 
         // === [ MAJOR BLOCK: AppOrchestrator v1.34.1 ] ===
         const App = () => {
