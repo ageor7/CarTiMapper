@@ -1,6 +1,35 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.2.0)
+GlobalStyles (v4.10.0): * [FIX: TL-UI-03] Recalibrated .event-block clip-paths with a 4px squeeze and elevated the .timeline-track-container 5px to eliminate visual bleed across swimlanes and the X-Axis.
+
+[FIX: UI-TYPO-02] Scrubbed bold styling application-wide for a neutral, professional UI.
+
+[FIX: UI-HUD-02] Deployed absolute centering (transform: translateX(-50%)) for the main navigation cluster.
+
+AppOrchestrator (v1.34.1): * [FIX: CRASH-02] Passed jumpToSlide into ContentSlider to prevent ReferenceErrors from Modal interactions.
+
+[FIX: SUB-02] Upgraded parsing logic to intercept Google Sheets' CHAR(10) line breaks (\n) and strictly truncate sublabels at the first comma.
+
+MapViewer (v3.16.3): * [FIX: CRASH-01.5] Engineered an invincible micro-parser polyfill to intercept and manually construct geometries when Wicket silently fails on GEOMETRYCOLLECTION arrays.
+
+[FIX: GEO-02] Reduced LINESTRING weights to 2px with dashed strokes and stripped borders from POLYGON shapes.
+
+[FIX: UI-NUM-01] Converted zoom percentages to clean <times>x floats.
+
+MediaViewer (v2.4.0): * [FIX: MED-02] Bypassed anchor-wrapping for strings containing <iframe, executing them dynamically as raw HTML.
+
+[FIX: MED-UI-03] Engineered regex extraction to pull raw URLs from <iframe src="..."> strings for caption hyperlink routing.
+
+ContentSlider (v3.9.2): * [FIX: DIAG-02] Reorganized the About Modal to separate project description from active telemetry (URL parameters, dynamic version footprint, and usage instructions).
+
+TimelineScrubber (v23.8.0): * [FIX: TL-AUTO-03] Replaced nearest-neighbor auto-zoom with a 5-event Cluster Window, enforcing a 30-minute minimal span calculation to properly frame high-density event cascades.
+
+[FIX: TL-UI-04] Injected spatial collision detection to dynamically render scaled, contextual typography (Months, Days, HH:MM) on minor axis ticks.
+
+---
+
 Changelog (v6.1.5)
 MapViewer (v3.16.3):
 [FIX: SUB-02] Updated sublabel parsing. Inserted \n into the RegExp delimiter block to support CHAR(10) line breaks and chained a split/index call to dynamically truncate label strings at the first comma encountered.
