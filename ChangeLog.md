@@ -1,6 +1,11 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.3.1)
+MediaViewer (v2.5.1): * [FIX: MED-06] Stripped loading="lazy" from <img> generation to prevent horizontal scroll-snap intersection calculation failures (permanently blank images). Rewrote variable interpolations across all src tags (removing quote wrapping) to ensure Preact's htm VDOM maps the properties correctly as dynamic data rather than static strings.
+
+---
+
 Changelog (v6.3.0)
 MediaViewer (v2.5.0): * [FIX: MED-03] Injected \n logic into the parsing loop to support CHAR(10). Separated Media, Captions, and Credits into synchronized parallel arrays to map context 1:1 within the carousel layout.
 
