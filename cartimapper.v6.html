@@ -168,7 +168,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.3.11';
+        const APP_VERSION = 'v6.3.12';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -1257,7 +1257,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.16.0';
         // === [ END MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.35.0 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.35.1 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             
@@ -1300,7 +1300,6 @@
                 }
             };
 
-            // [FIX: UI-30] Global Keyboard Spatial Mapping (Future Search-Safe)
             useEffect(() => {
                 const handleKeyDown = (e) => {
                     if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
@@ -1543,7 +1542,8 @@
                 setData(finalData);
 
                 if (!hasInitializedRef.current) {
-                    const urlParams = newSearchParams(window.location.search);
+                    // [FIX: TYPO] Corrected to "new URLSearchParams"
+                    const urlParams = new URLSearchParams(window.location.search);
                     const paramSlide = urlParams.get('slide');
                     const paramDate = urlParams.get('date');
                     let initialIdx = 0;
@@ -1596,7 +1596,6 @@
                     </svg>
                 `;
                 if (context === 'splash') return html`<div class="logo-stack-splash"><div class="splash-icon-wrapper">${svgIcon}</div><div class="splash-text">CarTiMapper</div><div class="splash-version">${appVersion}</div></div>`;
-                // [FIX: UI-31] SVG Flex Math Alignment
                 if (context === 'status') return html`<div style="display: flex; align-items: baseline; gap: 0.4rem; padding-left: 10px; cursor: pointer;" onClick=${() => document.getElementById('aboutModal').style.display = 'flex'}><div style="width: 24px; height: 16px; display: flex; align-items: center; align-self: center;">${svgIcon}</div><span style="font-size: 0.8rem; color: #444; letter-spacing: -0.3px; font-weight: 600;">CarTiMapper</span><span style="font-size: 0.6rem; color: #888;">${appVersion}</span></div>`;
                 return html`<div class="logo-horizontal-about" style="flex-direction: column; align-items: flex-start; gap: 10px;"><div style="width: 200px; height: auto;">${svgIcon}</div></div>`;
             };
@@ -1687,8 +1686,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.35.0';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.35.0 ] ===
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.35.1';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.35.1 ] ===
 
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
