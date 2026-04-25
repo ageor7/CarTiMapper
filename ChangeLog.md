@@ -1,6 +1,15 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.3.10)
+TimelineScrubber (v23.16.0): * [FIX: TL-17] Injected the getParsedTags() utility to intercept and flatten incoming tag arrays using the Omni-Splitter regex (/[\r\n]+|\\n/).
+
+Fixed a bug where newline-delimited tags ("Tag A\nTag B") were generating single, broken lane labels. The engine now correctly generates two discrete background lanes.
+
+Restored the vertical spanning engine: Events containing multiple newline-delimited tags once again accurately calculate their minimum and maximum Y-axis coordinates, stretching their visual event-block across all assigned categories.
+
+---
+
 Changelog (v6.3.9)
 MediaViewer (v2.8.0): * [FIX: MED-24] Refactored slides to use Flexbox Column layout. Captions dynamically sit at the absolute bottom of the screen, shrinking to their exact text height. Images scale up to perfectly fill the space left above them.
 
