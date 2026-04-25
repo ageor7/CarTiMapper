@@ -1,6 +1,19 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.3.12)
+AppOrchestrator (v1.35.2): * [FIX: PERF-01] Patched a severe memory stack overflow. Keyboard arrow listeners now trigger a pure jumpToSlide function, preventing runaway React/Preact state loops from crashing browser tabs.
+
+[FIX: UI-36] Ripped out the accidentally duplicated top header that was breaking the flex-grid and pushing the Map/Media panes downward.
+
+ContentSlider (v3.10.0): * [FIX: UI-37] Successfully migrated the v6.3.11 aesthetic polish (Sticky Title/Date, CSS Metadata Pills, Smart Date Deduplication) into the actual textual rendering component.
+
+Injected the mathematical SVG tag icon (<svg>) directly into the slide.tags.map() loop to ensure each individual CSS pill receives its own crisp icon.
+
+Replaced the fuzzy ⚙️ text emoji in the unified bottom status bar with the pristine SVG gear path, preserving the original toolbar layout.
+
+---
+
 Changelog (v6.3.11)
 AppOrchestrator (v1.35.0): * [FIX: UI-30] Injected a global event listener mapping the keyboard's Left/Right arrows to the setActiveIndex timeline state, allowing for rapid, hands-free carousel navigation.
 
