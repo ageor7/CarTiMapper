@@ -1303,7 +1303,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.16.0';
         // === [ END MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.36.1 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.36.2 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [rawCsvRows, setRawCsvRows] = useState([]);
@@ -1349,7 +1349,6 @@
                 return () => window.removeEventListener('keydown', handleKeyDown);
             }, [activeIndex, data.length]);
 
-            // [FIX: UI-52] Layout Boundary Reset Listener
             useEffect(() => {
                 let wasDesktop = window.innerWidth >= 1024;
                 const handleResize = () => {
@@ -1358,7 +1357,7 @@
                         if (appRef.current) {
                             appRef.current.style.setProperty('--primary-split', '50%');
                             appRef.current.style.setProperty('--secondary-split', '50%');
-                            window.dispatchEvent(new Event('resize')); // Force Leaflet to wake up
+                            window.dispatchEvent(new Event('resize')); 
                         }
                         wasDesktop = isDesktop;
                     }
@@ -1409,7 +1408,6 @@
                 document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
             };
 
-            // [FIX: UI-54] Timeline Vertical Resizer Logic
             const startTimelineResize = (e) => {
                 e.preventDefault();
                 const startY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -1442,6 +1440,7 @@
             useEffect(() => {
                 if (rawCsvRows.length === 0) return;
                 const exactGet = (normObj, key) => { const val = normObj[key]; return val !== undefined && val !== null ? String(val).trim() : ""; };
+                const omniSplitRegex = /\||\r?\n/;
 
                 const cleaned = rawCsvRows.map((row, index) => {
                     const norm = {}; for (let k in row) norm[k.toLowerCase().trim()] = row[k];
@@ -1467,12 +1466,45 @@
                         description: exactGet(norm, 'description'),
                         place: exactGet(norm, 'place'), location: exactGet(norm, 'location'), priority: exactGet(norm, 'priority'),
                         media: exactGet(norm, 'media').split(';').map(m => m.trim()).filter(Boolean),
+                        // [RESTORED] Missing Caption and Credit Extraction
+                        caption: exactGet(norm, 'caption').split(omniSplitRegex).map(c => c.trim()),
+                        credit: exactGet(norm, 'credit').split(omniSplitRegex).map(c => c.trim()),
                         tags: exactGet(norm, 'tags').split(',').map(t => t.trim()).filter(Boolean)
                     };
                 });
                 
                 const valid = cleaned.filter(r => r.startDate).sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
                 setData(valid);
+                
+                // [RESTORED] About Data Manifest
+                setAboutData({
+                    description: `<h3 style="margin-top:0;color:#007acc;">Spatial-Temporal Architecture</h3>
+                                  <p>A precision mapping engine designed for complex chronological datasets.</p>
+                                  <hr style="border:0; border-top:1px solid #eee; margin:15px 0;"/>
+                                  <b>URL Routing Parameters:</b><br/>
+                                  <code>?source=[Google_Sheet_ID]</code><br/>
+                                  <code>?slide=[Index_Number]</code><br/>
+                                  <code>?date=[YYYY-MM-DD]</code>`
+                });
+
+                // [RESTORED] URL Deep-Linking Engine
+                const urlParams = new URLSearchParams(window.location.search);
+                const targetDateStr = urlParams.get('date');
+                if (targetDateStr) {
+                    const tDate = new Date(targetDateStr);
+                    if (!isNaN(tDate.getTime())) {
+                        let closestIdx = 0; let minDiff = Infinity;
+                        valid.forEach((item, idx) => {
+                            const diff = Math.abs(item.startDate.getTime() - tDate.getTime());
+                            if (diff < minDiff) { minDiff = diff; closestIdx = idx; }
+                        });
+                        setActiveIndex(closestIdx);
+                    }
+                } else if (urlParams.get('slide')) {
+                    const sIdx = parseInt(urlParams.get('slide'), 10);
+                    if (!isNaN(sIdx) && sIdx >= 0 && sIdx < valid.length) setActiveIndex(sIdx);
+                }
+
                 setStatus({ text: 'Engine Ready', progress: 100, isFading: true, active: true });
             }, [rawCsvRows]);
 
@@ -1496,7 +1528,6 @@
                         .core-viewports { display: flex; flex-grow: 1; height: calc(100% - var(--timeline-height) - 4px); width: 100%; overflow: hidden; }
                         .visual-pane { display: flex; overflow: hidden; }
                         
-                        /* Dynamic Media Collapse Classes */
                         .visual-pane.no-media .map-pane { height: 100% !important; width: 100% !important; }
                         .visual-pane.no-media .resizer-dyn-secondary { display: none !important; }
                         .visual-pane.no-media .media-pane { display: none !important; }
@@ -1510,7 +1541,6 @@
                         .resizer-dyn-timeline { height: 4px; width: 100%; cursor: row-resize; }
                         .content-slider-pane { background: var(--paneBg); overflow: hidden; }
 
-                        /* Mobile / Portrait (Default) */
                         @media (max-width: 1023px) {
                             .core-viewports { flex-direction: column; }
                             .visual-pane { width: 100%; height: var(--primary-split); flex-direction: row; order: 1; }
@@ -1522,7 +1552,6 @@
                             .media-pane { width: calc(100% - var(--secondary-split) - 4px); height: 100%; background: #000; }
                         }
 
-                        /* Desktop / Landscape (Reading Room) */
                         @media (min-width: 1024px) {
                             .core-viewports { flex-direction: row; }
                             .content-slider-pane { height: 100%; width: var(--primary-split); order: 1; }
@@ -1564,8 +1593,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.36.1';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.36.1 ] ===
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.36.2';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.36.2 ] ===
 
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
