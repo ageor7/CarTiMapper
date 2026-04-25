@@ -168,7 +168,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.3.9';
+        const APP_VERSION = 'v6.3.10';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -783,7 +783,7 @@
         MODULE_VERSIONS['ContentSlider'] = 'v3.9.2';
         // === [ END MAJOR BLOCK: ContentSlider v3.9.2 ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v23.15.0 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -803,11 +803,25 @@
                 return () => window.removeEventListener('resize', measure);
             }, []);
 
+            // [FIX: TL-17] Omni-Splitter Tag Matrix: Intercepts and flattens newlines into discrete arrays
+            const getParsedTags = (rawTagsArray) => {
+                if (!rawTagsArray || rawTagsArray.length === 0) return ['Untagged'];
+                const splitRegex = /[\r\n]+|\\n/;
+                let arr = [];
+                rawTagsArray.forEach(t => {
+                    if (typeof t === 'string') arr.push(...t.split(splitRegex));
+                    else arr.push(t);
+                });
+                arr = arr.map(s => String(s).trim()).filter(Boolean);
+                return arr.length > 0 ? arr : ['Untagged'];
+            };
+
             const tagsMap = new Set();
             const tagPairs = [];
             data.forEach(d => {
                 if(!d.startDate || isNaN(d.startDate.getTime())) return;
-                const t = d.tags && d.tags.length > 0 ? d.tags : ['Untagged'];
+                // [FIX: TL-17] Applied Omni-Splitter to lane generation
+                const t = getParsedTags(d.tags);
                 t.forEach(tag => tagsMap.add(tag));
                 for(let i=0; i<t.length-1; i++) tagPairs.push([t[i], t[i+1]]);
             });
@@ -1075,7 +1089,6 @@
 
             let safety = 0;
             
-            // [FIX: TL-UI-16] The 60px Safe-Margin Viewport Engine
             let expectedVisibleMinWithBuffer = renderMinTime + ((viewLeftEdge + 60) / trackWidthPx) * renderTimeRange;
             let firstVisibleMajorTickTime = null;
             let firstVisibleMajorTickPx = -1;
@@ -1171,10 +1184,14 @@
                 const hasDuration = (endPct - startPct) > 0.001;
                 
                 const isActive = globalIndex === activeIndex;
-                const activeTags = item.tags && item.tags.length > 0 ? item.tags : ['Untagged'];
-                const tagIndices = activeTags.map(t => orderedTags.indexOf(t));
-                const minIdx = Math.min(...tagIndices);
-                const maxIdx = Math.max(...tagIndices);
+
+                // [FIX: TL-17] Applied Omni-Splitter to marker span calculations
+                const activeTags = getParsedTags(item.tags);
+                const tagIndices = activeTags.map(t => orderedTags.indexOf(t)).filter(idx => idx !== -1);
+                
+                // Fallback geometry if tags array is entirely mismatched
+                const minIdx = tagIndices.length > 0 ? Math.min(...tagIndices) : 0;
+                const maxIdx = tagIndices.length > 0 ? Math.max(...tagIndices) : 0;
                 
                 const topPos = (minIdx * laneHeight) + 5;
                 const blockHeight = (maxIdx - minIdx + 1) * laneHeight; 
@@ -1237,8 +1254,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v23.15.0';
-        // === [ END MAJOR BLOCK: TimelineScrubber v23.15.0 ] ===
+        MODULE_VERSIONS['TimelineScrubber'] = 'v23.16.0';
+        // === [ END MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
 
         // === [ MAJOR BLOCK: AppOrchestrator v1.34.1 ] ===
         const App = () => {
