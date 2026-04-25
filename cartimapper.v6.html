@@ -168,7 +168,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.4.6';
+        const APP_VERSION = 'v6.4.7';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -243,78 +243,318 @@
         };
         // === [ END MAJOR BLOCK: VibeMonitor v2.0.0 ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v4.2.0 ] ===
-        const MapViewer = ({ data, activeIndex, setActiveIndex, maxAutoZoom }) => {
+        // === [ MAJOR BLOCK: MapViewer v3.17.0 ] ===
+        const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, mapLocale, maxAutoZoom }) => {
             const mapDomRef = useRef(null);
             const miniMapDomRef = useRef(null);
+            
             const mapInstance = useRef(null);
             const miniMapInstance = useRef(null);
+            const rectBoundsRef = useRef(null);
+            
             const markerLayer = useRef(null); 
             const clusterLayer = useRef(null); 
+            const tileLayerRef = useRef(null);
+            const gridLayerRef = useRef(null);
             const markersRef = useRef({}); 
-            const prevIdxRef = useRef(-1);
+            
+            const hasFitBounds = useRef(false);
+            const [mapZoom, setMapZoom] = useState(2);
+            const [showGrid, setShowGrid] = useState(false);
 
-            const safeStripHTML = (str) => str ? String(str).replace(/<[^>]*>?/gm, '').trim() : '';
+            const createPinHtml = (isActive, isVip) => {
+                const color = isActive ? '#28a745' : (isVip ? '#ffb300' : '#007acc');
+                const scale = isActive ? 'scale(1.3)' : 'scale(1)';
+                const z = isActive ? '1000' : '0';
+                return `<div class="custom-map-pin" style="transform: ${scale}; z-index: ${z};">
+                            <div class="pin-head" style="background: ${color};"></div>
+                            <div class="pin-stem" style="background: ${isActive ? '#28a745' : '#333'}; width: ${isActive ? '3px' : '2px'};"></div>
+                        </div>`;
+            };
+
+            const extractLayers = (layerObj) => {
+                let layers = [];
+                if (Array.isArray(layerObj)) layerObj.forEach(l => layers = layers.concat(extractLayers(l)));
+                else if (layerObj && layerObj.eachLayer) layerObj.eachLayer(l => layers = layers.concat(extractLayers(l)));
+                else if (layerObj) layers.push(layerObj);
+                return layers;
+            };
+
+            const parseGeometryCollection = (wktStr) => {
+                const cleanStr = wktStr.trim().replace(/^GEOMETRYCOLLECTION\s*\(/i, '').replace(/\)\s*$/, '');
+                
+                let inParen = 0;
+                let currentGeom = '';
+                const geometries = [];
+                
+                for (let i = 0; i < cleanStr.length; i++) {
+                    const char = cleanStr[i];
+                    if (char === '(') inParen++;
+                    if (char === ')') inParen--;
+                    
+                    if (char === ',' && inParen === 0) {
+                        geometries.push(currentGeom.trim());
+                        currentGeom = '';
+                    } else {
+                        currentGeom += char;
+                    }
+                }
+                if (currentGeom.trim()) geometries.push(currentGeom.trim());
+                
+                let extractedLayers = [];
+                geometries.forEach(geomStr => {
+                    try {
+                        const wkt = new window.Wkt.Wkt();
+                        wkt.read(geomStr);
+                        extractedLayers = extractedLayers.concat(extractLayers(wkt.toObject()));
+                    } catch (e) {
+                        const upper = geomStr.toUpperCase();
+                        if (upper.startsWith('POINT')) {
+                            const m = geomStr.match(/(-?\d+\.?\d*)\s+(-?\d+\.?\d*)/);
+                            if (m) extractedLayers.push(L.marker([parseFloat(m[2]), parseFloat(m[1])])); 
+                        } else if (upper.startsWith('LINESTRING')) {
+                            const m = [...geomStr.matchAll(/(-?\d+\.?\d*)\s+(-?\d+\.?\d*)/g)];
+                            if (m.length > 0) extractedLayers.push(L.polyline(m.map(x => [parseFloat(x[2]), parseFloat(x[1])])));
+                        } else if (upper.startsWith('POLYGON')) {
+                            const m = [...geomStr.matchAll(/(-?\d+\.?\d*)\s+(-?\d+\.?\d*)/g)];
+                            if (m.length > 0) extractedLayers.push(L.polygon(m.map(x => [parseFloat(x[2]), parseFloat(x[1])])));
+                        }
+                    }
+                });
+                return extractedLayers;
+            };
 
             useEffect(() => {
-                if (mapDomRef.current && !mapInstance.current) {
-                    const map = L.map(mapDomRef.current, { zoomControl: false }).setView([20, 0], 2);
-                    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}').addTo(map);
+                if (mapDomRef.current && miniMapDomRef.current && !mapInstance.current && window.L) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const initialZoom = urlParams.get('mapzoom') ? parseInt(urlParams.get('mapzoom')) : 2;
+                    setMapZoom(initialZoom);
+                    
+                    const map = L.map(mapDomRef.current, { zoomControl: false }).setView([20, 0], initialZoom);
+                    L.control.zoom({ position: 'topright' }).addTo(map);
+                    
+                    L.control.scale({ position: 'bottomleft', imperial: true, metric: true }).addTo(map);
+                    
+                    map.on('zoomend', () => setMapZoom(map.getZoom()));
+
+                    tileLayerRef.current = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
+                        attribution: '© Esri & OSM' 
+                    }).addTo(map);
+                    
                     markerLayer.current = L.featureGroup().addTo(map);
-                    clusterLayer.current = L.markerClusterGroup({ maxClusterRadius: 40 }).addTo(map);
+                    clusterLayer.current = L.markerClusterGroup({ maxClusterRadius: 40, spiderfyOnMaxZoom: true }).addTo(map);
+                    gridLayerRef.current = L.layerGroup().addTo(map);
                     
-                    const mini = L.map(miniMapDomRef.current, { zoomControl: false, attributionControl: false, dragging: false }).setView([20, 0], 0);
-                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mini);
+                    clusterLayer.current.on('clustermouseover', (c) => {
+                        const children = c.layer.getAllChildMarkers();
+                        const titles = [...new Set(children.map(m => m.getTooltip().getContent()))];
+                        let displayHtml = titles.slice(0, 5).join('<br/>');
+                        if (titles.length > 5) displayHtml += `<br/><em style="color: #666; font-size: 0.8em;">+${titles.length - 5} more locations...</em>`;
+                        c.layer.bindTooltip(displayHtml, { direction: 'top', className: 'centered-tooltip' }).openTooltip();
+                    });
+                    clusterLayer.current.on('clustermouseout', (c) => c.layer.unbindTooltip());
+
+                    const miniMap = L.map(miniMapDomRef.current, { zoomControl: false, attributionControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false }).setView([20, 0], 0);
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(miniMap);
                     
-                    mapInstance.current = map; miniMapInstance.current = mini;
-                    // [FIX: UI-42] Force tile recalculation
-                    setTimeout(() => { map.invalidateSize(); mini.invalidateSize(); }, 500);
+                    const boundsRect = L.rectangle(map.getBounds(), { color: '#007acc', weight: 2, fillOpacity: 0.15 }).addTo(miniMap);
+                    rectBoundsRef.current = boundsRect;
+
+                    map.on('move', () => { boundsRect.setBounds(map.getBounds()); });
+
+                    mapInstance.current = map;
+                    miniMapInstance.current = miniMap;
+                    
+                    if (window.ResizeObserver) {
+                        const ro = new ResizeObserver(() => { setTimeout(() => { if (mapInstance.current) mapInstance.current.invalidateSize(); if (miniMapInstance.current) miniMapInstance.current.invalidateSize(); }, 50); });
+                        ro.observe(mapDomRef.current.parentElement);
+                    }
                 }
             }, []);
 
+            // [FIX: MAP-GRID-01] Micro-Graticule Engine logic
             useEffect(() => {
-                if (!mapInstance.current || data.length === 0) return;
-                clusterLayer.current.clearLayers();
+                const map = mapInstance.current;
+                if (!map || !gridLayerRef.current) return;
+                
+                const updateGrid = () => {
+                    gridLayerRef.current.clearLayers();
+                    if (!showGrid) return;
+
+                    const z = map.getZoom();
+                    let step = 20;
+                    if (z > 3) step = 10;
+                    if (z > 5) step = 5;
+                    if (z > 7) step = 1;
+                    if (z > 9) step = 0.5;
+                    if (z > 11) step = 0.1;
+                    if (z > 13) step = 0.05;
+                    if (z > 15) step = 0.01;
+
+                    const b = map.getBounds();
+                    const w = Math.floor(b.getWest() / step) * step - step;
+                    const e = Math.ceil(b.getEast() / step) * step + step;
+                    const s = Math.floor(b.getSouth() / step) * step - step;
+                    const n = Math.ceil(b.getNorth() / step) * step + step;
+
+                    const style = { color: '#007acc', weight: 1, opacity: 0.25, dashArray: '2, 6', interactive: false };
+
+                    for (let lat = s; lat <= n; lat += step) {
+                        if (lat >= -90 && lat <= 90) L.polyline([[lat, w], [lat, e]], style).addTo(gridLayerRef.current);
+                    }
+                    for (let lng = w; lng <= e; lng += step) {
+                        L.polyline([[-90, lng], [90, lng]], style).addTo(gridLayerRef.current);
+                    }
+                };
+
+                updateGrid();
+                map.on('moveend', updateGrid);
+                return () => map.off('moveend', updateGrid);
+            }, [showGrid]);
+
+            useEffect(() => {
+                if (tileLayerRef.current) {
+                    const url = mapLocale === 'english'
+                        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'
+                        : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+                    tileLayerRef.current.setUrl(url);
+                }
+            }, [mapLocale]);
+
+            useEffect(() => {
+                const map = mapInstance.current;
+                const miniMap = miniMapInstance.current;
+                if (!map || data.length === 0) return;
+                
                 markerLayer.current.clearLayers();
-                const bulk = [];
+                clusterLayer.current.clearLayers();
+                markersRef.current = {};
+                let validMarkers = 0;
 
                 data.forEach((item, idx) => {
                     const locStr = String(item.location || '').trim();
-                    const m = locStr.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
-                    if (m) {
-                        const marker = L.marker([parseFloat(m[1]), parseFloat(m[2])]);
-                        marker.bindTooltip(item.place ? safeStripHTML(item.place) : safeStripHTML(item.title));
-                        marker.on('click', () => setActiveIndex(idx));
-                        bulk.push(marker);
-                        markersRef.current[idx] = marker;
-                    }
-                });
-                // [FIX: PERF-05] Bulk Ingestion
-                if (bulk.length) clusterLayer.current.addLayers(bulk);
+                    if (!locStr) return;
+                    const activeLayersArray = []; 
+                    let featureLayers = [];
 
-                const bounds = clusterLayer.current.getBounds();
-                if (bounds.isValid()) {
-                    mapInstance.current.fitBounds(bounds, { padding: [30, 30] });
-                    miniMapInstance.current.fitBounds(bounds.pad(0.1), { animate: false });
-                }
+                    try {
+                        if (locStr.match(/^GEOMETRYCOLLECTION/i)) {
+                            featureLayers = parseGeometryCollection(locStr);
+                        } else if (locStr.match(/^[A-Z]+\s*\(/)) {
+                            const wkt = new window.Wkt.Wkt(); wkt.read(locStr);
+                            featureLayers = extractLayers(wkt.toObject());
+                        } else if (locStr.startsWith('{') && locStr.includes('"type"')) {
+                            featureLayers = extractLayers(L.geoJSON(JSON.parse(locStr)));
+                        } else {
+                            const coordMatch = locStr.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
+                            if (coordMatch) featureLayers.push(L.marker([parseFloat(coordMatch[1]), parseFloat(coordMatch[2])]));
+                        }
+
+                        const subLabels = item.subLabels ? item.subLabels.split(/[|\-·;\n]/).map(s => s.split(',')[0].trim()) : [];
+                        const isVip = String(item.priority).trim().toUpperCase() === 'VIP';
+
+                        featureLayers.forEach((layer, layerIdx) => {
+                            if (layer instanceof L.Polygon) {
+                                layer.setStyle({ stroke: false, fillColor: '#007acc', fillOpacity: 0.4 });
+                            } else if (layer instanceof L.Polyline) {
+                                layer.setStyle({ color: '#007acc', weight: 2, dashArray: '5, 5' });
+                            } else if (layer.setStyle) {
+                                layer.setStyle({ color: '#007acc', weight: 4 });
+                            }
+
+                            if (layer instanceof L.Marker) {
+                                layer.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
+                                layer.isVip = isVip;
+                            } 
+                            
+                            let labelText = subLabels[layerIdx] ? subLabels[layerIdx] : (item.place ? stripHTML(item.place) : stripHTML(item.title));
+                            layer.bindTooltip(labelText, { direction: 'top', offset: [0, -48], className: 'centered-tooltip' });
+                            layer.on('click', () => setActiveIndex(idx));
+
+                            if (layer instanceof L.Marker && !isVip) clusterLayer.current.addLayer(layer); 
+                            else markerLayer.current.addLayer(layer); 
+
+                            activeLayersArray.push(layer);
+                            validMarkers++;
+                        });
+
+                        if (activeLayersArray.length > 0) markersRef.current[idx] = activeLayersArray; 
+                    } catch(e) { console.error("Map Error Row", idx, e); }
+                });
+
+                setTimeout(() => {
+                    if (map && validMarkers > 0 && !hasFitBounds.current && !new URLSearchParams(window.location.search).get('mapzoom')) {
+                        const bounds = L.latLngBounds();
+                        markerLayer.current.eachLayer(l => { if (l.getLatLng) bounds.extend(l.getLatLng()); else if (l.getBounds) bounds.extend(l.getBounds()); });
+                        clusterLayer.current.eachLayer(l => bounds.extend(l.getLatLng()));
+                        if (bounds.isValid()) {
+                            map.fitBounds(bounds, { padding: [30, 30], maxZoom: 6 });
+                            miniMap.fitBounds(bounds, { padding: [5, 5] });
+                            baseZoomRef.current = map.getBoundsZoom(bounds);
+                            hasFitBounds.current = true;
+                        }
+                    }
+                }, 150);
             }, [data]);
 
             useEffect(() => {
-                const marker = markersRef.current[activeIndex];
-                if (marker && mapInstance.current) {
-                    mapInstance.current.flyTo(marker.getLatLng(), maxAutoZoom);
-                    marker.openTooltip();
+                const map = mapInstance.current;
+                const markers = markersRef.current;
+                if (!map || Object.keys(markers).length === 0) return;
+
+                Object.keys(markers).forEach(idxStr => {
+                    const isTarget = parseInt(idxStr, 10) === activeIndex;
+                    markers[idxStr].forEach(l => {
+                        if (l instanceof L.Polygon) {
+                            l.setStyle({ stroke: false, fillColor: isTarget ? '#28a745' : '#007acc', fillOpacity: isTarget ? 0.6 : 0.4 });
+                            if (isTarget && l.bringToFront) l.bringToFront();
+                        } else if (l instanceof L.Polyline) {
+                            l.setStyle({ color: isTarget ? '#28a745' : '#007acc', weight: isTarget ? 3 : 2, dashArray: '5, 5' });
+                            if (isTarget && l.bringToFront) l.bringToFront();
+                        } else if (l instanceof L.Marker) {
+                            if (isTarget) {
+                                l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(true, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
+                                if (!l.isVip) { clusterLayer.current.removeLayer(l); markerLayer.current.addLayer(l); }
+                                l.setZIndexOffset(1000);
+                            } else {
+                                l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
+                                if (!l.isVip) { markerLayer.current.removeLayer(l); clusterLayer.current.addLayer(l); }
+                                l.setZIndexOffset(0);
+                            }
+                        } else if (l.setStyle) {
+                            l.setStyle({ color: isTarget ? '#28a745' : '#007acc', weight: isTarget ? 5 : 4 });
+                            if (isTarget && l.bringToFront) l.bringToFront();
+                        }
+                    });
+                });
+
+                const activeLayers = markers[activeIndex];
+                if (activeLayers && activeLayers.length > 0) {
+                    const activeFeatureGroup = L.featureGroup(activeLayers);
+                    setTimeout(() => {
+                        try {
+                            const bounds = activeFeatureGroup.getBounds();
+                            if (bounds.isValid()) map.flyToBounds(bounds, { animate: true, duration: 2.5, maxZoom: maxAutoZoom });
+                            activeLayers.forEach(l => { if (l.openTooltip) l.openTooltip(); });
+                        } catch(err) {}
+                    }, 100);
                 }
-            }, [activeIndex]);
+            }, [activeIndex, data, maxAutoZoom]);
 
             return html`
-                <div style="height:100%; width:100%; position:relative;">
-                    <div ref=${mapDomRef} style="height:100%; width:100%;"></div>
-                    <div ref=${miniMapDomRef} style="position: absolute; bottom: 20px; left: 15px; width: 160px; height: 160px; border: 3px solid #fff; border-radius: 8px; z-index: 1000; pointer-events: none;"></div>
+                <div style="position: relative; width:100%; height:100%;">
+                    <div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>
+                    <div style="position: absolute; bottom: 15px; right: 15px; z-index: 1000; display: flex; gap: 8px; align-items: center;">
+                        <button onClick=${() => setShowGrid(!showGrid)} style="background: ${showGrid ? '#007acc' : '#fcfcfc'}; color: ${showGrid ? '#fff' : '#333'}; border: 1px solid #ccc; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.2); transition: all 0.2s;">Lat/Lon</button>
+                        <div style="background: rgba(255,255,255,0.9); padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; color: #333; border: 1px solid #ccc; box-shadow: 0 1px 4px rgba(0,0,0,0.2);">Zoom: ${mapZoom}</div>
+                    </div>
+                    <div class="minimap-container" ref=${miniMapDomRef}></div>
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v4.2.0';
+        MODULE_VERSIONS['MapViewer'] = 'v3.17.0';
+        // === [ END MAJOR BLOCK: MapViewer v3.17.0 ] ===
+
         // === [ MAJOR BLOCK: MediaViewer v2.8.0 ] ===
         const MediaViewer = ({ activeSlide, addLog }) => {
             const carouselRef = useRef(null);
@@ -453,54 +693,117 @@
         MODULE_VERSIONS['MediaViewer'] = 'v2.8.0';
         // === [ END MAJOR BLOCK: MediaViewer v2.8.0 ] ===
 
-        // === [ MAJOR BLOCK: ContentSlider v3.9.2 ] ===
+        // === [ MAJOR BLOCK: ContentSlider v3.11.0 ] ===
         const ContentSlider = ({ data, activeIndex, setActiveIndex, jumpToSlide, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo, visibleTimeSpan }) => {
+            const [isMenuOpen, setIsMenuOpen] = useState(false);
             const slide = data[activeIndex];
             if (!slide) return null;
 
-            const formatSmartDate = (sD, eD) => {
-                if (!sD) return '';
-                const hasTime = (d) => d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0;
-                const fDate = (d) => {
-                    const opts = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
-                    if (hasTime(d)) { opts.hour = '2-digit'; opts.minute = '2-digit'; }
-                    return d.toLocaleString('en-GB', opts);
-                };
-                return `${fDate(sD)}${eD && sD.getTime() !== eD.getTime() ? ` - ${fDate(eD)}` : ''}`;
+            // [FIX: UI-32] Smart Dates
+            const formatSmartDate = (start, end) => {
+                if (!start || isNaN(start.getTime())) return 'Unknown Date';
+                const formatOpts = { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+                const sStr = start.toLocaleString('en-GB', formatOpts).replace(', 00:00', '').replace(' 00:00', '');
+                if (!end || isNaN(end.getTime()) || start.getTime() === end.getTime()) return sStr;
+                const eStr = end.toLocaleString('en-GB', formatOpts).replace(', 00:00', '').replace(' 00:00', '');
+                
+                const sParts = sStr.split(' '); const eParts = eStr.split(' ');
+                if (sParts.length >= 3 && eParts.length >= 3) {
+                    if (sParts[2] === eParts[2] && sParts[1] === eParts[1]) return `${sParts[0]} - ${eStr}`; 
+                    if (sParts[2] === eParts[2]) return `${sParts[0]} ${sParts[1]} - ${eStr}`; 
+                }
+                return `${sStr} — ${eStr}`;
             };
 
+            const getParsedTags = (rawTagsArray) => {
+                if (!rawTagsArray || rawTagsArray.length === 0) return [];
+                const splitRegex = /[\r\n]+|\\n/; let arr = [];
+                const rawData = Array.isArray(rawTagsArray) ? rawTagsArray : [rawTagsArray];
+                rawData.forEach(t => { if (typeof t === 'string') arr.push(...t.split(splitRegex)); else arr.push(t); });
+                return arr.map(s => String(s).trim()).filter(Boolean);
+            };
+
+            const tags = getParsedTags(slide.tags);
+            const hasLocation = slide.place && String(slide.place).trim() !== '';
+
+            // Arrow logic untouched from v6.3.10
             const goPrev = () => { if (activeIndex > 0) setActiveIndex(activeIndex - 1); };
             const goNext = () => { if (activeIndex < data.length - 1) setActiveIndex(activeIndex + 1); };
 
-            const urlParams = new URLSearchParams(window.location.search);
-            const paramsList = Array.from(urlParams.entries()).map(([k, v]) => `${k}=${v}`).join(' | ') || 'None';
+            // Close menu if clicked outside wrapper (simple inline closure)
+            const handlePaneClick = () => { if (isMenuOpen) setIsMenuOpen(false); };
 
             return html`
-                <div class="content-pane-wrapper">
-                    <div class="click-zone click-zone-left" onClick=${goPrev} title="Previous"></div>
-                    <div class="click-zone click-zone-right" onClick=${goNext} title="Next"></div>
+                <div class="content-pane-wrapper" style="display: flex; flex-direction: column; height: 100%;" onClick=${handlePaneClick}>
+                    
+                    <div style="position: relative; flex-grow: 1; overflow-y: auto;">
+                        <div class="click-zone click-zone-left" onClick=${goPrev} title="Previous"></div>
+                        <div class="click-zone click-zone-right" onClick=${goNext} title="Next"></div>
 
-                    <div class="content-scroll-area">
-                        <div class="slide-container">
-                            <div class="slide-header-row">
-                                <div class="slide-date-container">
-                                    <div class="slide-date">${formatSmartDate(slide.startDate, slide.endDate)}</div>
-                                </div>
-                                <div class="slide-header-right">
-                                    <div class="tags-container">${slide.tags.map(t => html`<span class="tag-badge">${t}</span>`)}</div>
-                                    ${slide.place ? html`<div class="slide-place-badge">📍 ${slide.place}</div>` : ''}
+                        <div class="content-scroll-area" style="display: flex; flex-direction: column; min-height: 100%;">
+                            
+                            <div style="flex-shrink: 0; position: sticky; top: 0; background: var(--paneBg, #ffffff); z-index: 10; padding: 1.5rem 2rem 1rem 2rem; border-bottom: 1px solid rgba(128,128,128,0.2); box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
+                                <h2 class="slide-title" style="margin: 0 0 0.8rem 0;" dangerouslySetInnerHTML=${{ __html: slide.title }}></h2>
+                                
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 15px;">
+                                    
+                                    <div class="slide-date" style="font-weight: 600; color: #007acc; font-size: 0.9rem; flex-shrink: 0; padding-top: 4px;">
+                                        ${formatSmartDate(slide.startDate, slide.endDate)}
+                                    </div>
+
+                                    ${(hasLocation || tags.length > 0) ? html`
+                                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; max-width: 60%;">
+                                            
+                                            ${hasLocation ? html`
+                                                <span style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.06); color: var(--text-color, #444); padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; border: 1px solid rgba(128,128,128,0.15); text-align: right;">
+                                                    <span style="margin-right: 6px;">📍</span> ${slide.place}
+                                                </span>
+                                            ` : ''}
+
+                                            ${tags.length > 0 ? html`
+                                                <div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.4rem;">
+                                                    ${tags.map(tag => html`
+                                                        <span style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.06); color: var(--text-color, #444); padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; border: 1px solid rgba(128,128,128,0.15);">
+                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="rgba(255, 193, 7, 0.2)" stroke="#ffc107" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; flex-shrink: 0;">
+                                                                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                                                                <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                                                            </svg>
+                                                            <span style="white-space: nowrap;">${tag}</span>
+                                                        </span>
+                                                    `)}
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    ` : ''}
+
                                 </div>
                             </div>
-                            <h2 class="slide-title" dangerouslySetInnerHTML=${{ __html: slide.title }}></h2>
-                            <div class="slide-desc" dangerouslySetInnerHTML=${{ __html: slide.description }}></div>
+
+                            <div style="flex-grow: 1; padding: 1.5rem 2rem 2rem 2rem; display: flex; flex-direction: column;">
+                                <div class="slide-desc" dangerouslySetInnerHTML=${{ __html: slide.description }}></div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="unified-status-bar">
-                        <div class="status-left">
+                    <div class="unified-status-bar" style="flex-shrink: 0; z-index: 20;">
+                        <div class="status-left" style="position: relative;">
                             ${aboutData ? html`<button class="status-btn" style="padding: 4px 10px; display: flex; align-items: center;" onClick=${() => setIsAboutOpen(true)}><${CarTiMapperLogo} context="status" appVersion=${APP_VERSION} /></button>` : ''}
-                            <button class="status-btn" onClick=${() => setIsSettingsOpen(true)}>⚙️</button>
-                            <button class="status-btn" onClick=${() => setIsMonitorOpen(!isMonitorOpen)}>Monitor</button>
+                            
+                            <button class="status-btn" onClick=${(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen); }}>
+                                <span style="font-size: 1.1rem; line-height: 1;">☰</span>
+                            </button>
+
+                            ${isMenuOpen ? html`
+                                <div style="position: absolute; bottom: calc(100% + 5px); left: 10px; background: var(--paneBg, #fff); border: 1px solid rgba(128,128,128,0.2); border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); padding: 5px 0; min-width: 140px; z-index: 1000;" onClick=${e => e.stopPropagation()}>
+                                    <div style="padding: 10px 15px; cursor: pointer; border-bottom: 1px solid rgba(128,128,128,0.1); display: flex; align-items: center; gap: 8px; font-size: 0.85rem;" onClick=${() => { setIsSettingsOpen(true); setIsMenuOpen(false); }}>
+                                        <span>⚙️</span> Settings
+                                    </div>
+                                    <div style="padding: 10px 15px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.85rem;" onClick=${() => { setIsMonitorOpen(!isMonitorOpen); setIsMenuOpen(false); }}>
+                                        <span>📊</span> Monitor
+                                    </div>
+                                </div>
+                            ` : ''}
+
                         </div>
                         <div class="status-center">
                             <button class="nav-btn-bottom" onClick=${goPrev} disabled=${activeIndex === 0}>◀ Prev</button>
@@ -513,153 +816,515 @@
                         </div>
                     </div>
                 </div>
-
-                <div class="modal-backdrop ${isAboutOpen ? 'open' : ''}" onClick=${() => setIsAboutOpen(false)}></div>
-                <div id="about-modal" class=${isAboutOpen ? 'open' : ''}>
-                    <button class="about-close" onClick=${() => setIsAboutOpen(false)}>×</button>
-                    <${CarTiMapperLogo} context="about" appVersion=${APP_VERSION} />
-                    
-                    <div dangerouslySetInnerHTML=${{__html: aboutData ? aboutData.description : ''}}></div>
-                    
-                    <div style="text-align: center; margin: 25px 0;">
-                        <button class="status-btn" style="padding: 8px 16px; font-size: 0.9rem; background: #eee; color: #333; border: 1px solid #ccc;" onClick=${() => { jumpToSlide(0); setIsAboutOpen(false); }}>View overview as slide</button>
-                    </div>
-
-                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 0.85rem; color: #666; font-family: monospace;">
-                        <div style="margin-bottom: 8px; color: #333;">CarTiMapper Core ${APP_VERSION}</div>
-                        <div style="margin-bottom: 8px;">URL Params: ${paramsList}</div>
-                        <div style="margin-bottom: 8px;">Data Source: ${aboutData ? aboutData.rawSource : 'None'}</div>
-                        <div style="margin-top: 15px; color: #333;">Usage Instructions:</div>
-                        <ul style="margin-top: 5px; padding-left: 20px;">
-                            <li>Scroll or swipe media to view galleries.</li>
-                            <li>Map and Timeline automatically sync to the active record.</li>
-                            <li>Timeline 🔓/🔒 locks automatic zooming during navigation.</li>
-                            <li>⚙️ adjusts spatial and temporal formatting.</li>
-                        </ul>
-                    </div>
-                </div>
             `;
         };
-        MODULE_VERSIONS['ContentSlider'] = 'v3.9.2';
-        // === [ END MAJOR BLOCK: ContentSlider v3.9.2 ] ===
+        MODULE_VERSIONS['ContentSlider'] = 'v3.11.0';
+        // === [ END MAJOR BLOCK: ContentSlider v3.11.0 ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v23.18.0 ] ===
-        // [FIX: PERF-06] Hoisted measurement context
-        const _globalTmCanvas = document.createElement('canvas');
-        const _globalTmCtx = _globalTmCanvas.getContext('2d');
-        _globalTmCtx.font = '400 12px "Noto Sans", sans-serif';
-
+        // === [ MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
             const dragRef = useRef({ isDragging: false, startX: 0, scrollLeft: 0 });
+            const touchZoomRef = useRef({ initialDist: 0, initialZoom: 1 });
             const prevActiveIndexRef = useRef(-1);
+            const scrollTargetRef = useRef(null);
+            const scrollTimeout = useRef(null);
+            
             const [containerHeight, setContainerHeight] = useState(200);
-
-            const safeStripHTML = (str) => str ? String(str).replace(/<[^>]*>?/gm, '').trim() : '';
+            const [viewLeftEdge, setViewLeftEdge] = useState(0);
 
             useEffect(() => {
                 const measure = () => { if (wrapperRef.current) setContainerHeight(wrapperRef.current.clientHeight); };
-                measure(); window.addEventListener('resize', measure); return () => window.removeEventListener('resize', measure);
+                measure();
+                window.addEventListener('resize', measure);
+                return () => window.removeEventListener('resize', measure);
             }, []);
 
+            // [FIX: TL-17] Omni-Splitter Tag Matrix: Intercepts and flattens newlines into discrete arrays
             const getParsedTags = (rawTagsArray) => {
                 if (!rawTagsArray || rawTagsArray.length === 0) return ['Untagged'];
-                const splitRegex = /[\r\n]+|\\n/; let arr = [];
-                const rawData = Array.isArray(rawTagsArray) ? rawTagsArray : [rawTagsArray];
-                rawData.forEach(t => { if (typeof t === 'string') arr.push(...t.split(splitRegex)); else arr.push(t); });
-                return arr.map(s => String(s).trim()).filter(Boolean);
+                const splitRegex = /[\r\n]+|\\n/;
+                let arr = [];
+                rawTagsArray.forEach(t => {
+                    if (typeof t === 'string') arr.push(...t.split(splitRegex));
+                    else arr.push(t);
+                });
+                arr = arr.map(s => String(s).trim()).filter(Boolean);
+                return arr.length > 0 ? arr : ['Untagged'];
             };
 
             const tagsMap = new Set();
-            data.forEach(d => { if(d.startDate) getParsedTags(d.tags).forEach(tag => tagsMap.add(tag)); });
-            const orderedTags = Array.from(tagsMap);
-            const laneHeight = Math.max(24, (containerHeight - 38) / (orderedTags.length || 1));
+            const tagPairs = [];
+            data.forEach(d => {
+                if(!d.startDate || isNaN(d.startDate.getTime())) return;
+                // [FIX: TL-17] Applied Omni-Splitter to lane generation
+                const t = getParsedTags(d.tags);
+                t.forEach(tag => tagsMap.add(tag));
+                for(let i=0; i<t.length-1; i++) tagPairs.push([t[i], t[i+1]]);
+            });
+
+            let orderedTags = [];
+            const remaining = Array.from(tagsMap);
+            if (remaining.length > 0) orderedTags.push(remaining.shift());
+            
+            while(remaining.length > 0) {
+                let placed = false;
+                for (let i = 0; i < remaining.length; i++) {
+                    const r = remaining[i];
+                    const pairedWithFirst = tagPairs.some(p => (p[0]===r && p[1]===orderedTags[0]) || (p[1]===r && p[0]===orderedTags[0]));
+                    const pairedWithLast = tagPairs.some(p => (p[0]===r && p[1]===orderedTags[orderedTags.length-1]) || (p[1]===r && p[0]===orderedTags[orderedTags.length-1]));
+                    if (pairedWithLast) { orderedTags.push(r); remaining.splice(i, 1); placed = true; break; }
+                    if (pairedWithFirst) { orderedTags.unshift(r); remaining.splice(i, 1); placed = true; break; }
+                }
+                if (!placed) orderedTags.push(remaining.shift());
+            }
+
+            const availableLanesHeight = Math.max(containerHeight - 38, 50); 
+            const laneHeight = Math.max(24, availableLanesHeight / (orderedTags.length || 1));
 
             const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
             const minTimeRaw = validData.length > 0 ? validData[0].startDate.getTime() : new Date().getTime();
             let maxTimeRaw = minTimeRaw;
-            validData.forEach(d => { if (d.startDate.getTime() > maxTimeRaw) maxTimeRaw = d.startDate.getTime(); });
-            const renderTimeRange = (maxTimeRaw - minTimeRaw || 86400000) * 1.1;
-            const renderMinTime = minTimeRaw - (renderTimeRange * 0.05);
+            validData.forEach(d => { if (d.endDate && !isNaN(d.endDate.getTime()) && d.endDate.getTime() > maxTimeRaw) maxTimeRaw = d.endDate.getTime(); else if (d.startDate.getTime() > maxTimeRaw) maxTimeRaw = d.startDate.getTime(); });
+            
+            const rawTimeRange = Math.max(maxTimeRaw - minTimeRaw, 86400000); 
+            const padMs = rawTimeRange * 0.05; 
+            const renderMinTime = minTimeRaw - padMs;
+            const renderMaxTime = maxTimeRaw + padMs;
+            const renderTimeRange = renderMaxTime - renderMinTime;
+
+            const measureTextWidth = (text) => {
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                context.font = '400 12px "Noto Sans", sans-serif'; 
+                return context.measureText(text).width;
+            };
+
+            const formatLabelSmart = (titleStr) => {
+                const maxPx = 300; 
+                const words = titleStr.split(' ');
+                let targetLines = words.length > 1 ? (measureTextWidth(titleStr) > 280 ? 3 : 2) : 1;
+                if (targetLines === 1) return { lines: [titleStr], pxWidth: measureTextWidth(titleStr) + 35 };
+
+                let bestSplit = []; let bestScore = Infinity;
+                if (targetLines === 2) {
+                    for (let i = 1; i < words.length; i++) {
+                        let l1 = words.slice(0, i).join(' '), l2 = words.slice(i).join(' ');
+                        let w1 = measureTextWidth(l1), w2 = measureTextWidth(l2);
+                        let score = Math.max(w1, w2) + Math.abs(w1 - w2) * 0.8; 
+                        if (score < bestScore) { bestScore = score; bestSplit = [l1, l2]; }
+                    }
+                } else {
+                    for (let i = 1; i < words.length - 1; i++) {
+                        for (let j = i + 1; j < words.length; j++) {
+                            let l1 = words.slice(0, i).join(' '), l2 = words.slice(i, j).join(' '), l3 = words.slice(j).join(' ');
+                            let w1 = measureTextWidth(l1), w2 = measureTextWidth(l2), w3 = measureTextWidth(l3);
+                            let maxW = Math.max(w1, w2, w3), minW = Math.min(w1, w2, w3);
+                            let score = maxW + (maxW - minW) * 0.8;
+                            if (score < bestScore) { bestScore = score; bestSplit = [l1, l2, l3]; }
+                        }
+                    }
+                }
+                let lines = bestSplit.length ? bestSplit : [titleStr];
+                if (lines.length === 3) { let last = lines[2]; if (measureTextWidth(last) > maxPx) { while(measureTextWidth(last + '...') > maxPx && last.length > 0) last = last.slice(0, -1); lines[2] = last.trim() + '...'; } }
+                else if (lines.length === 2) { let last = lines[1]; if (measureTextWidth(last) > maxPx * 1.3) { while(measureTextWidth(last + '...') > maxPx * 1.3 && last.length > 0) last = last.slice(0, -1); lines[1] = last.trim() + '...'; } }
+
+                const finalMaxW = Math.max(...lines.map(l => measureTextWidth(l)));
+                return { lines, pxWidth: Math.max(60, finalMaxW + 35) };
+            };
+
+            useEffect(() => {
+                const visibleMs = renderTimeRange / zoomLevel;
+                const secs = visibleMs / 1000; const mins = secs / 60; const hrs = mins / 60;
+                const days = hrs / 24; const mos = days / 30.44; const yrs = days / 365.25;
+                
+                let str = `${Math.round(mins)} Minutes`;
+                if (yrs >= 1) str = `${Math.round(yrs)} Years`;
+                else if (mos >= 1) str = `${Math.round(mos)} Months`;
+                else if (days >= 1) str = `${Math.round(days)} Days`;
+                else if (hrs >= 1) str = `${Math.round(hrs)} Hours`;
+                
+                setVisibleTimeSpan(`Viewing: ${str}`);
+            }, [zoomLevel, renderTimeRange, setVisibleTimeSpan]);
 
             useEffect(() => {
                 const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
                 if (activeDataIndex >= 0 && wrapperRef.current && !dragRef.current.isDragging) {
                     const sT = validData[activeDataIndex].startDate.getTime();
-                    const containerW = wrapperRef.current.clientWidth;
+                    const { pxWidth } = formatLabelSmart(stripHTML(validData[activeDataIndex].title));
+                    const containerW = wrapperRef.current.clientWidth || 1000;
                     const targetTrackW = Math.max(containerW, containerW * zoomLevel);
-                    const scrollPos = (((sT - renderMinTime) / renderTimeRange) * targetTrackW) - (containerW / 2);
+                    const sPct = (sT - renderMinTime) / renderTimeRange;
+                    const visualCenterPx = (sPct * targetTrackW) + (pxWidth / 2);
+                    const scrollPos = visualCenterPx - (containerW / 2);
+                    
                     wrapperRef.current.scrollTo({ left: scrollPos, behavior: 'smooth' });
+                    setViewLeftEdge(Math.max(0, scrollPos));
                 }
             }, [activeIndex]);
 
-            const onDown = (e) => {
-                const x = e.touches ? e.touches[0].clientX : e.clientX;
-                dragRef.current = { isDragging: true, startX: x - wrapperRef.current.offsetLeft, scrollLeft: wrapperRef.current.scrollLeft };
+            useEffect(() => {
+                if (validData.length > 1 && wrapperRef.current && !dragRef.current.isDragging) {
+                    if (activeIndex !== prevActiveIndexRef.current) {
+                        prevActiveIndexRef.current = activeIndex;
+                        
+                        if (zoomLock === 'hard') return; 
+                        if (zoomLock === 'soft') setZoomLock('auto'); 
+
+                        const timeoutId = setTimeout(() => {
+                            const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
+                            if (activeDataIndex >= 0) {
+                                let startIdx = Math.max(0, activeDataIndex - 2);
+                                let endIdx = Math.min(validData.length - 1, activeDataIndex + 2);
+                                
+                                let clusterMin = validData[startIdx].startDate.getTime();
+                                let clusterMax = validData[endIdx].startDate.getTime();
+                                
+                                for (let i = startIdx; i <= endIdx; i++) {
+                                    if (validData[i].endDate && !isNaN(validData[i].endDate.getTime())) clusterMax = Math.max(clusterMax, validData[i].endDate.getTime());
+                                    clusterMax = Math.max(clusterMax, validData[i].startDate.getTime());
+                                    clusterMin = Math.min(clusterMin, validData[i].startDate.getTime());
+                                }
+                                
+                                const safeSpan = Math.max(clusterMax - clusterMin, 1800000); 
+                                const idealZoom = (0.6 * renderTimeRange) / safeSpan;
+                                const clampedZoom = Math.min(Math.max(1, idealZoom), 300); 
+                                
+                                const sT = validData[activeDataIndex].startDate.getTime();
+                                const { pxWidth } = formatLabelSmart(stripHTML(validData[activeDataIndex].title));
+                                const containerW = wrapperRef.current.clientWidth || 1000;
+                                const targetTrackW = Math.max(containerW, containerW * clampedZoom);
+                                const sPct = (sT - renderMinTime) / renderTimeRange;
+                                const visualCenterPx = (sPct * targetTrackW) + (pxWidth / 2);
+                                scrollTargetRef.current = visualCenterPx - (containerW / 2);
+
+                                setZoomLevel(clampedZoom); 
+                            }
+                        }, 500); 
+                        return () => clearTimeout(timeoutId);
+                    }
+                }
+            }, [activeIndex, data, zoomLock, setZoomLock]); 
+
+            useLayoutEffect(() => {
+                if (scrollTargetRef.current !== null && wrapperRef.current) {
+                    wrapperRef.current.scrollTo({ left: scrollTargetRef.current, behavior: 'auto' });
+                    setViewLeftEdge(Math.max(0, scrollTargetRef.current));
+                    scrollTargetRef.current = null;
+                }
+            }, [zoomLevel]);
+
+            const handleManualZoom = (newZoom, centerType = 'center', eventX = 0) => {
+                if (!wrapperRef.current) return;
+                const containerW = wrapperRef.current.clientWidth;
+                const scrollPos = wrapperRef.current.scrollLeft;
+                const currentTrackW = Math.max(containerW, containerW * zoomLevel);
+                
+                let anchorPx = scrollPos + (containerW / 2); 
+                if (centerType === 'mouse') anchorPx = scrollPos + eventX;
+
+                const centerPct = anchorPx / currentTrackW;
+                const newTrackW = Math.max(containerW, containerW * newZoom);
+                const newAnchorPx = centerPct * newTrackW;
+                
+                scrollTargetRef.current = newAnchorPx - (centerType === 'mouse' ? eventX : (containerW / 2));
+                setZoomLevel(newZoom);
             };
-            const onUp = () => { dragRef.current.isDragging = false; };
+
+            const doManualZoom = (direction) => {
+                if (zoomLock !== 'hard') setZoomLock('soft');
+                const newZoom = direction === 'in' ? Math.min(zoomLevel * 1.5, 500) : Math.max(zoomLevel / 1.5, 1);
+                handleManualZoom(newZoom, 'center');
+            };
+            const toggleHardLock = () => { setZoomLock(p => p === 'hard' ? 'auto' : 'hard'); };
+
+            const onDown = (e) => { 
+                if (zoomLock !== 'hard') setZoomLock('soft');
+                if (e.touches && e.touches.length === 2) {
+                    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                    touchZoomRef.current = { initialDist: dist, initialZoom: zoomLevel }; return;
+                }
+                const x = e.touches ? e.touches[0].clientX : e.clientX;
+                dragRef.current = { isDragging: true, startX: x - wrapperRef.current.offsetLeft, scrollLeft: wrapperRef.current.scrollLeft }; 
+                wrapperRef.current.classList.add('is-dragging'); 
+            };
+            const onUp = () => { 
+                dragRef.current.isDragging = false; 
+                wrapperRef.current?.classList.remove('is-dragging'); 
+                if (wrapperRef.current) setViewLeftEdge(wrapperRef.current.scrollLeft);
+            };
             const onMove = (e) => {
+                if (e.touches && e.touches.length === 2) {
+                    e.preventDefault(); 
+                    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                    const scale = dist / touchZoomRef.current.initialDist;
+                    handleManualZoom(Math.min(Math.max(touchZoomRef.current.initialZoom * scale, 1), 500), 'center'); return;
+                }
                 if (!dragRef.current.isDragging) return;
                 const x = e.touches ? e.touches[0].clientX : e.clientX;
+                if (!e.touches) e.preventDefault(); 
                 wrapperRef.current.scrollLeft = dragRef.current.scrollLeft - ((x - wrapperRef.current.offsetLeft - dragRef.current.startX) * 2);
             };
+            const onWheel = (e) => {
+                e.preventDefault();
+                if (zoomLock !== 'hard') setZoomLock('soft');
+                const newZoom = e.deltaY < 0 ? Math.min(zoomLevel * 1.5, 500) : Math.max(zoomLevel / 1.5, 1);
+                const rect = wrapperRef.current.getBoundingClientRect();
+                const eventX = e.clientX - rect.left;
+                handleManualZoom(newZoom, 'mouse', eventX);
+            };
+
+            const onScroll = (e) => {
+                if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+                scrollTimeout.current = setTimeout(() => {
+                    if (wrapperRef.current) setViewLeftEdge(wrapperRef.current.scrollLeft);
+                }, 100);
+            };
+
+            if (validData.length === 0) return html`<div style="padding:1rem;">No valid temporal data.</div>`;
 
             const containerW = wrapperRef.current ? wrapperRef.current.clientWidth : 1000;
             const trackWidthPx = Math.max(containerW, containerW * zoomLevel);
+            const visibleMs = renderTimeRange / zoomLevel;
+            const msPerPixel = renderTimeRange / trackWidthPx;
             
-            const markers = validData.map((item) => {
+            const targetMsPerMajorTick = (200 / containerW) * visibleMs; 
+            const SECOND = 1000; const MINUTE = 60 * SECOND; const HOUR = 60 * MINUTE; 
+            const DAY = 24 * HOUR; const MONTH = 30 * DAY; const YEAR = 365.25 * DAY;
+
+            const scaleConfigs = [
+                { ms: 1000 * YEAR, type: 'year', step: 1000, minorType: 'year', minorStep: 100 },
+                { ms: 100 * YEAR, type: 'year', step: 100, minorType: 'year', minorStep: 10 },
+                { ms: 10 * YEAR, type: 'year', step: 10, minorType: 'year', minorStep: 1 },
+                { ms: YEAR, type: 'year', step: 1, minorType: 'month', minorStep: 1 },
+                { ms: 6 * MONTH, type: 'month', step: 6, minorType: 'month', minorStep: 1 },
+                { ms: 3 * MONTH, type: 'month', step: 3, minorType: 'month', minorStep: 1 },
+                { ms: MONTH, type: 'month', step: 1, minorType: 'day', minorStep: 5 },
+                { ms: 7 * DAY, type: 'day', step: 7, minorType: 'day', minorStep: 1 },
+                { ms: 2 * DAY, type: 'day', step: 2, minorType: 'hour', minorStep: 12 },
+                { ms: DAY, type: 'day', step: 1, minorType: 'hour', minorStep: 4 },
+                { ms: 12 * HOUR, type: 'hour', step: 12, minorType: 'hour', minorStep: 2 },
+                { ms: 6 * HOUR, type: 'hour', step: 6, minorType: 'hour', minorStep: 1 },
+                { ms: HOUR, type: 'hour', step: 1, minorType: 'minute', minorStep: 15 },
+                { ms: 30 * MINUTE, type: 'minute', step: 30, minorType: 'minute', minorStep: 5 },
+                { ms: 15 * MINUTE, type: 'minute', step: 15, minorType: 'minute', minorStep: 1 },
+                { ms: MINUTE, type: 'minute', step: 1, minorType: 'second', minorStep: 15 }
+            ];
+
+            let activeScale = scaleConfigs[0];
+            for (let c of scaleConfigs) { if (targetMsPerMajorTick <= c.ms) activeScale = c; }
+
+            const rulerTicks = [];
+            let iterDate = new Date(renderMinTime);
+            iterDate.setMilliseconds(0);
+            
+            if (activeScale.type === 'year') { iterDate.setMonth(0, 1); iterDate.setHours(0,0,0); iterDate.setFullYear(Math.floor(iterDate.getFullYear() / activeScale.step) * activeScale.step); }
+            else if (activeScale.type === 'month') { iterDate.setDate(1); iterDate.setHours(0,0,0); iterDate.setMonth(Math.floor(iterDate.getMonth() / activeScale.step) * activeScale.step); }
+            else if (activeScale.type === 'day') { iterDate.setHours(0,0,0); }
+            else if (activeScale.type === 'hour') { iterDate.setMinutes(0,0); iterDate.setHours(Math.floor(iterDate.getHours() / activeScale.step) * activeScale.step); }
+            else if (activeScale.type === 'minute') { iterDate.setSeconds(0); iterDate.setMinutes(Math.floor(iterDate.getMinutes() / activeScale.step) * activeScale.step); }
+
+            let safety = 0;
+            
+            let expectedVisibleMinWithBuffer = renderMinTime + ((viewLeftEdge + 60) / trackWidthPx) * renderTimeRange;
+            let firstVisibleMajorTickTime = null;
+            let firstVisibleMajorTickPx = -1;
+
+            while (iterDate.getTime() <= renderMaxTime && safety < 2000) {
+                safety++;
+                const t = iterDate.getTime();
+                
+                if (t >= renderMinTime) {
+                    const pctLeft = ((t - renderMinTime) / renderTimeRange) * 100;
+                    const currentTickPx = (pctLeft / 100) * trackWidthPx;
+                    let label = '';
+                    let isFirstVisibleMajor = false;
+                    
+                    if (t >= expectedVisibleMinWithBuffer && firstVisibleMajorTickTime === null) {
+                        firstVisibleMajorTickTime = t;
+                        firstVisibleMajorTickPx = currentTickPx;
+                        isFirstVisibleMajor = true;
+                    }
+
+                    if (isFirstVisibleMajor) {
+                        label = iterDate.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: (activeScale.type==='hour'||activeScale.type==='minute')?'2-digit':undefined, minute: (activeScale.type==='hour'||activeScale.type==='minute')?'2-digit':undefined });
+                    } else {
+                        if (activeScale.type === 'year') label = iterDate.getFullYear();
+                        else if (activeScale.type === 'month') label = iterDate.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
+                        else if (activeScale.type === 'day') label = iterDate.toLocaleString('en-GB', { day: 'numeric', month: 'short' });
+                        else if (activeScale.type === 'hour' || activeScale.type === 'minute') label = iterDate.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                    }
+
+                    rulerTicks.push(html`
+                        <div class="timeline-ruler-tick" style="left: ${pctLeft}%; position: absolute; bottom: 3px; display: flex; flex-direction: column; align-items: center; z-index: 6; transform: translateX(-50%);">
+                            <div style="width: 2px; height: 10px; background: #666; margin-bottom: 2px;"></div>
+                            <div style="font-size: 0.75rem; color: #444; white-space: nowrap;">${label}</div>
+                        </div>
+                    `);
+                }
+
+                let nextMajor = new Date(iterDate);
+                if (activeScale.type === 'year') nextMajor.setFullYear(nextMajor.getFullYear() + activeScale.step);
+                else if (activeScale.type === 'month') nextMajor.setMonth(nextMajor.getMonth() + activeScale.step);
+                else if (activeScale.type === 'day') nextMajor.setDate(nextMajor.getDate() + activeScale.step);
+                else if (activeScale.type === 'hour') nextMajor.setHours(nextMajor.getHours() + activeScale.step);
+                else if (activeScale.type === 'minute') nextMajor.setMinutes(nextMajor.getMinutes() + activeScale.step);
+
+                let minorIter = new Date(iterDate);
+                let minorSafety = 0;
+                while (minorSafety < 100) {
+                    minorSafety++;
+                    if (activeScale.minorType === 'year') minorIter.setFullYear(minorIter.getFullYear() + activeScale.minorStep);
+                    else if (activeScale.minorType === 'month') minorIter.setMonth(minorIter.getMonth() + activeScale.minorStep);
+                    else if (activeScale.minorType === 'day') minorIter.setDate(minorIter.getDate() + activeScale.minorStep);
+                    else if (activeScale.minorType === 'hour') minorIter.setHours(minorIter.getHours() + activeScale.minorStep);
+                    else if (activeScale.minorType === 'minute') minorIter.setMinutes(minorIter.getMinutes() + activeScale.minorStep);
+                    else if (activeScale.minorType === 'second') minorIter.setSeconds(minorIter.getSeconds() + activeScale.minorStep);
+
+                    if (minorIter.getTime() >= nextMajor.getTime()) break;
+                    
+                    const minorT = minorIter.getTime();
+                    if (minorT >= renderMinTime && minorT <= renderMaxTime) {
+                        const mPct = ((minorT - renderMinTime) / renderTimeRange) * 100;
+                        const minorTickPx = (mPct / 100) * trackWidthPx;
+                        const gapPx = minorTickPx - ((t - renderMinTime) / renderTimeRange) * trackWidthPx; 
+
+                        let hideMinor = false;
+                        if (firstVisibleMajorTickPx !== -1 && minorTickPx >= firstVisibleMajorTickPx - 65 && minorTickPx <= firstVisibleMajorTickPx + 65) {
+                            hideMinor = true;
+                        }
+
+                        if (!hideMinor && gapPx > 15) { 
+                            let minorLabel = '';
+                            
+                            if (gapPx > 45) { 
+                                if (activeScale.minorType === 'year') minorLabel = minorIter.getFullYear();
+                                else if (activeScale.minorType === 'month') minorLabel = minorIter.toLocaleString('en-GB', { month: 'short' });
+                                else if (activeScale.minorType === 'day') minorLabel = minorIter.getDate();
+                                else if (activeScale.minorType === 'hour' || activeScale.minorType === 'minute') minorLabel = minorIter.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                                else if (activeScale.minorType === 'second') minorLabel = minorIter.toLocaleString('en-GB', { second: '2-digit' }) + 's';
+                            }
+
+                            const labelHtml = minorLabel ? html`<div style="position: absolute; left: -20px; right: -20px; top: 7px; text-align: center; font-size: 0.6rem; color: #888;">${minorLabel}</div>` : '';
+                            rulerTicks.push(html`<div style="position: absolute; left: ${mPct}%; top: 0; width: 1px; height: ${minorLabel ? '7px' : '5px'}; background: #aaa; z-index: 4;">${labelHtml}</div>`);
+                        }
+                    }
+                }
+                iterDate = nextMajor;
+            }
+
+            const markers = validData.map((item, index) => {
                 const globalIndex = data.findIndex(d => d.id === item.id);
-                const startPct = ((item.startDate.getTime() - renderMinTime) / renderTimeRange) * 100;
+                const startPct = Number((((item.startDate.getTime() - renderMinTime) / renderTimeRange) * 100).toFixed(4));
+                let endPct = startPct;
+                if (item.endDate && !isNaN(item.endDate.getTime()) && item.endDate.getTime() > item.startDate.getTime()) endPct = Number((((item.endDate.getTime() - renderMinTime) / renderTimeRange) * 100).toFixed(4));
+                const hasDuration = (endPct - startPct) > 0.001;
+                
                 const isActive = globalIndex === activeIndex;
-                const tagIdx = orderedTags.indexOf(getParsedTags(item.tags)[0]);
-                const topPos = (tagIdx * laneHeight) + 5;
-                const pxWidth = _globalTmCtx.measureText(safeStripHTML(item.title)).width + 35;
+
+                // [FIX: TL-17] Applied Omni-Splitter to marker span calculations
+                const activeTags = getParsedTags(item.tags);
+                const tagIndices = activeTags.map(t => orderedTags.indexOf(t)).filter(idx => idx !== -1);
+                
+                // Fallback geometry if tags array is entirely mismatched
+                const minIdx = tagIndices.length > 0 ? Math.min(...tagIndices) : 0;
+                const maxIdx = tagIndices.length > 0 ? Math.max(...tagIndices) : 0;
+                
+                const topPos = (minIdx * laneHeight) + 5;
+                const blockHeight = (maxIdx - minIdx + 1) * laneHeight; 
+                const distanceToAxis = (containerHeight - 28) - topPos; 
+
+                let activeAnchor = '';
+                if (isActive) {
+                    if (hasDuration) {
+                        activeAnchor = html`
+                            <div style="position: absolute; left: 0; top: 50%; height: ${distanceToAxis - (blockHeight / 2)}px; width: 2px; background: #007acc; z-index: 999;"></div>
+                            <div style="position: absolute; top: ${distanceToAxis - 16}px; left: 0; width: 100%; min-width: 2px; height: 16px; background: rgba(0,122,204,0.3); clip-path: polygon(0 0, 100% calc(100% - 5px), 100% 100%, 0 100%); filter: drop-shadow(0 2px 2px rgba(0,122,204,0.4)); z-index: 998;"></div>
+                        `;
+                    } else {
+                        activeAnchor = html`
+                            <div style="position: absolute; left: 0; top: 50%; height: ${distanceToAxis - (blockHeight / 2)}px; width: 2px; background: #007acc; z-index: 999;"></div>
+                            <div style="position: absolute; top: ${distanceToAxis - 4}px; left: -3px; width: 6px; height: 6px; border-radius: 50%; background: #007acc; border: 1px solid #fff; z-index: 998; box-sizing: content-box;"></div>
+                        `;
+                    }
+                }
+
+                const { lines, pxWidth } = formatLabelSmart(stripHTML(item.title));
+                const groupWidth = hasDuration ? `width: ${endPct - startPct}%; min-width: 4px;` : `width: ${pxWidth}px;`;
 
                 return html`
-                    <div class="event-group ${isActive ? 'active' : ''}" style="left: ${startPct}%; top: ${topPos}px; width: ${pxWidth}px; position: absolute;" onClick=${() => setActiveIndex(globalIndex)}>
-                        <div class="event-block" style="background: ${isActive ? '#007acc' : '#f4f4f5'}; color: ${isActive ? '#fff' : '#444'};">
-                            <div class="event-text" style="font-size: 0.75rem; white-space: nowrap;">${safeStripHTML(item.title)}</div>
+                    <div id="timeline-marker-${globalIndex}" class="event-group ${isActive ? 'active' : ''}" style="left: ${startPct}%; top: ${topPos}px; height: ${blockHeight}px; ${groupWidth}" onClick=${() => setActiveIndex(globalIndex)}>
+                        ${activeAnchor}
+                        <div class="event-block" style="position: absolute; top: 50%; transform: translateY(-50%); left: 0; --lane-h: ${laneHeight}px; background: ${isActive ? '#007acc' : '#f4f4f5'}; color: ${isActive ? '#fff' : '#444'}; z-index: 5; width: ${pxWidth}px;">
+                            <div class="event-text">${lines.map(l => html`<div style="white-space: nowrap; overflow: hidden; width: 100%;">${l}</div>`)}</div>
                         </div>
                     </div>
                 `;
             });
 
+            const timelineX = Math.round(zoomLevel) + 'x';
+
             return html`
-                <div class="timeline-scroll-wrapper" ref=${wrapperRef} onMouseDown=${onDown} onMouseUp=${onUp} onMouseLeave=${onUp} onMouseMove=${onMove} style="width: 100%; height: 100%; overflow-x: auto; cursor: grab; position: relative;">
-                    <div style="width: ${trackWidthPx}px; height: 100%; position: relative;">
-                        ${orderedTags.map((tag, i) => html`<div style="position: absolute; top: ${i * laneHeight}px; height: ${laneHeight}px; width: 100%; border-bottom: 1px solid #eee; font-size: 0.7rem; color: #999; padding-left: 10px;">${tag}</div>`)}
-                        ${markers}
+                <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;">
+                    <div class="timeline-leaflet-controls">
+                        <div class="timeline-leaflet-btn" onClick=${() => doManualZoom('in')} title="Zoom In">+</div>
+                        <div class="timeline-leaflet-text" title="1x fits all data to screen">${timelineX}</div>
+                        <div class="timeline-leaflet-btn" style="font-size: 1rem; color: ${zoomLock === 'hard' ? '#d32f2f' : '#666'};" onClick=${toggleHardLock} title="Toggle Auto-Zoom Lock">
+                            ${zoomLock === 'hard' ? '🔒' : '🔓'}
+                        </div>
+                        <div class="timeline-leaflet-btn" onClick=${() => doManualZoom('out')} title="Zoom Out">-</div>
+                    </div>
+
+                    <div class="timeline-scroll-wrapper" ref=${wrapperRef} onScroll=${onScroll} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${onWheel}>
+                        <div class="timeline-track-container" style="width: ${trackWidthPx}px; flex-shrink: 0; min-width: 100%; height: 100%;">
+                            <div style="position: absolute; top: 5px; left: 0; right: 0; bottom: 33px; pointer-events: none; z-index: 0;">
+                                ${orderedTags.map((tag, i) => html`
+                                    <div class="tag-lane" style="top: ${i * laneHeight}px; height: ${laneHeight}px; background: ${i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent'};">
+                                        <div class="tag-lane-label" style="background: ${i % 2 === 0 ? '#f4f4f4' : '#fcfcfc'}; pointer-events: auto;">${tag}</div>
+                                    </div>
+                                `)}
+                            </div>
+                            <div class="timeline-axis">${rulerTicks}</div>
+                            ${markers}
+                        </div>
                     </div>
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v23.18.0';
+        MODULE_VERSIONS['TimelineScrubber'] = 'v23.16.0';
+        // === [ END MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.35.0 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.34.1 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
+            
             const [rawCsvRows, setRawCsvRows] = useState([]);
             const [data, setData] = useState([]);
             const [aboutData, setAboutData] = useState(null); 
             const [status, setStatus] = useState({ text: 'Initializing Engine...', progress: 10, isFading: false, active: false });
+            
             const [activeIndex, setActiveIndex] = useState(0); 
             const [slideHistory, setSlideHistory] = useState([]);
+            
             const [isMonitorOpen, setIsMonitorOpen] = useState(false); 
             const [isAboutOpen, setIsAboutOpen] = useState(false);
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+            
             const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
             const [mapLocale, setMapLocale] = useState('english');
             const [maxAutoZoom, setMaxAutoZoom] = useState(15);
+            
             const [zoomLock, setZoomLock] = useState('auto'); 
             const [visibleTimeSpan, setVisibleTimeSpan] = useState('');
+            
             const hasInitializedRef = useRef(false);
             const appRef = useRef(null);
 
             const addLog = (msg, type = 'info') => setLogs(p => [...p, { time: new Date().toLocaleTimeString('en-US', { hour12: false }), msg, type }]);
 
             const jumpToSlide = (newIdx, isSequential = false) => {
-                if (newIdx !== activeIndex && newIdx >= 0 && newIdx < data.length) {
+                if (newIdx !== activeIndex) {
                     if (!isSequential) setSlideHistory(prev => [...prev, activeIndex]);
                     setActiveIndex(newIdx);
                 }
@@ -673,33 +1338,27 @@
                 }
             };
 
-            useEffect(() => {
-                const handleKeyDown = (e) => {
-                    if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
-                    if (e.key === 'ArrowRight') jumpToSlide(activeIndex + 1);
-                    else if (e.key === 'ArrowLeft') jumpToSlide(activeIndex - 1);
-                };
-                window.addEventListener('keydown', handleKeyDown);
-                return () => window.removeEventListener('keydown', handleKeyDown);
-            }, [activeIndex, data.length]);
-
             const startMapResize = (e) => {
                 e.preventDefault();
                 const startX = e.touches ? e.touches[0].clientX : e.clientX;
                 const mapNode = appRef.current.querySelector('.map-pane');
                 const startWidth = mapNode.offsetWidth;
                 const containerWidth = appRef.current.querySelector('.top-row').offsetWidth;
+                
                 const onMove = (e2) => {
                     const currentX = e2.touches ? e2.touches[0].clientX : e2.clientX;
-                    let pct = ((startWidth + (currentX - startX)) / containerWidth) * 100;
+                    let newWidth = startWidth + (currentX - startX);
+                    let pct = (newWidth / containerWidth) * 100;
                     if (pct < 10) pct = 10; if (pct > 90) pct = 90;
                     appRef.current.style.setProperty('--map-width', `${pct}%`);
                 };
                 const onUp = () => { 
                     document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
+                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); 
                     window.dispatchEvent(new Event('resize')); 
                 };
                 document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+                document.addEventListener('touchmove', onMove); document.addEventListener('touchend', onUp);
             };
 
             const startTopResize = (e) => {
@@ -708,109 +1367,321 @@
                 const topNode = appRef.current.querySelector('.top-row');
                 const startHeight = topNode.offsetHeight;
                 const containerHeight = appRef.current.offsetHeight;
+                
                 const onMove = (e2) => {
                     const currentY = e2.touches ? e2.touches[0].clientY : e2.clientY;
-                    let pct = ((startHeight + (currentY - startY)) / containerHeight) * 100;
+                    let newHeight = startHeight + (currentY - startY);
+                    let pct = (newHeight / containerHeight) * 100;
                     if (pct < 10) pct = 10; if (pct > 80) pct = 80;
                     appRef.current.style.setProperty('--top-height', `${pct}%`);
                 };
                 const onUp = () => { 
                     document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
+                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); 
                     window.dispatchEvent(new Event('resize')); 
                 };
                 document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+                document.addEventListener('touchmove', onMove); document.addEventListener('touchend', onUp);
+            };
+
+            const startTimelineResize = (e) => {
+                e.preventDefault();
+                const startY = e.touches ? e.touches[0].clientY : e.clientY;
+                const tlNode = appRef.current.querySelector('.timeline-pane');
+                const startHeight = tlNode.offsetHeight;
+                const containerHeight = appRef.current.offsetHeight;
+                
+                const onMove = (e2) => {
+                    const currentY = e2.touches ? e2.touches[0].clientY : e2.clientY;
+                    let newHeight = startHeight - (currentY - startY); 
+                    let pct = (newHeight / containerHeight) * 100;
+                    if (pct < 10) pct = 10; if (pct > 80) pct = 80;
+                    appRef.current.style.setProperty('--timeline-height', `${pct}%`);
+                };
+                const onUp = () => { 
+                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
+                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); 
+                    window.dispatchEvent(new Event('resize')); 
+                };
+                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+                document.addEventListener('touchmove', onMove); document.addEventListener('touchend', onUp);
             };
 
             useEffect(() => {
                 const urlParams = new URLSearchParams(window.location.search);
-                const gid = urlParams.get('gid') || '0'; 
-                const source = urlParams.get('source') || '1kdgGiHNDsIZrn8Z1aqWXrEEYKMGxLAqFiwATx3aqbJI';
-                const fetchUrl = `https://docs.google.com/spreadsheets/d/${source}/gviz/tq?tqx=out:csv&gid=${gid}`;
+                const paramTheme = urlParams.get('theme');
+                
+                if (paramTheme === 'dark') {
+                    document.documentElement.style.setProperty('--bg', '#121212');
+                    document.documentElement.style.setProperty('--text', '#fcfcfc');
+                    document.documentElement.style.setProperty('--paneBg', '#222');
+                    TM_CONFIG.paneBackground = '#222';
+                }
 
-                setStatus({ text: 'Fetching Data...', progress: 40, isFading: false, active: false });
-                fetch(fetchUrl).then(res => res.text()).then(csvText => {
+                document.documentElement.style.setProperty('--paneBg', TM_CONFIG.paneBackground);
+                addLog(`CarTiMapper Engine Boot Sequence Initiated.`, 'info');
+                
+                const gid = urlParams.get('gid') || '0'; 
+                const defaultDb = '1kdgGiHNDsIZrn8Z1aqWXrEEYKMGxLAqFiwATx3aqbJI';
+                const rawSource = urlParams.get('source') || defaultDb;
+                let fetchUrl = rawSource;
+
+                if (fetchUrl.includes('http')) {
+                    if (fetchUrl.includes('/e/2PACX')) fetchUrl = fetchUrl.split('/pub')[0] + '/pub?output=csv';
+                    else if (fetchUrl.includes('/d/')) fetchUrl = `https://docs.google.com/spreadsheets/d/${fetchUrl.match(/\/d\/([a-zA-Z0-9-_]+)/)[1]}/gviz/tq?tqx=out:csv&gid=${gid}`;
+                } else {
+                    fetchUrl = fetchUrl.startsWith('2PACX') ? `https://docs.google.com/spreadsheets/d/e/${fetchUrl}/pub?output=csv&gid=${gid}` : `https://docs.google.com/spreadsheets/d/${fetchUrl}/gviz/tq?tqx=out:csv&gid=${gid}`;
+                }
+
+                setStatus({ text: 'Fetching Source Data...', progress: 40, isFading: false, active: false });
+                
+                fetch(fetchUrl).then(res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.text();
+                }).then(csvText => {
+                    setStatus({ text: 'Parsing Timeline...', progress: 80, isFading: false, active: false });
+                    
                     Papa.parse(csvText, {
                         header: true, skipEmptyLines: true,
-                        complete: (results) => { setRawCsvRows(results.data); }
+                        complete: (results) => {
+                            if (results.data.length === 0) return setStatus({ text: 'Empty Dataset Error', progress: 0, isFading: false, active: false });
+                            
+                            const exactGet = (normObj, key) => {
+                                const val = normObj[key];
+                                return val !== undefined && val !== null ? String(val).trim() : "";
+                            };
+
+                            const firstRowNorm = {};
+                            if (results.data[0]) {
+                                for (let k in results.data[0]) firstRowNorm[k.toLowerCase().trim()] = results.data[0][k];
+                            }
+                            
+                            setAboutData({ 
+                                title: exactGet(firstRowNorm, 'title') || 'About', 
+                                description: exactGet(firstRowNorm, 'description') || 'No project description provided.',
+                                rawSource: rawSource === defaultDb ? 'Default Master DB' : rawSource
+                            });
+
+                            setRawCsvRows(results.data);
+                        },
+                        error: (err) => { addLog(`Parse Error: ${err.message}`, 'error'); setStatus({ text: `Parse Failed: ${err.message}`, progress: 0, isFading: false, active: false }); }
                     });
-                });
+                }).catch(err => { addLog(`Fetch failed: ${err.message}`, 'error'); setStatus({ text: `Connection Failed: ${err.message}`, progress: 0, isFading: false, active: false }); });
             }, []);
 
             useEffect(() => {
                 if (rawCsvRows.length === 0) return;
-                const exactGet = (normObj, key) => { const val = normObj[key]; return val !== undefined && val !== null ? String(val).trim() : ""; };
+                
+                setStatus({ text: 'Compiling Timeline...', progress: 90, isFading: false, active: false });
+
+                const exactGet = (normObj, key) => {
+                    const val = normObj[key];
+                    return val !== undefined && val !== null ? String(val).trim() : "";
+                };
 
                 const cleaned = rawCsvRows.map((row, index) => {
-                    const norm = {}; for (let k in row) norm[k.toLowerCase().trim()] = row[k];
+                    const norm = {};
+                    for (let k in row) norm[k.toLowerCase().trim()] = row[k];
 
-                    const dynamicDateParse = (str) => {
+                    const dynamicDateParse = (str, format) => {
                         if (!str) return null;
-                        // Expected: dd/mm/yyyy HH:mm:ss.000
-                        const parts = str.split(' ');
-                        if (parts.length < 1) return null;
-                        const dParts = parts[0].split(/[/\-.]/);
-                        const tParts = parts[1] ? parts[1].split(':') : [0,0,0];
-                        const secParts = String(tParts[2] || '0').split('.');
                         
-                        const d = parseInt(dParts[0], 10);
-                        const m = parseInt(dParts[1], 10) - 1;
-                        const y = parseInt(dParts[2], 10);
-                        const h = parseInt(tParts[0], 10);
-                        const min = parseInt(tParts[1], 10);
-                        const sec = parseInt(secParts[0], 10);
-                        const ms = parseInt(secParts[1] || '0', 10);
+                        const splitArr = str.trim().split(/\s+/);
+                        const dStr = splitArr[0];
+                        const tStr = splitArr.length > 1 ? splitArr.slice(1).join(' ') : "";
+                        const dParts = dStr.split(/[/\-.]/);
+                        
+                        if (dParts.length === 3) {
+                            let d, m, y;
+                            if (format === 'DD/MM/YYYY') {
+                                d = parseInt(dParts[0], 10); m = parseInt(dParts[1], 10) - 1; y = parseInt(dParts[2], 10);
+                            } else if (format === 'MM/DD/YYYY') {
+                                m = parseInt(dParts[0], 10) - 1; d = parseInt(dParts[1], 10); y = parseInt(dParts[2], 10);
+                            } else if (format === 'YYYY/MM/DD') {
+                                y = parseInt(dParts[0], 10); m = parseInt(dParts[1], 10) - 1; d = parseInt(dParts[2], 10);
+                            }
 
-                        const dateObj = new Date(y, m, d, h, min, sec, ms);
-                        return isNaN(dateObj.getTime()) ? null : dateObj;
+                            let h = 0, min = 0, sec = 0;
+                            if (tStr) {
+                                const tParts = tStr.split(':');
+                                h = parseInt(tParts[0], 10) || 0;
+                                min = parseInt(tParts[1], 10) || 0;
+                                sec = parseInt(tParts[2], 10) || 0;
+                            }
+                            
+                            const finalDate = new Date(y, m, d, h, min, sec);
+                            if (!isNaN(finalDate.getTime())) return finalDate;
+                        }
+                        
+                        let fallback = new Date(str); 
+                        return isNaN(fallback.getTime()) ? null : fallback;
                     };
+
+                    const rawTags = exactGet(norm, 'tags');
+                    const parsedTags = rawTags ? rawTags.split(',').map(t=>t.trim()).filter(t => t !== "") : [];
+
+                    const rawMedia = exactGet(norm, 'media');
+                    const parsedMedia = rawMedia ? rawMedia.split(/[;,]\s+/).map(x=>x.trim()).filter(x => x !== "") : [];
+                    
+                    const placeVal = exactGet(norm, 'place');
 
                     return {
                         id: index, 
-                        title: exactGet(norm, 'title'),
-                        startDate: dynamicDateParse(exactGet(norm, 'start')),
-                        endDate: dynamicDateParse(exactGet(norm, 'end')),
+                        title: exactGet(norm, 'title') || `Event ${index + 1}`,
+                        startDate: dynamicDateParse(exactGet(norm, 'start'), dateFormat),
+                        endDate: dynamicDateParse(exactGet(norm, 'end'), dateFormat),
                         description: exactGet(norm, 'description'),
-                        place: exactGet(norm, 'place'),
+                        place: placeVal,
+                        subLabels: placeVal, 
                         location: exactGet(norm, 'location'),
                         priority: exactGet(norm, 'priority'),
-                        media: exactGet(norm, 'media').split(';').map(m => m.trim()).filter(Boolean),
-                        tags: exactGet(norm, 'tags').split(',').map(t => t.trim()).filter(Boolean)
+                        media: parsedMedia,
+                        mediaCaption: exactGet(norm, 'media caption'),
+                        mediaCredit: exactGet(norm, 'media credit'),
+                        tags: parsedTags
                     };
                 });
                 
-                const valid = cleaned.filter(r => r.startDate).sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
-                setData(valid);
-                setStatus({ text: 'Engine Ready', progress: 100, isFading: true, active: true });
-            }, [rawCsvRows]);
+                const valid = cleaned.filter(r => r.startDate).sort((a, b) => {
+                    const timeDiff = a.startDate.getTime() - b.startDate.getTime();
+                    return timeDiff !== 0 ? timeDiff : a.id - b.id;
+                });
 
-            const CarTiMapperLogo = ({ context, appVersion }) => html`<div style="font-weight:bold; color:#007acc">CarTiMapper ${appVersion}</div>`;
+                const finalData = [...valid, ...cleaned.filter(r => !r.startDate)];
+                setData(finalData);
+
+                if (!hasInitializedRef.current) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const paramSlide = urlParams.get('slide');
+                    const paramDate = urlParams.get('date');
+                    let initialIdx = 0;
+
+                    if (paramSlide && !isNaN(parseInt(paramSlide))) {
+                        initialIdx = Math.max(0, Math.min(finalData.length - 1, parseInt(paramSlide) - 1));
+                    } else if (paramDate) {
+                        const targetTime = new Date(paramDate).getTime();
+                        if (!isNaN(targetTime)) {
+                            let minDiff = Infinity;
+                            valid.forEach((d, i) => {
+                                if (d.startDate) {
+                                    const diff = Math.abs(d.startDate.getTime() - targetTime);
+                                    if (diff < minDiff) { minDiff = diff; initialIdx = i; }
+                                }
+                            });
+                        }
+                    }
+                    setActiveIndex(initialIdx); 
+                    hasInitializedRef.current = true;
+                }
+                
+                setStatus({ text: `Success! Compiled ${cleaned.length} records.`, progress: 100, isFading: true, active: false });
+                setTimeout(() => { setStatus({ text: '', progress: 100, isFading: true, active: true }); }, 500);
+
+            }, [rawCsvRows, dateFormat]); 
+
+            const activeSlide = data[activeIndex];
+            const hasMedia = activeSlide?.media?.length > 0;
+
+            const CarTiMapperLogo = ({ context, appVersion }) => {
+                const svgIcon = html`
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="20 0 165 100" style="width: 100%; height: auto; display: block;">
+                        <defs><filter id="dot-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs>
+                        <path d="M28,38 L45,15 L180,15 L180,85 L45,85 L28,62 Z" fill="#222" stroke="#007acc" stroke-width="2.5" stroke-linejoin="round"/>
+                        <g fill="#fff" opacity="0.9">
+                            <rect x="55" y="19" width="4" height="6" rx="1" /><rect x="71" y="19" width="4" height="6" rx="1" /><rect x="87" y="19" width="4" height="6" rx="1" /><rect x="103" y="19" width="4" height="6" rx="1" />
+                            <rect x="119" y="19" width="4" height="6" rx="1" /><rect x="135" y="19" width="4" height="6" rx="1" /><rect x="151" y="19" width="4" height="6" rx="1" /><rect x="167" y="19" width="4" height="6" rx="1" />
+                            <rect x="55" y="75" width="4" height="6" rx="1" /><rect x="71" y="75" width="4" height="6" rx="1" /><rect x="87" y="75" width="4" height="6" rx="1" /><rect x="103" y="75" width="4" height="6" rx="1" />
+                            <rect x="119" y="75" width="4" height="6" rx="1" /><rect x="135" y="75" width="4" height="6" rx="1" /><rect x="151" y="75" width="4" height="6" rx="1" /><rect x="167" y="75" width="4" height="6" rx="1" />
+                        </g>
+                        <g transform="translate(112, 50)">
+                            <path d="M0,-28 L4,-6 L28,0 L4,6 L0,28 L-4,6 L-28,0 L-4,-6 Z" fill="#444" opacity="0.8"/>
+                            <g fill="#fcfcfc" font-family="Arial, sans-serif" font-size="7" font-weight="normal" text-anchor="middle"><text x="0" y="-21">N</text><text x="24" y="2.5">E</text><text x="0" y="27">S</text><text x="-24" y="2.5">W</text></g>
+                            <g fill="#8be9fd" filter="url(#dot-glow)"><circle cx="12.5" cy="-21.6" r="1.2" /><circle cx="21.6" cy="-12.5" r="1.2" /><circle cx="21.6" cy="12.5" r="1.2" /><circle cx="12.5" cy="21.6" r="1.2" /><circle cx="-12.5" cy="21.6" r="1.2" /><circle cx="-21.6" cy="12.5" r="1.2" /><circle cx="-21.6" cy="-12.5" r="1.2" /><circle cx="-12.5" cy="-21.6" r="1.2" /></g>
+                            <g transform="rotate(60)"><path d="M0,0 L-1,-16 L1,-16 Z" fill="#999" /><circle cx="0" cy="-20" r="2.8" fill="#007acc" /></g>
+                            <g transform="rotate(270)"><path d="M0,0 L-1.2,-9 L1.2,-9 Z" fill="#999" /><circle cx="0" cy="-13" r="2.8" fill="#28a745" /></g>
+                            <circle cx="0" cy="0" r="1.5" fill="#fff" />
+                        </g>
+                    </svg>
+                `;
+                if (context === 'splash') return html`<div class="logo-stack-splash"><div class="splash-icon-wrapper">${svgIcon}</div><div class="splash-text">CarTiMapper</div><div class="splash-version">${appVersion}</div></div>`;
+                if (context === 'status') return html`<div style="display: flex; align-items: center; gap: 6px;"><div style="width: 24px; height: 16px; display: flex; align-items: center;">${svgIcon}</div><span style="font-size: 0.8rem; color: #444; letter-spacing: -0.3px;">CarTiMapper</span><span style="font-size: 0.6rem; color: #888; margin-left: 4px;">${appVersion}</span></div>`;
+                return html`<div class="logo-horizontal-about" style="flex-direction: column; align-items: flex-start; gap: 10px;"><div style="width: 200px; height: auto;">${svgIcon}</div></div>`;
+            };
 
             return html`
                 <div id="tm-root">
-                    ${!status.active ? html`<div class="loading-screen">Loading...</div>` : html`
+                    ${!status.active ? html`
+                        <div class="loading-screen ${status.isFading ? 'fade-out' : ''}">
+                            <${CarTiMapperLogo} context="splash" appVersion=${APP_VERSION} />
+                            <div class="loading-bar-container"><div class="loading-bar-fill" style="width: ${status.progress}%;"></div></div>
+                        </div>
+                    ` : ''}
+
+                    ${data.length > 0 ? html`
                         <div id="app-layout" ref=${appRef}>
                             <div class="top-row">
-                                <div class="map-pane">
-                                    <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} maxAutoZoom=${maxAutoZoom} />
+                                <div class="map-pane ${!hasMedia ? 'no-media' : ''}">
+                                    <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} addLog=${addLog} mapLocale=${mapLocale} maxAutoZoom=${maxAutoZoom} />
+                                    <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} appVersion=${APP_VERSION} moduleVersions=${MODULE_VERSIONS} />
                                 </div>
-                                <div class="resizer-h" onMouseDown=${startMapResize}></div>
-                                <div class="media-pane">
-                                    <${MediaViewer} activeSlide=${data[activeIndex]} />
+                                ${hasMedia ? html`<div class="resizer-h" onMouseDown=${startMapResize} onTouchStart=${startMapResize}></div>` : ''}
+                                <div class="media-pane" style="display: ${hasMedia ? 'flex' : 'none'};">
+                                    <${MediaViewer} activeSlide=${activeSlide} />
                                 </div>
                             </div>
-                            <div class="resizer-v" onMouseDown=${startTopResize}></div>
-                            <div class="content-slider-pane">
-                                <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} setIsAboutOpen=${setIsAboutOpen} setIsSettingsOpen=${setIsSettingsOpen} CarTiMapperLogo=${CarTiMapperLogo} visibleTimeSpan=${visibleTimeSpan} />
-                            </div>
+
+                            <div class="resizer-v" onMouseDown=${startTopResize} onTouchStart=${startTopResize}></div>
+                            
+                            <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} jumpToSlide=${jumpToSlide} slideHistory=${slideHistory} goBack=${goBack} aboutData=${aboutData} isAboutOpen=${isAboutOpen} setIsAboutOpen=${setIsAboutOpen} isMonitorOpen=${isMonitorOpen} setIsMonitorOpen=${setIsMonitorOpen} isSettingsOpen=${isSettingsOpen} setIsSettingsOpen=${setIsSettingsOpen} CarTiMapperLogo=${CarTiMapperLogo} visibleTimeSpan=${visibleTimeSpan} />
+                            
+                            <div class="resizer-v" onMouseDown=${startTimelineResize} onTouchStart=${startTimelineResize}></div>
+
                             <div class="timeline-pane">
-                                <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} setVisibleTimeSpan=${setVisibleTimeSpan} />
+                                <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} zoomLock=${zoomLock} setZoomLock=${setZoomLock} setVisibleTimeSpan=${setVisibleTimeSpan} />
                             </div>
                         </div>
-                    `}
+
+                        <div class="modal-backdrop ${isSettingsOpen ? 'open' : ''}" onClick=${() => setIsSettingsOpen(false)}></div>
+                        <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 450px; background: #fff; z-index: 9002; border-radius: 12px; padding: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); color: #222; display: ${isSettingsOpen ? 'block' : 'none'};">
+                            <button class="about-close" onClick=${() => setIsSettingsOpen(false)}>×</button>
+                            <h3 style="margin-top: 0; color: #333; font-size: 1.5rem; border-bottom: 1px solid #eee; padding-bottom: 10px; font-weight: 400;">Engine Settings</h3>
+                            
+                            <div style="margin-top: 20px;">
+                                <label style="display: block; margin-bottom: 8px; color: #555; font-size: 0.95rem;">Data Locale Format</label>
+                                <select style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; background: #fcfcfc; cursor: pointer; color: #333;" 
+                                        value=${dateFormat} onChange=${(e) => setDateFormat(e.target.value)}>
+                                    <option value="DD/MM/YYYY">European / Global (DD/MM/YYYY)</option>
+                                    <option value="MM/DD/YYYY">United States (MM/DD/YYYY)</option>
+                                    <option value="YYYY/MM/DD">Scientific / ISO (YYYY/MM/DD)</option>
+                                </select>
+                            </div>
+
+                            <div style="margin-top: 20px;">
+                                <label style="display: block; margin-bottom: 8px; color: #555; font-size: 0.95rem;">Map Language</label>
+                                <select style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; background: #fcfcfc; cursor: pointer; color: #333;" 
+                                        value=${mapLocale} onChange=${(e) => setMapLocale(e.target.value)}>
+                                    <option value="english">Standard English (Global Readability)</option>
+                                    <option value="local">Native / Local Languages</option>
+                                </select>
+                            </div>
+
+                            <div style="margin-top: 20px;">
+                                <label style="display: block; margin-bottom: 8px; color: #555; font-size: 0.95rem;">Auto-Zoom Depth</label>
+                                <select style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; background: #fcfcfc; cursor: pointer; color: #333;" 
+                                        value=${maxAutoZoom} onChange=${(e) => setMaxAutoZoom(parseInt(e.target.value, 10))}>
+                                    <option value="14">Level 14 (Wider Area)</option>
+                                    <option value="15">Level 15 (Standard City)</option>
+                                    <option value="16">Level 16 (Street Level)</option>
+                                    <option value="17">Level 17 (Building Level)</option>
+                                </select>
+                            </div>
+                        </div>
+                    ` : ''}
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.35.0';
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.34.1';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.34.1 ] ===
 
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
