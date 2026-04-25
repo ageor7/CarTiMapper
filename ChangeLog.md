@@ -1,6 +1,15 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.3.8)
+MediaViewer (v2.7.0): * [FIX: MED-20] Removed invasive diagnostic HTML HUD. Piped array readouts purely into the addLog prop for global monitoring.
+
+[FIX: MED-21] Attached mathematical click zones directly to the rendered image. Clicking the left half scrolls left; right half scrolls right. Changed mouse cursor to horizontal arrows (ew-resize) on multi-image carousels.
+
+[FIX: MED-22] Natively hid the scrollbar track via inline CSS and injected style blocks, while perfectly preserving the ability to physically swipe on touch screens.
+
+---
+
 Changelog (v6.3.7)
 MediaViewer (v2.6.3): * [FIX: MED-18] Upgraded the array flattening matrix to utilize the Omni-Splitter regex (/[\r\n]+|\\n/). This permanently resolves the concatenation bug caused by rogue carriage returns or escaped line-feed characters embedded in legacy CSV exports, ensuring arrays physically split into multiple slides.
 
