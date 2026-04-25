@@ -1,6 +1,11 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+### [v6.4.14]
+* **AppOrchestrator (v1.36.2) [DATA-09]:** Restored missing `caption` and `credit` extraction logic inside the CSV mapping loop. Media metadata now correctly parses and renders alongside images.
+* **AppOrchestrator [DIAG-02]:** Repaired the About button visibility bug. Restored the `setAboutData` manifest injection that occurs post-fetch, ensuring the modal overlay correctly populates and renders.
+* **AppOrchestrator [URL-01]:** Restored the Deep-Linking Engine. The URL interceptor once again actively reads `?slide=` and `?date=` parameters upon boot, mathematically jumping the user to the requested index before the loading screen fades.
+
 ### [v6.4.13]
 * **AppOrchestrator (v1.36.1) [UI-52]:** Patched the rotation glitch. The application now actively tracks the `1024px` CSS boundary and mechanically resets all resizer variables to `50%` upon crossing it, preventing the panes from crushing during rotation or window-snapping.
 * **AppOrchestrator [UI-53]:** Fixed missing `activeSlide` prop assignment that was causing media to render as undefined. Engineered the Dynamic Collapse architecture. The Media pane and secondary drag-bar now entirely vanish when no media is present, granting `100%` of the quadrant to the Map.
