@@ -1,6 +1,22 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.4.4)
+Project Management: * [FIX: PROT-01] Appended a strict Developer Protocol section to the Master Blueprint, legally binding the AI assistant to provide Markdown changelogs and architectural updates with every single code deployment.
+
+---
+
+Changelog (v6.4.3)
+TimelineScrubber (v23.17.0): * [FIX: PERF-06] CRITICAL FIX: Eliminated the massive initialization freeze. Hoisted the document.createElement('canvas') call completely out of the formatLabelSmart loop. The engine now uses one pre-warmed memory canvas to measure all 500+ timeline labels instantly.
+
+ContentSlider (v3.11.0): * [FIX: UI-32] Deployed the formatSmartDate engine to deduplicate time strings (e.g., removing redundant years/months for multi-day events and stripping 00:00).
+
+[FIX: UI-39] Pinned the Title and Date to the top of the UI. Moved the Metadata Dock directly below the header.
+
+[FIX: UI-40] Injected the yellow SVG tag icon directly into the mapping loop so every Tag pill renders flawlessly.
+
+---
+
 v6.4.2 Map Engine Rewrite
 We are completely upgrading the Map architecture to v4.0.0 by combining three absolute performance safeguards:
 
