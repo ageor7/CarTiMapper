@@ -1,6 +1,21 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.3.11)
+AppOrchestrator (v1.35.0): * [FIX: UI-30] Injected a global event listener mapping the keyboard's Left/Right arrows to the setActiveIndex timeline state, allowing for rapid, hands-free carousel navigation.
+
+[FIX: UI-31] Replaced the OS-dependent "⚙️" text emoji with a crisp, resolution-independent SVG gear icon. Removed unpredictable &nbsp; spacing from the header in favor of a mathematically perfect Flexbox gap.
+
+EventDetails (v3.4.0): * [FIX: UI-32] Restored the v6.0.14 date-formatting engine to smartly collapse identical days, months, and years across temporal ranges.
+
+[FIX: UI-33] Applied the Omni-Splitter regex to the activeSlide.tags array to guarantee proper splitting regardless of upstream CSV concatenation.
+
+[FIX: UI-34] Pinned the Event Title and Date to the top of the pane.
+
+[FIX: UI-35] Built the Metadata Dock. Rendered locations as a singular unified tag block, and generated discrete CSS pill badges for each individual temporal tag at the bottom of the text pane.
+
+---
+
 Changelog (v6.3.10)
 TimelineScrubber (v23.16.0): * [FIX: TL-17] Injected the getParsedTags() utility to intercept and flatten incoming tag arrays using the Omni-Splitter regex (/[\r\n]+|\\n/).
 
