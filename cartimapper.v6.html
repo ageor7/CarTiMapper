@@ -168,7 +168,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.4.0';
+        const APP_VERSION = 'v6.4.1';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -492,17 +492,19 @@
                         clusterLayer.current.eachLayer(l => bounds.extend(l.getLatLng()));
                         if (bounds.isValid()) {
                             map.fitBounds(bounds, { padding: [30, 30], maxZoom: 6 });
-                            // [FIX: UI-38] Reduced Minimap Boundaries to strictly frame the active dataset.
-                            miniMap.fitBounds(bounds.pad(0.1)); 
-                            miniMap.setMaxBounds(bounds.pad(0.2)); 
-                            let baseZoomRef = map.getBoundsZoom(bounds);
+                            // [FIX: UI-38] Strict Minimap Bounding
+                            if (miniMap) {
+                                miniMap.invalidateSize();
+                                miniMap.fitBounds(bounds.pad(0.1));
+                                miniMap.setMaxBounds(bounds.pad(0.2));
+                            }
                             hasFitBounds.current = true;
                         }
                     }
                 }, 150);
             }, [data]);
 
-            // [FIX: PERF-02] O(1) Mathematical Map State Updates
+            // [FIX: PERF-02] O(1) Mathematical Map State Updates + Flight Intercept
             useEffect(() => {
                 const map = mapInstance.current;
                 const markers = markersRef.current;
@@ -557,17 +559,20 @@
                 // 3. Update the tracker
                 prevActiveIndexRef.current = newIdx;
 
-                // 4. Execute the viewport camera animation
+                // 4. Hard Stop existing animations & Execute the new viewport camera flight
                 const activeLayers = markers[newIdx];
                 if (activeLayers && activeLayers.length > 0) {
                     const activeFeatureGroup = L.featureGroup(activeLayers);
                     setTimeout(() => {
                         try {
                             const bounds = activeFeatureGroup.getBounds();
-                            if (bounds.isValid()) map.flyToBounds(bounds, { animate: true, duration: 2.5, maxZoom: maxAutoZoom });
+                            if (bounds.isValid()) {
+                                map.stop(); // [FIX: PERF-03] Immediately terminate overlapping flight curves
+                                map.flyToBounds(bounds, { animate: true, duration: 2.0, maxZoom: maxAutoZoom });
+                            }
                             activeLayers.forEach(l => { if (l.openTooltip) l.openTooltip(); });
                         } catch(err) {}
-                    }, 100);
+                    }, 50);
                 }
             }, [activeIndex, data, maxAutoZoom]);
 
