@@ -555,22 +555,49 @@
         MODULE_VERSIONS['MapViewer'] = 'v3.17.0';
         // === [ END MAJOR BLOCK: MapViewer v3.17.0 ] ===
 
-        // === [ MAJOR BLOCK: MediaViewer v2.6.1 ] ===
-        const MediaViewer = ({ activeSlide }) => {
+        // === [ MAJOR BLOCK: MediaViewer v2.6.3 ] ===
+        const MediaViewer = ({ activeSlide, addLog }) => {
             if (!activeSlide || !activeSlide.media || activeSlide.media.length === 0) return null;
             
-            // [FIX: MED-14] Strict Newline Splitter to protect file commas and natural grammar
-            const splitRegex = /\r?\n/;
+            // [FIX: MED-18] The Omni-Splitter: Intercepts all lone carriage returns (\r), Unix line-feeds (\n), and escaped literal text strings (\\n).
+            const splitRegex = /[\r\n]+|\\n/;
             
             let mediaItems = [];
-            if (typeof activeSlide.media === 'string') {
-                mediaItems = activeSlide.media.split(splitRegex).map(s => s.trim()).filter(Boolean);
-            } else if (Array.isArray(activeSlide.media)) {
-                mediaItems = activeSlide.media; 
-            }
+            let captions = [];
+            let credits = [];
 
-            const captions = typeof activeSlide.mediaCaption === 'string' ? activeSlide.mediaCaption.split(splitRegex).map(s => s.trim()) : [];
-            const credits = typeof activeSlide.mediaCredit === 'string' ? activeSlide.mediaCredit.split(splitRegex).map(s => s.trim()) : [];
+            // Raw structural captures for the Diagnostic HUD
+            const rawMediaData = activeSlide.media;
+            const rawCaptionData = activeSlide.mediaCaption;
+            const rawCreditData = activeSlide.mediaCredit;
+
+            const rawMedia = Array.isArray(rawMediaData) ? rawMediaData : [rawMediaData || ''];
+            rawMedia.forEach(m => {
+                if (typeof m === 'string') mediaItems.push(...m.split(splitRegex));
+                else mediaItems.push(m);
+            });
+            mediaItems = mediaItems.map(s => String(s).trim()).filter(Boolean);
+
+            const rawCaps = Array.isArray(rawCaptionData) ? rawCaptionData : [rawCaptionData || ''];
+            rawCaps.forEach(c => {
+                if (typeof c === 'string') captions.push(...c.split(splitRegex));
+                else captions.push(c);
+            });
+            captions = captions.map(s => String(s).trim());
+
+            const rawCreds = Array.isArray(rawCreditData) ? rawCreditData : [rawCreditData || ''];
+            rawCreds.forEach(c => {
+                if (typeof c === 'string') credits.push(...c.split(splitRegex));
+                else credits.push(c);
+            });
+            credits = credits.map(s => String(s).trim());
+
+            useEffect(() => {
+                if (addLog) {
+                    addLog(`[Media Viewer] Raw String: ${JSON.stringify(rawMediaData)}`);
+                    addLog(`[Media Viewer] Parsed URLs: ${JSON.stringify(mediaItems)}`);
+                }
+            }, [activeSlide, addLog]);
 
             const getCleanUrl = (rawUrl) => {
                 const url = rawUrl.trim();
@@ -597,7 +624,7 @@
                      return html`<iframe src="${url}" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
                 }
 
-                // [FIX: MED-15] Stripped greedy <a> wrapper to unblock UI click-zones
+                // Images explicitly remain unlinked to protect click-zone event propagation
                 return html`
                     <div style="display:flex; height:100%; width:100%; align-items:center; justify-content:center;">
                         <img src=${url} alt="Media" loading="lazy" />
@@ -605,35 +632,44 @@
                 `;
             };
 
-            return html`
-                <div class="media-carousel">
-                    ${mediaItems.map((rawUrl, i) => {
-                        const cleanUrl = getCleanUrl(rawUrl);
-                        const itemCaption = captions[i] || '';
-                        const itemCredit = credits[i] || '';
+            // [DIAGNOSTIC HUD] Includes untouched raw data injection
+            const diagnosticHUD = html`
+                <div style="position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.85); color: #0f0; font-family: monospace; font-size: 0.65rem; padding: 6px; z-index: 9999; pointer-events: none; max-height: 40%; overflow-y: auto;">
+                    <span style="color: #ffb86c;">RAW:</span> ${JSON.stringify(rawMediaData)}<br/><br/>
+                    <span style="color: #8be9fd;">URLS [${mediaItems.length}]:</span> ${JSON.stringify(mediaItems)}<br/>
+                    <span style="color: #ff79c6;">CAPS [${captions.length}]:</span> ${JSON.stringify(captions)}
+                </div>
+            `;
 
-                        return html`
-                            <div class="media-item" key=${i}>
-                                ${mediaItems.length > 1 ? html`<div class="media-counter">${i + 1} / ${mediaItems.length}</div>` : ''}
-                                <div class="media-content-wrapper">${renderMedia(rawUrl)}</div>
-                                
-                                ${(itemCaption || itemCredit || cleanUrl !== '#') ? html`
-                                    <div class="media-meta-box">
-                                        ${itemCaption ? html`<div class="media-caption">${itemCaption}</div>` : ''}
-                                        <div style="display: flex; align-items: center; width: 100%; margin-top: 2px;">
-                                            <div class="media-credit">${itemCredit ? `Credit: ${itemCredit}` : ''}</div>
-                                            ${cleanUrl !== '#' ? html`<a href=${cleanUrl} target="_blank" rel="noopener noreferrer" title="Open source media" style="color: #8be9fd; text-decoration: none; font-size: 0.9rem; margin-left: auto; letter-spacing: 1px;">[↗]</a>` : ''}
+            return html`
+                <div style="position: relative; height: 100%; width: 100%;">
+                    <div class="media-carousel">
+                        ${mediaItems.map((rawUrl, i) => {
+                            const cleanUrl = getCleanUrl(rawUrl);
+                            const itemCaption = captions[i] || '';
+                            const itemCredit = credits[i] || '';
+
+                            return html`
+                                <div class="media-item" key=${i}>
+                                    ${mediaItems.length > 1 ? html`<div class="media-counter">${i + 1} / ${mediaItems.length}</div>` : ''}
+                                    <div class="media-content-wrapper">${renderMedia(rawUrl)}</div>
+                                    
+                                    ${(itemCaption || itemCredit) ? html`
+                                        <div class="media-meta-box">
+                                            ${itemCaption ? html`<div class="media-caption"><a href=${cleanUrl} target="_blank" rel="noopener noreferrer">${itemCaption}</a></div>` : ''}
+                                            ${itemCredit ? html`<div class="media-credit"><a href=${itemCredit} target="_blank" rel="noopener noreferrer">${itemCredit}</a></div>` : ''}
                                         </div>
-                                    </div>
-                                ` : ''}
-                            </div>
-                        `;
-                    })}
+                                    ` : ''}
+                                </div>
+                            `;
+                        })}
+                    </div>
+                    ${diagnosticHUD}
                 </div>
             `;
         };
-        MODULE_VERSIONS['MediaViewer'] = 'v2.6.1';
-        // === [ END MAJOR BLOCK: MediaViewer v2.6.1 ] ===
+        MODULE_VERSIONS['MediaViewer'] = 'v2.6.3';
+        // === [ END MAJOR BLOCK: MediaViewer v2.6.3 ] ===
 
         // === [ MAJOR BLOCK: ContentSlider v3.9.2 ] ===
         const ContentSlider = ({ data, activeIndex, setActiveIndex, jumpToSlide, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo, visibleTimeSpan }) => {
