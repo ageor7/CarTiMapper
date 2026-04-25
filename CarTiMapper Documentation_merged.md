@@ -147,7 +147,9 @@
 * **[REF: UI-54] Bottom-Up Timeline Resizer Physics:** The horizontal Timeline uses a dedicated structural `.resizer-dyn-timeline`. Because it is anchored to the bottom of the screen, the mathematical event listener calculates its delta backward (`deltaY = currentY - startY` against `startHeight - delta`), allowing intuitive "drag up to enlarge" physics.
 * **[REF: UI-58] Hero Overhang Whitespace Compression:** The padding matrices between the sticky header and the narrative description block were surgically reduced (Top padding clamped to `0.2rem`, bottom padding down to `0.2rem`), aggressively clustering the data variables while preserving the `75ch` typographical reading bounds.
 * **[REF: MED-25] Touch/Click Collision Prevention:** The Media gallery successfully utilizes native CSS `overflow-x: auto` to provide buttery-smooth, 1:1 physical swiping on tablets. To prevent mobile browsers from accidentally firing a navigation "Click" at the end of a swipe, the engine utilizes a `touchMove` coordinate delta. If finger travel exceeds `10px`, the underlying `onClick` event is mathematically locked out.
-
+* **[REF: UI-61] CSS Native Touch Override (The Panning Hijack Fix):** Even when custom Javascript touch listeners (`onTouchStart`, `touchMove`) are correctly mapped to invisible hit-boxes, Android and iOS Safari engines will natively interpret immediate, forceful finger drags as a command to "scroll" or "pan" the page viewport, violently hijacking the telemetry loop and breaking the resizer drag. 
+    * *The Fix:* The CSS `touch-action: none;` directive is surgically applied directly to the `.resizer-dyn` classes. This physically overrides the mobile browser's default behavior mechanism at the hardware level, explicitly commanding the OS to ignore all native pan/scroll interpretations and yield 100% of the raw touch coordinates to the JavaScript delta engine.
+    
 ---
 
 ## VI. Algorithms, Analytics & Methodologies
