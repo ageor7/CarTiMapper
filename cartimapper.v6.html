@@ -168,7 +168,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.4.9';
+        const APP_VERSION = 'v6.4.10';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -693,13 +693,12 @@
         MODULE_VERSIONS['MediaViewer'] = 'v2.8.0';
         // === [ END MAJOR BLOCK: MediaViewer v2.8.0 ] ===
 
-        // === [ MAJOR BLOCK: ContentSlider v3.14.0 ] ===
+        // === [ MAJOR BLOCK: ContentSlider v3.15.0 ] ===
         const ContentSlider = ({ data, activeIndex, setActiveIndex, jumpToSlide, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo, visibleTimeSpan }) => {
             const [isMenuOpen, setIsMenuOpen] = useState(false);
             const slide = data[activeIndex];
             if (!slide) return null;
 
-            // [FIX: UI-32] Same-Day Smart Date Logic
             const formatSmartDate = (start, end) => {
                 if (!start || isNaN(start.getTime())) return 'Unknown Date';
                 const dateOpts = { day: 'numeric', month: 'short', year: 'numeric' };
@@ -740,42 +739,46 @@
             return html`
                 <div class="content-pane-wrapper" style="display: flex; flex-direction: column; height: 100%;" onClick=${handlePaneClick}>
                     
-                    <div style="position: relative; flex-grow: 1; overflow-y: auto;">
+                    <div style="position: relative; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column;">
                         <div class="click-zone click-zone-left" onClick=${goPrev} title="Previous"></div>
                         <div class="click-zone click-zone-right" onClick=${goNext} title="Next"></div>
 
-                        <div class="content-scroll-area" style="display: flex; flex-direction: column; min-height: 100%;">
+                        <div style="flex-shrink: 0; position: sticky; top: 0; background: var(--paneBg, #ffffff); z-index: 10; padding: 1.2rem 1.5rem 0.8rem 1.5rem; border-bottom: 1px solid rgba(128,128,128,0.2); box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
                             
-                            <div style="flex-shrink: 0; position: sticky; top: 0; background: var(--paneBg, #ffffff); z-index: 10; padding: 1rem 1.5rem 0.5rem 1.5rem; border-bottom: 1px solid rgba(128,128,128,0.2); box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; margin-bottom: 0.8rem;">
                                 
-                                <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 0.5rem;">
-                                    <div class="slide-date" style="font-weight: 600; color: #007acc; font-size: 0.85rem; margin-right: 5px;">
-                                        ${formatSmartDate(slide.startDate, slide.endDate)}
-                                    </div>
-                                    
+                                <div class="slide-date" style="font-weight: 400; color: #007acc; font-size: 0.9rem; padding-top: 2px;">
+                                    ${formatSmartDate(slide.startDate, slide.endDate)}
+                                </div>
+                                
+                                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px; max-width: 60%;">
                                     ${hasLocation ? html`
-                                        <span style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.06); color: var(--text-color, #444); padding: 3px 10px; border-radius: 10px; font-size: 0.75rem; border: 1px solid rgba(128,128,128,0.15);">
+                                        <span style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.06); color: var(--text-color, #444); padding: 3px 10px; border-radius: 10px; font-size: 0.75rem; border: 1px solid rgba(128,128,128,0.15); text-align: right;">
                                             <span style="margin-right: 4px;">📍</span> ${slide.place}
                                         </span>
                                     ` : ''}
 
-                                    ${tags.map(tag => html`
-                                        <span style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.06); color: var(--text-color, #444); padding: 3px 10px; border-radius: 10px; font-size: 0.75rem; border: 1px solid rgba(128,128,128,0.15);">
-                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="rgba(255, 193, 7, 0.2)" stroke="#ffc107" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;">
-                                                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                                                <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                                            </svg>
-                                            <span style="white-space: nowrap;">${tag}</span>
-                                        </span>
-                                    `)}
+                                    ${tags.length > 0 ? html`
+                                        <div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px;">
+                                            ${tags.map(tag => html`
+                                                <span style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.06); color: var(--text-color, #444); padding: 3px 10px; border-radius: 10px; font-size: 0.75rem; border: 1px solid rgba(128,128,128,0.15);">
+                                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="rgba(255, 193, 7, 0.2)" stroke="#ffc107" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;">
+                                                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                                                        <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                                                    </svg>
+                                                    <span style="white-space: nowrap;">${tag}</span>
+                                                </span>
+                                            `)}
+                                        </div>
+                                    ` : ''}
                                 </div>
-
-                                <h2 class="slide-title" style="margin: 0; font-size: 1.4rem; line-height: 1.2;" dangerouslySetInnerHTML=${{ __html: slide.title }}></h2>
                             </div>
 
-                            <div style="flex-grow: 1; padding: 1.5rem 2rem 2rem 2rem; display: flex; justify-content: center;">
-                                <div class="slide-desc" style="max-width: 75ch; width: 100%; font-size: 1.05rem; line-height: 1.6;" dangerouslySetInnerHTML=${{ __html: slide.description }}></div>
-                            </div>
+                            <h2 class="slide-title" style="margin: 0; font-size: 1.4rem; line-height: 1.2;" dangerouslySetInnerHTML=${{ __html: slide.title }}></h2>
+                        </div>
+
+                        <div style="flex-grow: 1; padding: 1.5rem 2rem 2rem 2rem; display: flex; justify-content: center;">
+                            <div class="slide-desc" style="max-width: 75ch; width: 100%; font-size: 1.05rem; line-height: 1.6;" dangerouslySetInnerHTML=${{ __html: slide.description }}></div>
                         </div>
                     </div>
 
@@ -813,8 +816,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['ContentSlider'] = 'v3.14.0';
-        // === [ END MAJOR BLOCK: ContentSlider v3.14.0 ] ===
+        MODULE_VERSIONS['ContentSlider'] = 'v3.15.0';
+        // === [ END MAJOR BLOCK: ContentSlider v3.15.0 ] ===
 
         // === [ MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan }) => {
