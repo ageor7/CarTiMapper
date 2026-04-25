@@ -1,6 +1,10 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+* **[REF: UI-38] Dynamic Minimap Bounding:** The Minimap overlay now strictly aligns to the primary dataset. The engine forces a DOM redraw (`invalidateSize()`) and calculates the exact spatial extent (`bounds`) of all valid data points, executing a `pad(0.1)` boundary lock to ensure the orientation map is contextually relevant.
+
+---
+
 Changelog (v6.4.0)
 MapViewer (v3.18.0): * [FIX: PERF-02] CRITICAL FIX: Resolved the major memory leak and UI freeze caused by Leaflet marker thrashing. The map now utilizes an O(1) state delta, updating only the two specific pins that need to change (the old active pin and the new active pin), leaving the rest of the cluster tree untouched. Map navigation is now instantaneous.
 
