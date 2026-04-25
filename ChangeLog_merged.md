@@ -1,6 +1,10 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+### ChangeLog [v6.4.18]
+* **ContentSlider (v3.17.2) [UI-58]:** Compressed the visual boundary between the sticky header metadata and the primary description body by reducing top padding to `0.2rem`.
+* **MediaViewer (v2.9.0) [MED-25]:** Enhanced the native CSS media gallery swiping by injecting a `touchMove` telemetry lock. Sliding an image firmly blocks the Left/Right click-zones from triggering an accidental double-jump navigation.
+
 ### ChangeLog [v6.4.16]
 * **AppOrchestrator (v1.38.0) [MED-11]:** Replaced legacy comma-based `.split(/[;,]\s+/)` logic with the Omni-Splitter (`/[\r\n]+|\\n/`). Media, Captions, and Credits now strictly delimit via new-lines, preventing URLs containing commas from fracturing.
 * **AppOrchestrator:** Resolved the persistent metadata loss bug by physically mapping `media caption` and `media credit` to `mediaCaption` and `mediaCredit` inside the compiled JSON array, perfectly matching the required prop schema for the `MediaViewer` rendering loop.
