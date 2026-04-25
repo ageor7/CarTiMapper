@@ -1,5 +1,11 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
+---
+
+### [v6.4.10]
+* **Documentation [PROT-01]:** Decoupled the ChangeLog back into a dedicated file. Embedded a strict protocol directive requiring all architectural and historical tracking to be delivered exclusively in isolated `.md` syntax blocks to prevent UI formatting corruption.
+* **ContentSlider (v3.15.0) [UI-39]:** **CRITICAL FIX:** Resolved the Sticky Header failure. Removed the infinitely stretching `.content-scroll-area` intermediate wrapper. The header is now a direct child of the `overflow-y` parent container, mechanically guaranteeing it freezes at `top: 0` during active scrolling.
+* **ContentSlider [UI-48]:** Refined typographical and geometric metadata hierarchies. The Date string was stripped of bold styling (`font-weight: 400`). Places and Tags were relocated into a dedicated Flexbox column governed by `align-items: flex-end`, forcing them to stack perfectly flush against the right-hand boundary.
 
 ### [v6.4.9]
 * **Documentation [PROT-01]:** Decoupled documentation into two distinct files (`Master Blueprint` and `ChangeLog`). Appended a strict directive requiring all documentation to be delivered exclusively in `.md` format.
