@@ -168,7 +168,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.4.15';
+        const APP_VERSION = 'v6.4.16';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -1335,7 +1335,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.16.0';
         // === [ END MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.37.0 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.38.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [rawCsvRows, setRawCsvRows] = useState([]);
@@ -1467,8 +1467,6 @@
                 setStatus({ text: 'Fetching Data...', progress: 40, isFading: false, active: false });
                 fetch(fetchUrl).then(res => res.text()).then(csvText => {
                     Papa.parse(csvText, { header: true, skipEmptyLines: true, complete: (results) => { 
-                        
-                        // [RESTORED] V6.3.10 About Manifest Logic
                         const firstRowNorm = {};
                         if (results.data[0]) {
                             for (let k in results.data[0]) firstRowNorm[k.toLowerCase().trim()] = results.data[0][k];
@@ -1479,7 +1477,6 @@
                             description: exactGet(firstRowNorm, 'description') || 'No project description provided.',
                             rawSource: source === '1kdgGiHNDsIZrn8Z1aqWXrEEYKMGxLAqFiwATx3aqbJI' ? 'Default Master DB' : source
                         });
-
                         setRawCsvRows(results.data); 
                     } });
                 });
@@ -1488,7 +1485,9 @@
             useEffect(() => {
                 if (rawCsvRows.length === 0) return;
                 const exactGet = (normObj, key) => { const val = normObj[key]; return val !== undefined && val !== null ? String(val).trim() : ""; };
-                const omniSplitRegex = /\||\r?\n/;
+                
+                // [FIX: MED-11] The Omni-Splitter regex explicitly intercepts only line breaks.
+                const omniSplitRegex = /[\r\n]+|\\n/;
 
                 const cleaned = rawCsvRows.map((row, index) => {
                     const norm = {}; for (let k in row) norm[k.toLowerCase().trim()] = row[k];
@@ -1507,24 +1506,24 @@
                         return isNaN(dateObj.getTime()) ? null : dateObj;
                     };
 
+                    // [FIX] Using omniSplitRegex entirely eliminates the comma-splitting bug.
+                    // [FIX] Hard-matched 'mediaCaption' and 'mediaCredit' to MediaViewer expectations.
                     return {
                         id: index, title: exactGet(norm, 'title'),
                         startDate: dynamicDateParse(exactGet(norm, 'start')),
                         endDate: dynamicDateParse(exactGet(norm, 'end')),
                         description: exactGet(norm, 'description'),
                         place: exactGet(norm, 'place'), location: exactGet(norm, 'location'), priority: exactGet(norm, 'priority'),
-                        media: exactGet(norm, 'media').split(';').map(m => m.trim()).filter(Boolean),
-                        // [FIXED] Corrected keys to 'media caption' and 'media credit' from v6.3.10
-                        caption: exactGet(norm, 'media caption').split(omniSplitRegex).map(c => c.trim()),
-                        credit: exactGet(norm, 'media credit').split(omniSplitRegex).map(c => c.trim()),
-                        tags: exactGet(norm, 'tags').split(',').map(t => t.trim()).filter(Boolean)
+                        media: exactGet(norm, 'media') ? exactGet(norm, 'media').split(omniSplitRegex).map(m => m.trim()).filter(Boolean) : [],
+                        mediaCaption: exactGet(norm, 'media caption') ? exactGet(norm, 'media caption').split(omniSplitRegex).map(c => c.trim()) : [],
+                        mediaCredit: exactGet(norm, 'media credit') ? exactGet(norm, 'media credit').split(omniSplitRegex).map(c => c.trim()) : [],
+                        tags: exactGet(norm, 'tags') ? exactGet(norm, 'tags').split(',').map(t => t.trim()).filter(Boolean) : []
                     };
                 });
                 
                 const valid = cleaned.filter(r => r.startDate).sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
                 setData(valid);
 
-                // [RESTORED] URL Interceptor
                 if (!hasInitializedRef.current) {
                     const urlParams = new URLSearchParams(window.location.search);
                     const paramSlide = urlParams.get('slide');
@@ -1554,11 +1553,30 @@
 
             }, [rawCsvRows]);
 
+            // [FIX] True v6.3.10 Original Logo Restored
             const CarTiMapperLogo = ({ context, appVersion }) => {
-                const svgIcon = html`<svg viewBox="0 0 100 100" width="100%" height="100%"><polygon points="50,5 95,27.5 95,72.5 50,95 5,72.5 5,27.5" fill="none" stroke="#007acc" stroke-width="8"/><circle cx="50" cy="50" r="15" fill="#007acc"/><line x1="50" y1="50" x2="50" y2="15" stroke="#007acc" stroke-width="6"/><line x1="50" y1="50" x2="80" y2="65" stroke="#007acc" stroke-width="6"/></svg>`;
-                // [RESTORED] V6.3.10 Splash Context Logic
+                const svgIcon = html`
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="20 0 165 100" style="width: 100%; height: auto; display: block;">
+                        <defs><filter id="dot-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs>
+                        <path d="M28,38 L45,15 L180,15 L180,85 L45,85 L28,62 Z" fill="#222" stroke="#007acc" stroke-width="2.5" stroke-linejoin="round"/>
+                        <g fill="#fff" opacity="0.9">
+                            <rect x="55" y="19" width="4" height="6" rx="1" /><rect x="71" y="19" width="4" height="6" rx="1" /><rect x="87" y="19" width="4" height="6" rx="1" /><rect x="103" y="19" width="4" height="6" rx="1" />
+                            <rect x="119" y="19" width="4" height="6" rx="1" /><rect x="135" y="19" width="4" height="6" rx="1" /><rect x="151" y="19" width="4" height="6" rx="1" /><rect x="167" y="19" width="4" height="6" rx="1" />
+                            <rect x="55" y="75" width="4" height="6" rx="1" /><rect x="71" y="75" width="4" height="6" rx="1" /><rect x="87" y="75" width="4" height="6" rx="1" /><rect x="103" y="75" width="4" height="6" rx="1" />
+                            <rect x="119" y="75" width="4" height="6" rx="1" /><rect x="135" y="75" width="4" height="6" rx="1" /><rect x="151" y="75" width="4" height="6" rx="1" /><rect x="167" y="75" width="4" height="6" rx="1" />
+                        </g>
+                        <g transform="translate(112, 50)">
+                            <path d="M0,-28 L4,-6 L28,0 L4,6 L0,28 L-4,6 L-28,0 L-4,-6 Z" fill="#444" opacity="0.8"/>
+                            <g fill="#fcfcfc" font-family="Arial, sans-serif" font-size="7" font-weight="normal" text-anchor="middle"><text x="0" y="-21">N</text><text x="24" y="2.5">E</text><text x="0" y="27">S</text><text x="-24" y="2.5">W</text></g>
+                            <g fill="#8be9fd" filter="url(#dot-glow)"><circle cx="12.5" cy="-21.6" r="1.2" /><circle cx="21.6" cy="-12.5" r="1.2" /><circle cx="21.6" cy="12.5" r="1.2" /><circle cx="12.5" cy="21.6" r="1.2" /><circle cx="-12.5" cy="21.6" r="1.2" /><circle cx="-21.6" cy="12.5" r="1.2" /><circle cx="-21.6" cy="-12.5" r="1.2" /><circle cx="-12.5" cy="-21.6" r="1.2" /></g>
+                            <g transform="rotate(60)"><path d="M0,0 L-1,-16 L1,-16 Z" fill="#999" /><circle cx="0" cy="-20" r="2.8" fill="#007acc" /></g>
+                            <g transform="rotate(270)"><path d="M0,0 L-1.2,-9 L1.2,-9 Z" fill="#999" /><circle cx="0" cy="-13" r="2.8" fill="#28a745" /></g>
+                            <circle cx="0" cy="0" r="1.5" fill="#fff" />
+                        </g>
+                    </svg>
+                `;
                 if (context === 'splash') return html`<div class="logo-stack-splash"><div class="splash-icon-wrapper">${svgIcon}</div><div class="splash-text">CarTiMapper</div><div class="splash-version">${appVersion}</div></div>`;
-                if (context === 'status') return html`<div style="display: flex; align-items: center;"><div style="width: 24px; height: 16px; display: flex; align-items: center; margin-right: 4px;">${svgIcon}</div><span style="font-size: 0.8rem; color: #444; letter-spacing: -0.3px; font-weight: 600;">CarTiMapper</span><span style="font-size: 0.6rem; color: #888; margin-left: 3px;">${appVersion}</span></div>`;
+                if (context === 'status') return html`<div style="display: flex; align-items: center; gap: 4px;"><div style="width: 24px; height: 16px; display: flex; align-items: center;">${svgIcon}</div><span style="font-size: 0.8rem; color: #444; letter-spacing: -0.3px;">CarTiMapper</span><span style="font-size: 0.6rem; color: #888; margin-left: 4px;">${appVersion}</span></div>`;
                 return html`<div class="logo-horizontal-about" style="flex-direction: column; align-items: flex-start; gap: 10px;"><div style="width: 200px; height: auto;">${svgIcon}</div></div>`;
             };
 
@@ -1602,7 +1620,7 @@
 
                     ${!status.active ? html`
                         <div class="loading-screen ${status.isFading ? 'fade-out' : ''}">
-                            <${CarTiMapperLogo} context="splash" appVersion=${APP_VERSION || 'v6.4.15'} />
+                            <${CarTiMapperLogo} context="splash" appVersion=${APP_VERSION || 'v6.4.16'} />
                             <div class="loading-bar-container"><div class="loading-bar-fill" style="width: ${status.progress}%;"></div></div>
                         </div>
                     ` : ''}
@@ -1614,8 +1632,7 @@
                                 <div class="visual-pane ${hasMedia ? '' : 'no-media'}">
                                     <div class="map-pane">
                                         <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} maxAutoZoom=${maxAutoZoom} />
-                                        
-                                        <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} appVersion=${APP_VERSION || 'v6.4.15'} moduleVersions=${{Globals: 'v1.0.52', Styles: 'v4.11.0'}} />
+                                        <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} appVersion=${APP_VERSION || 'v6.4.16'} moduleVersions=${{Globals: 'v1.0.52', Styles: 'v4.11.0'}} />
                                     </div>
                                     <div class="resizer-dyn-secondary" onMouseDown=${startSecondaryResize}></div>
                                     <div class="media-pane">
@@ -1690,8 +1707,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.37.0';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.37.0 ] ===
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.38.0';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.38.0 ] ===
 
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
