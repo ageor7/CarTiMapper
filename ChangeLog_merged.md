@@ -1,6 +1,9 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
----
+
+### [v6.4.11]
+* **ContentSlider (v3.16.0) [UI-49]:** Deployed the "Hero Overhang" aesthetic. Wrapped the Sticky Header in a `max-width: 90ch` container, keeping the Date and Metadata elements visually anchored to the `75ch` narrative text column, while allowing long titles to elegantly expand past the reading margins.
+* **ContentSlider [UI-50]:** Restored the physical HTML DOM nodes for the `aboutModal` overlay, fixing a UI break where the About state triggered successfully but had no physical overlay to render.
 
 ### [v6.4.10]
 * **Documentation [PROT-01]:** Decoupled the ChangeLog back into a dedicated file. Embedded a strict protocol directive requiring all architectural and historical tracking to be delivered exclusively in isolated `.md` syntax blocks to prevent UI formatting corruption.
