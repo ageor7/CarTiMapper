@@ -1,7 +1,7 @@
 # CarTiMapper Engine Master Blueprint
 **Version:** v6.0.6| **Date:** April 2026
 
-## I. Engineering Protocols & Coding Rules
+## I.a Engineering Protocols & Coding Rules
 
 1. **[REF: DOC-01] Two-Tier Documentation (REF-TAGS):** Documentation is strictly bifurcated. The Master Blueprint contains the "Why" and "What" (Architecture, UI/UX Rules, Physics). The inline code comments contain the "How" (Mechanics, Loops, Variables). They are permanently interlinked using `[REF: TAG-NAME]` semantic anchors. **Zero duplication.**
 2. **Spreadsheet REF-TAGS:** Because Google Sheets does not support native code comments, REF-TAGs are securely injected into the ETL formula using `LET()` dummy variables (e.g., `_ref_map01, "[REF: MAP-01]..."`) to preserve the documentation pipeline without breaking mathematical execution.
@@ -11,7 +11,9 @@
 6. **No Default Bold/Capitalize:** We do not enforce `font-weight: bold` or `text-transform: uppercase` on narrative text through global CSS. The interface relies entirely on explicit manual HTML tags (e.g., `<b>`, `<strong>`) for emphasis.
 7. **True Font Loading:** When utilizing Google Fonts (especially for Greek Polytonic characters), we explicitly download all Regular (400) and Bold (700) weights and Italics etc. variations to ensure the browser never generates jagged "faux-bolds", "faux-italics" etc.
 * **[REF: ARCH-01] Two-Stage Data Pipeline:** To support dynamic on-the-fly re-rendering without network latency, the engine strictly separates raw data ingestion (`rawCsvRows`) from the compiled data state (`data`).
-
+## I.b Developer Protocol & Workflow Standards
+* **[REF: PROT-01] Documentation Supremacy:** No code patch, architectural adjustment, or bug fix is considered complete without its corresponding Master Blueprint and Changelog updates formatted in strict Markdown.
+* **[REF: PROT-02] Discuss First, Code Later:** The developer AI is strictly prohibited from generating or outputting code blocks without prior explicit authorization. The AI must first diagnose the issue, propose a clear architectural or procedural strategy, and wait for the user to grant the "go-ahead." This prevents fragmented patching, version drift, and the introduction of unrequested cosmetic changes.
 *(Added following v6.0.15 Audit)*
 
 7. **[REF: DOC-02] Architectural Block Taxonomy:** To eliminate cascading errors and enable risk-free surgical patching, the codebase is strictly categorized into visual and logical boundaries.
