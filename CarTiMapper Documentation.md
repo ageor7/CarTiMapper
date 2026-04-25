@@ -168,6 +168,9 @@
 * **[REF: UI-38] Rigid Minimap Math:** Forced DOM geometry update via `invalidateSize()` prior to calling bounding coordinates. The miniature overlay now strictly uses `fitBounds(..., { animate: false })` to instantly snap the frame to the geographic extent of the loaded dataset.
 * **[REF: UI-39] Text Pane Top-Dock:** The `ContentSlider` text pane was restructured to lock the Event Title and Smart Date to the ceiling (`position: sticky`). Contextual metadata has been moved to the top of the scrollable area, establishing strict geographic-first narrative hierarchy: Places (📍) stack natively above semantic Tags.
 * **[REF: UI-40] Tag SVG Injection:** Tags are now wrapped in CSS pills and rendered with a mathematically crisp inline `<svg>` icon, stylized with a golden-yellow stroke/fill (`#ffc107`) to mimic the native tag emoji without risking OS-dependent rendering failures.
+* **[REF: UI-39] Sticky Metadata Dock:** ContentSlider frozen header + Places & Tags at the top of the description.
+* **[REF: UI-40] Golden Tag UI:** Yellow SVG icons for tags.
+* **[REF: UI-43] Fixed-Geometry MiniMap:** Hard-locked to 160px for tablet portrait stability.
 
 ---
 
@@ -200,6 +203,8 @@
 * * **[REF: PERF-05] MarkerCluster Bulk Ingestion:** Completely eliminated the $O(N^2)$ CPU crash occurring during initial CSV data loading. The Leaflet MarkerCluster engine previously executed thousands of heavy geographic bound recalculations by ingesting pins one by one in a `forEach` loop. The engine now collects all parsed geometry into a silent `bulkClusterMarkers` array, executing `clusterLayer.addLayers()` exactly once to generate the grid instantly.
 * **[REF: PERF-02 & 04] Decoupled Map State:** Implemented the $O(1)$ marker tracker and the $100ms$ state clutch (`debouncedIndex`). Leaflet now ignores high-speed navigation spam, isolating heavy DOM manipulations (pin extraction/CSS repainting) and camera flights (`map.stop()`) to intentional user pauses.
 * **[REF: PERF-06] Canvas Memory Leak Assassination:** The `TimelineScrubber` previously instantiated a new HTML `<canvas>` element and extracted its `2d` context every single time it needed to measure word pixel-widths for smart label wrapping. During the initial data boot, this created a catastrophic memory leak of over 40,000 abandoned DOM nodes, freezing the browser. The engine now instantiates a single, persistent `canvasCtxRef` globally and reuses it for all mathematical width measurements, dropping timeline initialization overhead to near-zero.
+* **[REF: PERF-06] Canvas Singleton Hoisting:** The `TimelineScrubber` measurement engine is now a top-level singleton. This resolves the catastrophic initialization hang by preventing the creation of ~40,000 canvas nodes.
+* **[REF: PERF-07] Scoped Utility Resilience:** `safeStripHTML` is local to components to prevent ReferenceErrors.
 
 ---
 
