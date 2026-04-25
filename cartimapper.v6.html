@@ -168,7 +168,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.3.10';
+        const APP_VERSION = 'v6.3.11';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -1257,7 +1257,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.16.0';
         // === [ END MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.34.1 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.35.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             
@@ -1299,6 +1299,36 @@
                     setActiveIndex(prev);
                 }
             };
+
+            // [FIX: UI-30] Global Keyboard Spatial Mapping (Future Search-Safe)
+            useEffect(() => {
+                const handleKeyDown = (e) => {
+                    if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+                    
+                    if (e.key === 'ArrowRight') {
+                        setActiveIndex(prev => {
+                            const newIndex = prev + 1;
+                            if (newIndex < data.length) {
+                                setSlideHistory(h => [...h, prev]);
+                                return newIndex;
+                            }
+                            return prev;
+                        });
+                    } else if (e.key === 'ArrowLeft') {
+                        setActiveIndex(prev => {
+                            const newIndex = prev - 1;
+                            if (newIndex >= 0) {
+                                setSlideHistory(h => [...h, prev]);
+                                return newIndex;
+                            }
+                            return prev;
+                        });
+                    }
+                };
+
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [data.length]);
 
             const startMapResize = (e) => {
                 e.preventDefault();
@@ -1513,7 +1543,7 @@
                 setData(finalData);
 
                 if (!hasInitializedRef.current) {
-                    const urlParams = new URLSearchParams(window.location.search);
+                    const urlParams = newSearchParams(window.location.search);
                     const paramSlide = urlParams.get('slide');
                     const paramDate = urlParams.get('date');
                     let initialIdx = 0;
@@ -1566,7 +1596,8 @@
                     </svg>
                 `;
                 if (context === 'splash') return html`<div class="logo-stack-splash"><div class="splash-icon-wrapper">${svgIcon}</div><div class="splash-text">CarTiMapper</div><div class="splash-version">${appVersion}</div></div>`;
-                if (context === 'status') return html`<div style="display: flex; align-items: center; gap: 6px;"><div style="width: 24px; height: 16px; display: flex; align-items: center;">${svgIcon}</div><span style="font-size: 0.8rem; color: #444; letter-spacing: -0.3px;">CarTiMapper</span><span style="font-size: 0.6rem; color: #888; margin-left: 4px;">${appVersion}</span></div>`;
+                // [FIX: UI-31] SVG Flex Math Alignment
+                if (context === 'status') return html`<div style="display: flex; align-items: baseline; gap: 0.4rem; padding-left: 10px; cursor: pointer;" onClick=${() => document.getElementById('aboutModal').style.display = 'flex'}><div style="width: 24px; height: 16px; display: flex; align-items: center; align-self: center;">${svgIcon}</div><span style="font-size: 0.8rem; color: #444; letter-spacing: -0.3px; font-weight: 600;">CarTiMapper</span><span style="font-size: 0.6rem; color: #888;">${appVersion}</span></div>`;
                 return html`<div class="logo-horizontal-about" style="flex-direction: column; align-items: flex-start; gap: 10px;"><div style="width: 200px; height: auto;">${svgIcon}</div></div>`;
             };
 
@@ -1588,11 +1619,25 @@
                                 </div>
                                 ${hasMedia ? html`<div class="resizer-h" onMouseDown=${startMapResize} onTouchStart=${startMapResize}></div>` : ''}
                                 <div class="media-pane" style="display: ${hasMedia ? 'flex' : 'none'};">
-                                    <${MediaViewer} activeSlide=${activeSlide} />
+                                    <${MediaViewer} activeSlide=${activeSlide} addLog=${addLog} />
                                 </div>
                             </div>
 
                             <div class="resizer-v" onMouseDown=${startTopResize} onTouchStart=${startTopResize}></div>
+                            
+                            <div class="app-header" style="position: absolute; top: 0; left: 0; right: 0; height: 35px; background: var(--paneBg, #fff); border-bottom: 1px solid rgba(128,128,128,0.2); z-index: 50; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                <div class="header-left">
+                                    <${CarTiMapperLogo} context="status" appVersion=${APP_VERSION} />
+                                </div>
+                                <div class="header-right" style="padding-right: 10px;">
+                                    <button class="icon-btn" onClick=${() => setIsSettingsOpen(true)} title="Settings" style="background: none; border: none; cursor: pointer; color: #666; display: flex; align-items: center; justify-content: center; padding: 4px;">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="3"></circle>
+                                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
                             
                             <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} jumpToSlide=${jumpToSlide} slideHistory=${slideHistory} goBack=${goBack} aboutData=${aboutData} isAboutOpen=${isAboutOpen} setIsAboutOpen=${setIsAboutOpen} isMonitorOpen=${isMonitorOpen} setIsMonitorOpen=${setIsMonitorOpen} isSettingsOpen=${isSettingsOpen} setIsSettingsOpen=${setIsSettingsOpen} CarTiMapperLogo=${CarTiMapperLogo} visibleTimeSpan=${visibleTimeSpan} />
                             
@@ -1642,8 +1687,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.34.1';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.34.1 ] ===
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.35.0';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.35.0 ] ===
 
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
