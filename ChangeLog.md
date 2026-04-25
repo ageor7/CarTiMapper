@@ -1,6 +1,15 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.3.9)
+MediaViewer (v2.8.0): * [FIX: MED-24] Refactored slides to use Flexbox Column layout. Captions dynamically sit at the absolute bottom of the screen, shrinking to their exact text height. Images scale up to perfectly fill the space left above them.
+
+[FIX: MED-23] Transferred click-zone geometry to the image wrapper. If an image is narrow, clicking the empty space beside it will now successfully scroll the carousel. Bound pointer-events: none to the physical image to prevent drag-ghosting during navigation clicks.
+
+Re-anchored the multi-image counter to the top right of the pane using position: absolute, ensuring it hovers cleanly over the media rather than pushing the image geometry downward.
+
+---
+
 Changelog (v6.3.8)
 MediaViewer (v2.7.0): * [FIX: MED-20] Removed invasive diagnostic HTML HUD. Piped array readouts purely into the addLog prop for global monitoring.
 
