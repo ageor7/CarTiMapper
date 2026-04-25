@@ -163,6 +163,7 @@
 * **[REF: UI-35] The Metadata Dock:** Geographic coordinates and semantic tags are physically separated from the prose and docked to the bottom of the text pane. Tags are passed through the Omni-Splitter (`/[\r\n]+|\\n/`) and wrapped in semantic CSS pill geometry (`border-radius: 12px;`). Locations stack natively above the tag rows to preserve geographic primacy.
 * **[REF: UI-36] Layout Sandbox Restoration:** A rogue, globally injected `.app-header` node was physically removed from the `AppOrchestrator` DOM, restoring the pristine structural integrity of the `TopRow` flex container (Map & Media panes).
 * **[REF: UI-37] Unified Content Slider Polish:** The aesthetic text pane upgrades (Sticky Headers, Flex-Gravity Metadata Docks, and Semantic Tag Pills) were officially integrated into the core `ContentSlider` component. Resolution-independent SVG icons were hardcoded into the mapping arrays to guarantee crisp rendering across all OS environments and screen densities.
+* **[REF: UI-38] Dynamic Minimap Bounding:** The geographic boundaries of the Minimap overlay are now mathematically synchronized to the payload of the primary dataset. Rather than defaulting to a static global view, the engine calculates the maximum spatial extent (`bounds`) of all valid data points on initialization and executes a `pad(0.1)` boundary lock. This strictly frames the miniature overlay around the active region of interest.
 
 ---
 
@@ -189,4 +190,4 @@
 
 ## VIII. Core Engine & State Management
 * **[REF: PERF-01] Strict Mode Memory Leak Assassination:** The global keyboard spatial navigation engine (`AppOrchestrator`) was refactored to decouple history state mutation (`setSlideHistory`) from the active state update loop. By wrapping the side-effects in a mathematically pure `jumpToSlide` closure, we prevent recursive Virtual DOM re-renders. This permanently eliminates the catastrophic memory stack overflows that caused Firefox and mobile Chrome to crash during rapid arrow-key navigation.
-
+* **[REF: PERF-02] O(1) Spatial State Architecture:** The `MapViewer` component was overhauled to eliminate catastrophic DOM thrashing during rapid slide navigation. The previous `O(N)` rendering loop (which destroyed and re-initialized the HTML payload for every single marker in the cluster tree upon state change) has been replaced with a strict `O(1)` index tracker (`prevActiveIndexRef`). The engine now calculates the mathematical delta, applying stylistic promotions/demotions exclusively to the `newIdx` and `prevIdx` marker objects, permanently resolving the browser memory/CPU crash during high-speed keyboard scrolling.
