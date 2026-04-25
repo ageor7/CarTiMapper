@@ -1,6 +1,14 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+### [v6.4.9]
+* **Documentation [PROT-01]:** Decoupled documentation into two distinct files (`Master Blueprint` and `ChangeLog`). Appended a strict directive requiring all documentation to be delivered exclusively in `.md` format.
+* **ContentSlider (v3.14.0) [UI-39]:** Reordered the Sticky Header. The visual hierarchy now explicitly presents Date, Places, and Tags *above* the Event Title. Compressed padding to shrink-wrap the header and maximize reading space.
+* **ContentSlider [UI-47]:** Deployed the `75ch` Readability Clamp. Narrative descriptions dynamically center and restrict their maximum width on large desktop screens to prevent eye-tracking fatigue, keeping vertical scrolling intact.
+* **ContentSlider [UI-32]:** Patched the same-day Smart Date bug. `15:45 — 16:00` deltas now render cleanly without duplicating the calendar date.
+* **ContentSlider [UI-46]:** Shifted the `☰ Menu` button to the absolute left edge of the status bar. 
+* **AppOrchestrator (v1.35.1) [UI-46]:** Removed the hardcoded CSS gap from `CarTiMapperLogo` to align the version number flush with the text.
+
 #### [v6.4.8]
 ContentSlider (v3.11.0): * [FIX: UI-39] Consolidated the Title, Date, Place, and Tags into a unified Sticky Header. Right-aligned the Place and Tag metadata to save vertical space.
 
