@@ -1,6 +1,11 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+### [v6.4.13]
+* **AppOrchestrator (v1.36.1) [UI-52]:** Patched the rotation glitch. The application now actively tracks the `1024px` CSS boundary and mechanically resets all resizer variables to `50%` upon crossing it, preventing the panes from crushing during rotation or window-snapping.
+* **AppOrchestrator [UI-53]:** Fixed missing `activeSlide` prop assignment that was causing media to render as undefined. Engineered the Dynamic Collapse architecture. The Media pane and secondary drag-bar now entirely vanish when no media is present, granting `100%` of the quadrant to the Map.
+* **AppOrchestrator [UI-54]:** Restored the missing Timeline resizer bar, injecting "Bottom-Up" delta math to perfectly calculate container height changes.
+
 ### [v6.4.12]
 * **AppOrchestrator (v1.36.0) [UI-51]:** Deployed the "Reading Room" architectural layout. Replaced legacy hardcoded grid wrappers with dynamic CSS Flexbox media queries (`<style>` block injection). On screens wider than 1024px, the text pane dynamically snaps to the left column, while the Map and Media panes stack in the right column, maximizing screen real-estate.
 * **AppOrchestrator [UI-51]:** Engineered Fluid Dynamic Resizers. Primary and Secondary drag-bars instantly detect the browser's portrait/landscape mode and mathematically invert their axis tracking (X-delta vs Y-delta) on the fly, preventing navigation failure during responsive window scaling.
