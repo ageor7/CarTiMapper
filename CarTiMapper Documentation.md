@@ -161,6 +161,8 @@
 * **[REF: UI-32] Smart Date Deduplication:** The rendering engine actively parses Date objects to eliminate redundancy. Midnight timestamps (`00:00:00`) are stripped. Multi-day events sharing identical months and years collapse their duplicate strings (e.g., "15 - 18 Mar 1944") to optimize human chronological reading.
 * **[REF: UI-34] Sticky Flex-Headers:** The `EventDetails` text pane structurally separates the title/date from the description body using a `flex-direction: column` axis. The header enforces `position: sticky; top: 0;` ensuring chronological anchors remain visible while users scroll through deep textual descriptions.
 * **[REF: UI-35] The Metadata Dock:** Geographic coordinates and semantic tags are physically separated from the prose and docked to the bottom of the text pane. Tags are passed through the Omni-Splitter (`/[\r\n]+|\\n/`) and wrapped in semantic CSS pill geometry (`border-radius: 12px;`). Locations stack natively above the tag rows to preserve geographic primacy.
+* **[REF: UI-36] Layout Sandbox Restoration:** A rogue, globally injected `.app-header` node was physically removed from the `AppOrchestrator` DOM, restoring the pristine structural integrity of the `TopRow` flex container (Map & Media panes).
+* **[REF: UI-37] Unified Content Slider Polish:** The aesthetic text pane upgrades (Sticky Headers, Flex-Gravity Metadata Docks, and Semantic Tag Pills) were officially integrated into the core `ContentSlider` component. Resolution-independent SVG icons were hardcoded into the mapping arrays to guarantee crisp rendering across all OS environments and screen densities.
 
 ---
 
@@ -182,3 +184,9 @@
 * **[REF: DIAG-02] Metadata Manifest:** The Application 'About' Modal acts as a system manifest, exposing current URL parameters, usage instructions, and the active version footprint, separated cleanly from the core project description.
 * **[REF: CRASH-01] Library Polyfill Injection:** Deprecated dependencies (`wicket 1.3.8`) fail to support modern composite geometry strings (`GEOMETRYCOLLECTION`). The `MapViewer` implements a native string-interception polyfill that explicitly deconstructs `GEOMETRYCOLLECTION` wrappers and passes the isolated internal primitives through the parser.
 * **[REF: CRASH-02] React Prop Continuity:** Cross-component navigational functions (e.g., `jumpToSlide`) must be explicitly passed via React component props to prevent fatal unrecoverable ReferenceErrors inside isolated Modals.
+
+---
+
+## VIII. Core Engine & State Management
+* **[REF: PERF-01] Strict Mode Memory Leak Assassination:** The global keyboard spatial navigation engine (`AppOrchestrator`) was refactored to decouple history state mutation (`setSlideHistory`) from the active state update loop. By wrapping the side-effects in a mathematically pure `jumpToSlide` closure, we prevent recursive Virtual DOM re-renders. This permanently eliminates the catastrophic memory stack overflows that caused Firefox and mobile Chrome to crash during rapid arrow-key navigation.
+
