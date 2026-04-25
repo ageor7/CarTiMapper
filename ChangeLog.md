@@ -1,6 +1,15 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.3.7)
+MediaViewer (v2.6.3): * [FIX: MED-18] Upgraded the array flattening matrix to utilize the Omni-Splitter regex (/[\r\n]+|\\n/). This permanently resolves the concatenation bug caused by rogue carriage returns or escaped line-feed characters embedded in legacy CSV exports, ensuring arrays physically split into multiple slides.
+
+[FIX: MED-19] Restored the native anchor (<a>) wrappers to the mediaCaption (linking to the target media) and mediaCredit (linking to the source text). Kept the central <img> element unlinked to preserve carousel left/right navigation clicks.
+
+[DIAGNOSTICS] Deployed a high-contrast HUD to the bottom of the media pane specifically to track the rawMediaData string before it enters the flattening matrix, exposing upstream PapaParse injection artifacts.
+
+---
+
 Changelog (v6.3.5)
 MediaViewer (v2.6.1): * [FIX: MED-14] Reverted a fatal prop hallucination (data/activeIndex to activeSlide) that caused an absolute void render state. Implemented safe line-break (\n, \r\n) delimiter execution across media, caption, and credit data objects to preserve embedded comma structures.
 
