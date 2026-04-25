@@ -1,6 +1,13 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.4.0)
+MapViewer (v3.18.0): * [FIX: PERF-02] CRITICAL FIX: Resolved the major memory leak and UI freeze caused by Leaflet marker thrashing. The map now utilizes an O(1) state delta, updating only the two specific pins that need to change (the old active pin and the new active pin), leaving the rest of the cluster tree untouched. Map navigation is now instantaneous.
+
+[FIX: UI-38] Bound the miniMap.fitBounds() strictly to the dataset's geographic footprint, ensuring the miniature orientation map always contextualizes the user's actual theater of operations.
+
+---
+
 Changelog (v6.3.12)
 AppOrchestrator (v1.35.2): * [FIX: PERF-01] Patched a severe memory stack overflow. Keyboard arrow listeners now trigger a pure jumpToSlide function, preventing runaway React/Preact state loops from crashing browser tabs.
 
