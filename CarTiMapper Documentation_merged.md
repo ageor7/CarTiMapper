@@ -32,7 +32,11 @@
 1. **[REF: DOC-01] Two-Tier Documentation:** Master Blueprint contains "Why/What". Inline comments contain "How".
 2. **[REF: PROT-01] Documentation Supremacy:** No code patch is complete without Master Blueprint and ChangeLog updates. **Furthermore, all documentation must be delivered strictly in `.md` format.**
 3. **[REF: PROT-02] Discuss First, Code Later:** Mechanical loop: 1) Diagnose. 2) Propose. 3) Await "Go-Ahead".
-* **[REF: PROT-01] Documentation Supremacy & Strict MD Formatting:** No code patch, architectural adjustment, or bug fix is considered complete without its corresponding Master Blueprint and Changelog updates. **Furthermore, all documentation deliverables must be formatted strictly in isolated `.md` syntax blocks.** This protocol guarantees zero architectural drift and prevents UI formatting corruption across platforms.
+* **[REF: PROT-01] Documentation Supremacy & Strict MD Formatting:** No code patch, architectural adjustment, or bug fix is considered complete without its corresponding Master Blueprint and Changelog updates.
+* **[REF: PROT-01] Documentation Supremacy & Strict MD Formatting:** No code patch, architectural adjustment, or bug fix is considered complete without its corresponding Master Blueprint and Changelog updates. 
+**The developer AI must always provide these documentation updates strictly in isolated `.md` syntax blocks alongside every code delivery, WITHOUT being explicitly asked to.
+**This protocol guarantees zero architectural drift and prevents UI formatting corruption across platforms.
+
 ---
 
 ## II. Active Requirements Matrix
