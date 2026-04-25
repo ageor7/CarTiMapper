@@ -168,7 +168,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.4.12';
+        const APP_VERSION = 'v6.4.13';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -1303,7 +1303,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.16.0';
         // === [ END MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.36.0 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.36.1 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [rawCsvRows, setRawCsvRows] = useState([]);
@@ -1320,7 +1320,6 @@
             const [maxAutoZoom, setMaxAutoZoom] = useState(15);
             const [zoomLock, setZoomLock] = useState('auto'); 
             const [visibleTimeSpan, setVisibleTimeSpan] = useState('');
-            const hasInitializedRef = useRef(false);
             const appRef = useRef(null);
 
             const addLog = (msg, type = 'info') => setLogs(p => [...p, { time: new Date().toLocaleTimeString('en-US', { hour12: false }), msg, type }]);
@@ -1350,7 +1349,24 @@
                 return () => window.removeEventListener('keydown', handleKeyDown);
             }, [activeIndex, data.length]);
 
-            // [FIX: UI-51] Fluid Dynamic Resizers (Axis-Aware)
+            // [FIX: UI-52] Layout Boundary Reset Listener
+            useEffect(() => {
+                let wasDesktop = window.innerWidth >= 1024;
+                const handleResize = () => {
+                    const isDesktop = window.innerWidth >= 1024;
+                    if (isDesktop !== wasDesktop) {
+                        if (appRef.current) {
+                            appRef.current.style.setProperty('--primary-split', '50%');
+                            appRef.current.style.setProperty('--secondary-split', '50%');
+                            window.dispatchEvent(new Event('resize')); // Force Leaflet to wake up
+                        }
+                        wasDesktop = isDesktop;
+                    }
+                };
+                window.addEventListener('resize', handleResize);
+                return () => window.removeEventListener('resize', handleResize);
+            }, []);
+
             const startPrimaryResize = (e) => {
                 e.preventDefault();
                 const startX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -1388,6 +1404,24 @@
                     let pct = ((startVal + delta) / containerSize) * 100;
                     if (pct < 10) pct = 10; if (pct > 90) pct = 90;
                     appRef.current.style.setProperty('--secondary-split', `${pct}%`);
+                };
+                const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); window.dispatchEvent(new Event('resize')); };
+                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+            };
+
+            // [FIX: UI-54] Timeline Vertical Resizer Logic
+            const startTimelineResize = (e) => {
+                e.preventDefault();
+                const startY = e.touches ? e.touches[0].clientY : e.clientY;
+                const startHeight = appRef.current.querySelector('.timeline-pane').offsetHeight;
+                const containerHeight = appRef.current.offsetHeight;
+
+                const onMove = (e2) => {
+                    const currentY = e2.touches ? e2.touches[0].clientY : e2.clientY;
+                    const delta = currentY - startY; 
+                    let pct = ((startHeight - delta) / containerHeight) * 100;
+                    if (pct < 10) pct = 10; if (pct > 60) pct = 60;
+                    appRef.current.style.setProperty('--timeline-height', `${pct}%`);
                 };
                 const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); window.dispatchEvent(new Event('resize')); };
                 document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
@@ -1442,12 +1476,14 @@
                 setStatus({ text: 'Engine Ready', progress: 100, isFading: true, active: true });
             }, [rawCsvRows]);
 
-            // Removed aesthetic gap to sit flush
             const CarTiMapperLogo = ({ context, appVersion }) => {
                 const svgIcon = html`<svg viewBox="0 0 100 100" width="100%" height="100%"><polygon points="50,5 95,27.5 95,72.5 50,95 5,72.5 5,27.5" fill="none" stroke="#007acc" stroke-width="8"/><circle cx="50" cy="50" r="15" fill="#007acc"/><line x1="50" y1="50" x2="50" y2="15" stroke="#007acc" stroke-width="6"/><line x1="50" y1="50" x2="80" y2="65" stroke="#007acc" stroke-width="6"/></svg>`;
                 if (context === 'status') return html`<div style="display: flex; align-items: center;"><div style="width: 24px; height: 16px; display: flex; align-items: center; margin-right: 4px;">${svgIcon}</div><span style="font-size: 0.8rem; color: #444; letter-spacing: -0.3px; font-weight: 600;">CarTiMapper</span><span style="font-size: 0.6rem; color: #888; margin-left: 3px;">${appVersion}</span></div>`;
                 return html`<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;"><div style="width: 40px; height: 40px;">${svgIcon}</div><div style="font-weight: 800; color: #007acc; font-size: 1.5rem; letter-spacing: -0.5px;">CarTiMapper <span style="font-size: 0.8rem; color: #666; font-weight: normal; vertical-align: middle;">${appVersion}</span></div></div>`;
             };
+
+            const activeSlide = data[activeIndex];
+            const hasMedia = activeSlide && activeSlide.media && activeSlide.media.length > 0;
 
             return html`
                 <div id="tm-root">
@@ -1457,12 +1493,21 @@
                             --secondary-split: 50%;
                             --timeline-height: 20%;
                         }
-                        .core-viewports { display: flex; flex-grow: 1; height: calc(100% - var(--timeline-height)); width: 100%; overflow: hidden; }
+                        .core-viewports { display: flex; flex-grow: 1; height: calc(100% - var(--timeline-height) - 4px); width: 100%; overflow: hidden; }
                         .visual-pane { display: flex; overflow: hidden; }
-                        .resizer-dyn-primary { background: #eee; transition: background 0.2s; z-index: 10; flex-shrink: 0; }
-                        .resizer-dyn-primary:hover { background: #007acc; }
-                        .resizer-dyn-secondary { background: #eee; transition: background 0.2s; z-index: 10; flex-shrink: 0; }
-                        .resizer-dyn-secondary:hover { background: #007acc; }
+                        
+                        /* Dynamic Media Collapse Classes */
+                        .visual-pane.no-media .map-pane { height: 100% !important; width: 100% !important; }
+                        .visual-pane.no-media .resizer-dyn-secondary { display: none !important; }
+                        .visual-pane.no-media .media-pane { display: none !important; }
+
+                        .resizer-dyn-primary, .resizer-dyn-secondary, .resizer-dyn-timeline { 
+                            background: #eee; transition: background 0.2s; z-index: 10; flex-shrink: 0; 
+                        }
+                        .resizer-dyn-primary:hover, .resizer-dyn-secondary:hover, .resizer-dyn-timeline:hover { 
+                            background: #007acc; 
+                        }
+                        .resizer-dyn-timeline { height: 4px; width: 100%; cursor: row-resize; }
                         .content-slider-pane { background: var(--paneBg); overflow: hidden; }
 
                         /* Mobile / Portrait (Default) */
@@ -1494,13 +1539,13 @@
                         <div id="app-layout" ref=${appRef} style="display: flex; flex-direction: column; height: 100vh; width: 100vw;">
                             
                             <div class="core-viewports">
-                                <div class="visual-pane">
+                                <div class="visual-pane ${hasMedia ? '' : 'no-media'}">
                                     <div class="map-pane">
                                         <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} maxAutoZoom=${maxAutoZoom} />
                                     </div>
                                     <div class="resizer-dyn-secondary" onMouseDown=${startSecondaryResize}></div>
                                     <div class="media-pane">
-                                        <${MediaViewer} slide=${data[activeIndex]} />
+                                        <${MediaViewer} activeSlide=${activeSlide} />
                                     </div>
                                 </div>
                                 <div class="resizer-dyn-primary" onMouseDown=${startPrimaryResize}></div>
@@ -1508,8 +1553,10 @@
                                     <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} setIsAboutOpen=${setIsAboutOpen} setIsSettingsOpen=${setIsSettingsOpen} CarTiMapperLogo=${CarTiMapperLogo} visibleTimeSpan=${visibleTimeSpan} />
                                 </div>
                             </div>
+                            
+                            <div class="resizer-dyn-timeline" onMouseDown=${startTimelineResize}></div>
 
-                            <div class="timeline-pane" style="height: var(--timeline-height); border-top: 1px solid #ddd; flex-shrink: 0;">
+                            <div class="timeline-pane" style="height: var(--timeline-height); flex-shrink: 0;">
                                 <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} setVisibleTimeSpan=${setVisibleTimeSpan} />
                             </div>
                         </div>
@@ -1517,8 +1564,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.36.0';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.36.0 ] ===
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.36.1';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.36.1 ] ===
 
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
