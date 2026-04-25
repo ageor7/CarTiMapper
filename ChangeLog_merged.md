@@ -1,6 +1,11 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+### [v6.4.15]
+* **Full Application (Baseline Reconciliation):** Performed a forensic state-reconciliation against the `v6.3.10` baseline file. Successfully integrated the "Reading Room" layout architecture (v6.4.12), the Hero Overhang text pane (v6.4.11), and the Same-Day Smart Dates (v6.4.9) while completely restoring all original internal logic that was dropped during layout rewrites.
+* **AppOrchestrator (v1.37.0):** Restored the `status.isFading` class injection to reinstate smooth Splash Screen transitions. Corrected CSV mapping keys from `caption/credit` to `media caption/media credit` to match the exact v6.3.10 CSV schema and revive media text. Remounted the physical `SettingsModal` and `VibeMonitor` DOM nodes. Re-bound all 15 missing state variables and navigation props (`slideHistory`, `goBack`, `isAboutOpen`, etc.) to the `ContentSlider` execution node.
+* **ContentSlider (v3.17.0):** Refined the Smart Date logic, officially merging the legacy year/month deduplication logic (`15 - 18 Mar 1944`) with the new Same-Day time delta math (`15:45 — 16:00`). Restored the physical HTML blocks for the About Modal overlay, resolving the broken button trigger.
+
 ### [v6.4.14]
 * **AppOrchestrator (v1.36.2) [DATA-09]:** Restored missing `caption` and `credit` extraction logic inside the CSV mapping loop. Media metadata now correctly parses and renders alongside images.
 * **AppOrchestrator [DIAG-02]:** Repaired the About button visibility bug. Restored the `setAboutData` manifest injection that occurs post-fetch, ensuring the modal overlay correctly populates and renders.
