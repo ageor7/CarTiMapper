@@ -1,6 +1,15 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.4.5)
+Full File: Consolidated all experimental patches into a single stable build.
+
+Map: Fixed white-map tile bug via invalidateSize and bulk ingestion.
+
+Timeline: Fixed memory leak that crashed Firefox on load.
+
+---
+
 Changelog (v6.4.4)
 Project Management: * [FIX: PROT-01] Appended a strict Developer Protocol section to the Master Blueprint, legally binding the AI assistant to provide Markdown changelogs and architectural updates with every single code deployment.
 
