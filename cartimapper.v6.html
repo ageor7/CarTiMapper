@@ -168,7 +168,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.4.2';
+        const APP_VERSION = 'v6.4.3';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.53' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -693,46 +693,32 @@
         MODULE_VERSIONS['MediaViewer'] = 'v2.8.0';
         // === [ END MAJOR BLOCK: MediaViewer v2.8.0 ] ===
 
-        // === [ MAJOR BLOCK: ContentSlider v3.10.0 ] ===
+        // === [ MAJOR BLOCK: ContentSlider v3.11.0 ] ===
         const ContentSlider = ({ data, activeIndex, setActiveIndex, jumpToSlide, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo, visibleTimeSpan }) => {
             const slide = data[activeIndex];
             if (!slide) return null;
 
-            // [FIX: UI-32] Smart Date Deduplication Engine
+            // [FIX: UI-32] Smart Dates
             const formatSmartDate = (start, end) => {
                 if (!start || isNaN(start.getTime())) return 'Unknown Date';
-                
                 const formatOpts = { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' };
                 const sStr = start.toLocaleString('en-GB', formatOpts).replace(', 00:00', '').replace(' 00:00', '');
-                
                 if (!end || isNaN(end.getTime()) || start.getTime() === end.getTime()) return sStr;
-                
                 const eStr = end.toLocaleString('en-GB', formatOpts).replace(', 00:00', '').replace(' 00:00', '');
                 
-                const sParts = sStr.split(' ');
-                const eParts = eStr.split(' ');
-                
+                const sParts = sStr.split(' '); const eParts = eStr.split(' ');
                 if (sParts.length >= 3 && eParts.length >= 3) {
-                    if (sParts[2] === eParts[2] && sParts[1] === eParts[1]) {
-                        return `${sParts[0]} - ${eStr}`; // Same month & year
-                    }
-                    if (sParts[2] === eParts[2]) {
-                        return `${sParts[0]} ${sParts[1]} - ${eStr}`; // Same year
-                    }
+                    if (sParts[2] === eParts[2] && sParts[1] === eParts[1]) return `${sParts[0]} - ${eStr}`; 
+                    if (sParts[2] === eParts[2]) return `${sParts[0]} ${sParts[1]} - ${eStr}`; 
                 }
                 return `${sStr} — ${eStr}`;
             };
 
-            // [FIX: UI-33] Omni-Splitter applied to Tags for discrete pills
             const getParsedTags = (rawTagsArray) => {
                 if (!rawTagsArray || rawTagsArray.length === 0) return [];
-                const splitRegex = /[\r\n]+|\\n/;
-                let arr = [];
+                const splitRegex = /[\r\n]+|\\n/; let arr = [];
                 const rawData = Array.isArray(rawTagsArray) ? rawTagsArray : [rawTagsArray];
-                rawData.forEach(t => {
-                    if (typeof t === 'string') arr.push(...t.split(splitRegex));
-                    else arr.push(t);
-                });
+                rawData.forEach(t => { if (typeof t === 'string') arr.push(...t.split(splitRegex)); else arr.push(t); });
                 return arr.map(s => String(s).trim()).filter(Boolean);
             };
 
@@ -754,24 +740,18 @@
 
                         <div class="content-scroll-area" style="display: flex; flex-direction: column; min-height: 100%;">
                             
-                            <div style="flex-shrink: 0; position: sticky; top: 0; background: var(--paneBg, #ffffff); z-index: 10; padding: 1.5rem 2rem 0.5rem 2rem; border-bottom: 1px solid rgba(128,128,128,0.2);">
+                            <div style="flex-shrink: 0; position: sticky; top: 0; background: var(--paneBg, #ffffff); z-index: 10; padding: 1.5rem 2rem 1rem 2rem; border-bottom: 1px solid rgba(128,128,128,0.2); box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
                                 <h2 class="slide-title" style="margin: 0 0 0.5rem 0;" dangerouslySetInnerHTML=${{ __html: slide.title }}></h2>
                                 <div class="slide-date" style="font-weight: 600; color: #007acc; font-size: 0.9rem;">
                                     ${formatSmartDate(slide.startDate, slide.endDate)}
                                 </div>
-                            </div>
-
-                            <div style="flex-grow: 1; padding: 1rem 2rem 2rem 2rem; display: flex; flex-direction: column;">
-                                <div class="slide-desc" dangerouslySetInnerHTML=${{ __html: slide.description }}></div>
-                                
-                                <div style="flex-grow: 1;"></div>
 
                                 ${(hasLocation || tags.length > 0) ? html`
-                                    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px dashed rgba(128,128,128,0.3); display: flex; flex-direction: column; gap: 0.8rem;">
+                                    <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.6rem;">
                                         
                                         ${hasLocation ? html`
                                             <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
-                                                <span style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.08); color: var(--text-color, #444); padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; border: 1px solid rgba(128,128,128,0.15);">
+                                                <span style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.06); color: var(--text-color, #444); padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; border: 1px solid rgba(128,128,128,0.15);">
                                                     <span style="margin-right: 6px;">📍</span> ${slide.place}
                                                 </span>
                                             </div>
@@ -780,8 +760,8 @@
                                         ${tags.length > 0 ? html`
                                             <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
                                                 ${tags.map(tag => html`
-                                                    <span style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.08); color: var(--text-color, #444); padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; border: 1px solid rgba(128,128,128,0.15);">
-                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; opacity: 0.6;">
+                                                    <span style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.06); color: var(--text-color, #444); padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; border: 1px solid rgba(128,128,128,0.15);">
+                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="rgba(255, 193, 7, 0.2)" stroke="#ffc107" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
                                                             <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
                                                             <line x1="7" y1="7" x2="7.01" y2="7"></line>
                                                         </svg>
@@ -790,8 +770,13 @@
                                                 `)}
                                             </div>
                                         ` : ''}
+
                                     </div>
                                 ` : ''}
+                            </div>
+
+                            <div style="flex-grow: 1; padding: 1.5rem 2rem 2rem 2rem; display: flex; flex-direction: column;">
+                                <div class="slide-desc" dangerouslySetInnerHTML=${{ __html: slide.description }}></div>
                             </div>
                         </div>
                     </div>
@@ -799,14 +784,7 @@
                     <div class="unified-status-bar" style="flex-shrink: 0; z-index: 20;">
                         <div class="status-left">
                             ${aboutData ? html`<button class="status-btn" style="padding: 4px 10px; display: flex; align-items: center;" onClick=${() => setIsAboutOpen(true)}><${CarTiMapperLogo} context="status" appVersion=${APP_VERSION} /></button>` : ''}
-                            
-                            <button class="status-btn" onClick=${() => setIsSettingsOpen(true)} title="Settings" style="display: flex; align-items: center; justify-content: center; padding: 4px 8px;">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                                </svg>
-                            </button>
-                            
+                            <button class="status-btn" onClick=${() => setIsSettingsOpen(true)}>⚙️</button>
                             <button class="status-btn" onClick=${() => setIsMonitorOpen(!isMonitorOpen)}>Monitor</button>
                         </div>
                         <div class="status-center">
@@ -831,26 +809,13 @@
                     <div style="text-align: center; margin: 25px 0;">
                         <button class="status-btn" style="padding: 8px 16px; font-size: 0.9rem; background: #eee; color: #333; border: 1px solid #ccc;" onClick=${() => { jumpToSlide(0); setIsAboutOpen(false); }}>View overview as slide</button>
                     </div>
-
-                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 0.85rem; color: #666; font-family: monospace;">
-                        <div style="margin-bottom: 8px; color: #333;">CarTiMapper Core ${APP_VERSION}</div>
-                        <div style="margin-bottom: 8px;">URL Params: ${paramsList}</div>
-                        <div style="margin-bottom: 8px;">Data Source: ${aboutData ? aboutData.rawSource : 'None'}</div>
-                        <div style="margin-top: 15px; color: #333;">Usage Instructions:</div>
-                        <ul style="margin-top: 5px; padding-left: 20px;">
-                            <li>Scroll or swipe media to view galleries.</li>
-                            <li>Map and Timeline automatically sync to the active record.</li>
-                            <li>Timeline 🔓/🔒 locks automatic zooming during navigation.</li>
-                            <li>⚙️ adjusts spatial and temporal formatting.</li>
-                        </ul>
-                    </div>
                 </div>
             `;
         };
-        MODULE_VERSIONS['ContentSlider'] = 'v3.10.0';
-        // === [ END MAJOR BLOCK: ContentSlider v3.10.0 ] ===
+        MODULE_VERSIONS['ContentSlider'] = 'v3.11.0';
+        // === [ END MAJOR BLOCK: ContentSlider v3.11.0 ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v23.17.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -863,6 +828,14 @@
             const [containerHeight, setContainerHeight] = useState(200);
             const [viewLeftEdge, setViewLeftEdge] = useState(0);
 
+            // [FIX: PERF-06] The Single-Instance Canvas Engine (Eliminates 40k+ memory leak creations)
+            const canvasCtxRef = useRef(null);
+            if (!canvasCtxRef.current) {
+                const c = document.createElement('canvas');
+                canvasCtxRef.current = c.getContext('2d');
+                canvasCtxRef.current.font = '400 12px "Noto Sans", sans-serif'; 
+            }
+
             useEffect(() => {
                 const measure = () => { if (wrapperRef.current) setContainerHeight(wrapperRef.current.clientHeight); };
                 measure();
@@ -870,7 +843,6 @@
                 return () => window.removeEventListener('resize', measure);
             }, []);
 
-            // [FIX: TL-17] Omni-Splitter Tag Matrix: Intercepts and flattens newlines into discrete arrays
             const getParsedTags = (rawTagsArray) => {
                 if (!rawTagsArray || rawTagsArray.length === 0) return ['Untagged'];
                 const splitRegex = /[\r\n]+|\\n/;
@@ -887,7 +859,6 @@
             const tagPairs = [];
             data.forEach(d => {
                 if(!d.startDate || isNaN(d.startDate.getTime())) return;
-                // [FIX: TL-17] Applied Omni-Splitter to lane generation
                 const t = getParsedTags(d.tags);
                 t.forEach(tag => tagsMap.add(tag));
                 for(let i=0; i<t.length-1; i++) tagPairs.push([t[i], t[i+1]]);
@@ -923,12 +894,8 @@
             const renderMaxTime = maxTimeRaw + padMs;
             const renderTimeRange = renderMaxTime - renderMinTime;
 
-            const measureTextWidth = (text) => {
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-                context.font = '400 12px "Noto Sans", sans-serif'; 
-                return context.measureText(text).width;
-            };
+            // [FIX: PERF-06] Measure width using the single pre-warmed memory context
+            const measureTextWidth = (text) => canvasCtxRef.current.measureText(text).width;
 
             const formatLabelSmart = (titleStr) => {
                 const maxPx = 300; 
@@ -997,7 +964,6 @@
                 if (validData.length > 1 && wrapperRef.current && !dragRef.current.isDragging) {
                     if (activeIndex !== prevActiveIndexRef.current) {
                         prevActiveIndexRef.current = activeIndex;
-                        
                         if (zoomLock === 'hard') return; 
                         if (zoomLock === 'soft') setZoomLock('auto'); 
 
@@ -1006,7 +972,6 @@
                             if (activeDataIndex >= 0) {
                                 let startIdx = Math.max(0, activeDataIndex - 2);
                                 let endIdx = Math.min(validData.length - 1, activeDataIndex + 2);
-                                
                                 let clusterMin = validData[startIdx].startDate.getTime();
                                 let clusterMax = validData[endIdx].startDate.getTime();
                                 
@@ -1049,14 +1014,11 @@
                 const containerW = wrapperRef.current.clientWidth;
                 const scrollPos = wrapperRef.current.scrollLeft;
                 const currentTrackW = Math.max(containerW, containerW * zoomLevel);
-                
                 let anchorPx = scrollPos + (containerW / 2); 
                 if (centerType === 'mouse') anchorPx = scrollPos + eventX;
-
                 const centerPct = anchorPx / currentTrackW;
                 const newTrackW = Math.max(containerW, containerW * newZoom);
                 const newAnchorPx = centerPct * newTrackW;
-                
                 scrollTargetRef.current = newAnchorPx - (centerType === 'mouse' ? eventX : (containerW / 2));
                 setZoomLevel(newZoom);
             };
@@ -1116,8 +1078,6 @@
             const containerW = wrapperRef.current ? wrapperRef.current.clientWidth : 1000;
             const trackWidthPx = Math.max(containerW, containerW * zoomLevel);
             const visibleMs = renderTimeRange / zoomLevel;
-            const msPerPixel = renderTimeRange / trackWidthPx;
-            
             const targetMsPerMajorTick = (200 / containerW) * visibleMs; 
             const SECOND = 1000; const MINUTE = 60 * SECOND; const HOUR = 60 * MINUTE; 
             const DAY = 24 * HOUR; const MONTH = 30 * DAY; const YEAR = 365.25 * DAY;
@@ -1155,7 +1115,6 @@
             else if (activeScale.type === 'minute') { iterDate.setSeconds(0); iterDate.setMinutes(Math.floor(iterDate.getMinutes() / activeScale.step) * activeScale.step); }
 
             let safety = 0;
-            
             let expectedVisibleMinWithBuffer = renderMinTime + ((viewLeftEdge + 60) / trackWidthPx) * renderTimeRange;
             let firstVisibleMajorTickTime = null;
             let firstVisibleMajorTickPx = -1;
@@ -1163,7 +1122,6 @@
             while (iterDate.getTime() <= renderMaxTime && safety < 2000) {
                 safety++;
                 const t = iterDate.getTime();
-                
                 if (t >= renderMinTime) {
                     const pctLeft = ((t - renderMinTime) / renderTimeRange) * 100;
                     const currentTickPx = (pctLeft / 100) * trackWidthPx;
@@ -1226,7 +1184,6 @@
 
                         if (!hideMinor && gapPx > 15) { 
                             let minorLabel = '';
-                            
                             if (gapPx > 45) { 
                                 if (activeScale.minorType === 'year') minorLabel = minorIter.getFullYear();
                                 else if (activeScale.minorType === 'month') minorLabel = minorIter.toLocaleString('en-GB', { month: 'short' });
@@ -1234,7 +1191,6 @@
                                 else if (activeScale.minorType === 'hour' || activeScale.minorType === 'minute') minorLabel = minorIter.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
                                 else if (activeScale.minorType === 'second') minorLabel = minorIter.toLocaleString('en-GB', { second: '2-digit' }) + 's';
                             }
-
                             const labelHtml = minorLabel ? html`<div style="position: absolute; left: -20px; right: -20px; top: 7px; text-align: center; font-size: 0.6rem; color: #888;">${minorLabel}</div>` : '';
                             rulerTicks.push(html`<div style="position: absolute; left: ${mPct}%; top: 0; width: 1px; height: ${minorLabel ? '7px' : '5px'}; background: #aaa; z-index: 4;">${labelHtml}</div>`);
                         }
@@ -1251,12 +1207,9 @@
                 const hasDuration = (endPct - startPct) > 0.001;
                 
                 const isActive = globalIndex === activeIndex;
-
-                // [FIX: TL-17] Applied Omni-Splitter to marker span calculations
                 const activeTags = getParsedTags(item.tags);
                 const tagIndices = activeTags.map(t => orderedTags.indexOf(t)).filter(idx => idx !== -1);
                 
-                // Fallback geometry if tags array is entirely mismatched
                 const minIdx = tagIndices.length > 0 ? Math.min(...tagIndices) : 0;
                 const maxIdx = tagIndices.length > 0 ? Math.max(...tagIndices) : 0;
                 
@@ -1267,15 +1220,9 @@
                 let activeAnchor = '';
                 if (isActive) {
                     if (hasDuration) {
-                        activeAnchor = html`
-                            <div style="position: absolute; left: 0; top: 50%; height: ${distanceToAxis - (blockHeight / 2)}px; width: 2px; background: #007acc; z-index: 999;"></div>
-                            <div style="position: absolute; top: ${distanceToAxis - 16}px; left: 0; width: 100%; min-width: 2px; height: 16px; background: rgba(0,122,204,0.3); clip-path: polygon(0 0, 100% calc(100% - 5px), 100% 100%, 0 100%); filter: drop-shadow(0 2px 2px rgba(0,122,204,0.4)); z-index: 998;"></div>
-                        `;
+                        activeAnchor = html`<div style="position: absolute; left: 0; top: 50%; height: ${distanceToAxis - (blockHeight / 2)}px; width: 2px; background: #007acc; z-index: 999;"></div><div style="position: absolute; top: ${distanceToAxis - 16}px; left: 0; width: 100%; min-width: 2px; height: 16px; background: rgba(0,122,204,0.3); clip-path: polygon(0 0, 100% calc(100% - 5px), 100% 100%, 0 100%); filter: drop-shadow(0 2px 2px rgba(0,122,204,0.4)); z-index: 998;"></div>`;
                     } else {
-                        activeAnchor = html`
-                            <div style="position: absolute; left: 0; top: 50%; height: ${distanceToAxis - (blockHeight / 2)}px; width: 2px; background: #007acc; z-index: 999;"></div>
-                            <div style="position: absolute; top: ${distanceToAxis - 4}px; left: -3px; width: 6px; height: 6px; border-radius: 50%; background: #007acc; border: 1px solid #fff; z-index: 998; box-sizing: content-box;"></div>
-                        `;
+                        activeAnchor = html`<div style="position: absolute; left: 0; top: 50%; height: ${distanceToAxis - (blockHeight / 2)}px; width: 2px; background: #007acc; z-index: 999;"></div><div style="position: absolute; top: ${distanceToAxis - 4}px; left: -3px; width: 6px; height: 6px; border-radius: 50%; background: #007acc; border: 1px solid #fff; z-index: 998; box-sizing: content-box;"></div>`;
                     }
                 }
 
@@ -1292,16 +1239,12 @@
                 `;
             });
 
-            const timelineX = Math.round(zoomLevel) + 'x';
-
             return html`
                 <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;">
                     <div class="timeline-leaflet-controls">
                         <div class="timeline-leaflet-btn" onClick=${() => doManualZoom('in')} title="Zoom In">+</div>
-                        <div class="timeline-leaflet-text" title="1x fits all data to screen">${timelineX}</div>
-                        <div class="timeline-leaflet-btn" style="font-size: 1rem; color: ${zoomLock === 'hard' ? '#d32f2f' : '#666'};" onClick=${toggleHardLock} title="Toggle Auto-Zoom Lock">
-                            ${zoomLock === 'hard' ? '🔒' : '🔓'}
-                        </div>
+                        <div class="timeline-leaflet-text" title="1x fits all data to screen">${Math.round(zoomLevel)}x</div>
+                        <div class="timeline-leaflet-btn" style="font-size: 1rem; color: ${zoomLock === 'hard' ? '#d32f2f' : '#666'};" onClick=${toggleHardLock} title="Toggle Auto-Zoom Lock">${zoomLock === 'hard' ? '🔒' : '🔓'}</div>
                         <div class="timeline-leaflet-btn" onClick=${() => doManualZoom('out')} title="Zoom Out">-</div>
                     </div>
 
@@ -1321,8 +1264,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v23.16.0';
-        // === [ END MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
+        MODULE_VERSIONS['TimelineScrubber'] = 'v23.17.0';
+        // === [ END MAJOR BLOCK: TimelineScrubber v23.17.0 ] ===
 
         // === [ MAJOR BLOCK: AppOrchestrator v1.35.2 ] ===
         const App = () => {
