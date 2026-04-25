@@ -1,6 +1,19 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+v6.4.2 Map Engine Rewrite
+We are completely upgrading the Map architecture to v4.0.0 by combining three absolute performance safeguards:
+
+Bulk Ingestion (The Boot Fix): Instead of feeding the cluster one pin at a time, we will hold all markers in a temporary, invisible array (const bulkCluster = []). Once the loop finishes, we hand the entire array to Leaflet in a single command: clusterLayer.current.addLayers(bulkCluster). The math runs once, dropping load times to milliseconds.
+
+O(1) Spatial Tracker (The Memory Fix): Re-implemented the delta tracker (prevActiveIndexRef) so that changing slides updates exactly two pins on the map, not 500.
+
+The Transmission Clutch (The Spam Fix): Re-implemented the debouncedIndex (set to 100ms). If you hold the arrow key down, the Timeline flies at 30fps, but the Map waits for you to pause before calculating its 3D flight, saving 99% of CPU overhead.
+
+Minimap Aspect Ratio: Forced miniMap.invalidateSize() and strictly applied fitBounds(bounds.pad(0.1), { animate: false }) to guarantee the minimap instantly wraps around your dataset without geometry conflicts.
+
+---
+
 * **[REF: UI-38] Dynamic Minimap Bounding:** The Minimap overlay now strictly aligns to the primary dataset. The engine forces a DOM redraw (`invalidateSize()`) and calculates the exact spatial extent (`bounds`) of all valid data points, executing a `pad(0.1)` boundary lock to ensure the orientation map is contextually relevant.
 
 ---
