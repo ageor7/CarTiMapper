@@ -168,7 +168,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.3.10';
+        const APP_VERSION = 'v6.4.10';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -693,55 +693,117 @@
         MODULE_VERSIONS['MediaViewer'] = 'v2.8.0';
         // === [ END MAJOR BLOCK: MediaViewer v2.8.0 ] ===
 
-        // === [ MAJOR BLOCK: ContentSlider v3.9.2 ] ===
+        // === [ MAJOR BLOCK: ContentSlider v3.16.0 ] ===
         const ContentSlider = ({ data, activeIndex, setActiveIndex, jumpToSlide, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo, visibleTimeSpan }) => {
+            const [isMenuOpen, setIsMenuOpen] = useState(false);
             const slide = data[activeIndex];
             if (!slide) return null;
 
-            const formatSmartDate = (sD, eD) => {
-                if (!sD) return '';
-                const hasTime = (d) => d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0;
-                const fDate = (d) => {
-                    const opts = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
-                    if (hasTime(d)) { opts.hour = '2-digit'; opts.minute = '2-digit'; }
-                    return d.toLocaleString('en-GB', opts);
-                };
-                return `${fDate(sD)}${eD && sD.getTime() !== eD.getTime() ? ` - ${fDate(eD)}` : ''}`;
+            const formatSmartDate = (start, end) => {
+                if (!start || isNaN(start.getTime())) return 'Unknown Date';
+                const dateOpts = { day: 'numeric', month: 'short', year: 'numeric' };
+                const timeOpts = { hour: '2-digit', minute: '2-digit' };
+                
+                const sDate = start.toLocaleDateString('en-GB', dateOpts);
+                const sTime = start.toLocaleTimeString('en-GB', timeOpts).replace(/^00:00$/, '');
+                const sFull = sTime ? `${sDate}, ${sTime}` : sDate;
+
+                if (!end || isNaN(end.getTime()) || start.getTime() === end.getTime()) return sFull;
+
+                const eDate = end.toLocaleDateString('en-GB', dateOpts);
+                const eTime = end.toLocaleTimeString('en-GB', timeOpts).replace(/^00:00$/, '');
+
+                if (sDate === eDate) {
+                    if (sTime && eTime && sTime !== eTime) return `${sDate}, ${sTime} — ${eTime}`;
+                    return sFull; 
+                }
+                const eFull = eTime ? `${eDate}, ${eTime}` : eDate;
+                return `${sFull} — ${eFull}`;
             };
+
+            const getParsedTags = (rawTagsArray) => {
+                if (!rawTagsArray || rawTagsArray.length === 0) return [];
+                const splitRegex = /[\r\n]+|\\n/; let arr = [];
+                const rawData = Array.isArray(rawTagsArray) ? rawTagsArray : [rawTagsArray];
+                rawData.forEach(t => { if (typeof t === 'string') arr.push(...t.split(splitRegex)); else arr.push(t); });
+                return arr.map(s => String(s).trim()).filter(Boolean);
+            };
+
+            const tags = getParsedTags(slide.tags);
+            const hasLocation = slide.place && String(slide.place).trim() !== '';
 
             const goPrev = () => { if (activeIndex > 0) setActiveIndex(activeIndex - 1); };
             const goNext = () => { if (activeIndex < data.length - 1) setActiveIndex(activeIndex + 1); };
-
-            const urlParams = new URLSearchParams(window.location.search);
-            const paramsList = Array.from(urlParams.entries()).map(([k, v]) => `${k}=${v}`).join(' | ') || 'None';
+            const handlePaneClick = () => { if (isMenuOpen) setIsMenuOpen(false); };
 
             return html`
-                <div class="content-pane-wrapper">
-                    <div class="click-zone click-zone-left" onClick=${goPrev} title="Previous"></div>
-                    <div class="click-zone click-zone-right" onClick=${goNext} title="Next"></div>
+                <div class="content-pane-wrapper" style="display: flex; flex-direction: column; height: 100%;" onClick=${handlePaneClick}>
+                    
+                    <div style="position: relative; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column;">
+                        <div class="click-zone click-zone-left" onClick=${goPrev} title="Previous"></div>
+                        <div class="click-zone click-zone-right" onClick=${goNext} title="Next"></div>
 
-                    <div class="content-scroll-area">
-                        <div class="slide-container">
-                            <div class="slide-header-row">
-                                <div class="slide-date-container">
-                                    <div class="slide-date">${formatSmartDate(slide.startDate, slide.endDate)}</div>
+                        <div style="flex-shrink: 0; position: sticky; top: 0; background: var(--paneBg, #ffffff); z-index: 10; padding: 1.2rem 1.5rem 0.8rem 1.5rem; border-bottom: 1px solid rgba(128,128,128,0.2); box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; justify-content: center;">
+                            <div style="max-width: 90ch; width: 100%;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; margin-bottom: 0.8rem;">
+                                    
+                                    <div class="slide-date" style="font-weight: 400; color: #007acc; font-size: 0.9rem; padding-top: 2px;">
+                                        ${formatSmartDate(slide.startDate, slide.endDate)}
+                                    </div>
+                                    
+                                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px; max-width: 60%;">
+                                        ${hasLocation ? html`
+                                            <span style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.06); color: var(--text-color, #444); padding: 3px 10px; border-radius: 10px; font-size: 0.75rem; border: 1px solid rgba(128,128,128,0.15); text-align: right;">
+                                                <span style="margin-right: 4px;">📍</span> ${slide.place}
+                                            </span>
+                                        ` : ''}
+
+                                        ${tags.length > 0 ? html`
+                                            <div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px;">
+                                                ${tags.map(tag => html`
+                                                    <span style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.06); color: var(--text-color, #444); padding: 3px 10px; border-radius: 10px; font-size: 0.75rem; border: 1px solid rgba(128,128,128,0.15);">
+                                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="rgba(255, 193, 7, 0.2)" stroke="#ffc107" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;">
+                                                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                                                            <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                                                        </svg>
+                                                        <span style="white-space: nowrap;">${tag}</span>
+                                                    </span>
+                                                `)}
+                                            </div>
+                                        ` : ''}
+                                    </div>
                                 </div>
-                                <div class="slide-header-right">
-                                    <div class="tags-container">${slide.tags.map(t => html`<span class="tag-badge">${t}</span>`)}</div>
-                                    ${slide.place ? html`<div class="slide-place-badge">📍 ${slide.place}</div>` : ''}
-                                </div>
+
+                                <h2 class="slide-title" style="margin: 0; font-size: 1.4rem; line-height: 1.2;" dangerouslySetInnerHTML=${{ __html: slide.title }}></h2>
                             </div>
-                            <h2 class="slide-title" dangerouslySetInnerHTML=${{ __html: slide.title }}></h2>
-                            <div class="slide-desc" dangerouslySetInnerHTML=${{ __html: slide.description }}></div>
+                        </div>
+
+                        <div style="flex-grow: 1; padding: 1.5rem 2rem 2rem 2rem; display: flex; justify-content: center;">
+                            <div class="slide-desc" style="max-width: 75ch; width: 100%; font-size: 1.05rem; line-height: 1.6;" dangerouslySetInnerHTML=${{ __html: slide.description }}></div>
                         </div>
                     </div>
 
-                    <div class="unified-status-bar">
-                        <div class="status-left">
-                            ${aboutData ? html`<button class="status-btn" style="padding: 4px 10px; display: flex; align-items: center;" onClick=${() => setIsAboutOpen(true)}><${CarTiMapperLogo} context="status" appVersion=${APP_VERSION} /></button>` : ''}
-                            <button class="status-btn" onClick=${() => setIsSettingsOpen(true)}>⚙️</button>
-                            <button class="status-btn" onClick=${() => setIsMonitorOpen(!isMonitorOpen)}>Monitor</button>
+                    <div class="unified-status-bar" style="flex-shrink: 0; z-index: 20;">
+                        <div class="status-left" style="position: relative; display: flex; align-items: center; gap: 5px;">
+                            
+                            <button class="status-btn" onClick=${(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen); }}>
+                                <span style="font-size: 1.2rem; line-height: 1;">☰</span>
+                            </button>
+
+                            ${isMenuOpen ? html`
+                                <div style="position: absolute; bottom: calc(100% + 5px); left: 0; background: var(--paneBg, #fff); border: 1px solid rgba(128,128,128,0.2); border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); padding: 5px 0; min-width: 140px; z-index: 1000;" onClick=${e => e.stopPropagation()}>
+                                    <div style="padding: 10px 15px; cursor: pointer; border-bottom: 1px solid rgba(128,128,128,0.1); display: flex; align-items: center; gap: 8px; font-size: 0.85rem;" onClick=${() => { setIsSettingsOpen(true); setIsMenuOpen(false); }}>
+                                        <span>⚙️</span> Settings
+                                    </div>
+                                    <div style="padding: 10px 15px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.85rem;" onClick=${() => { setIsMonitorOpen(!isMonitorOpen); setIsMenuOpen(false); }}>
+                                        <span>📊</span> Monitor
+                                    </div>
+                                </div>
+                            ` : ''}
+
+                            ${aboutData ? html`<button class="status-btn" style="padding: 4px; display: flex; align-items: center;" onClick=${() => setIsAboutOpen(true)}><${CarTiMapperLogo} context="status" appVersion=${APP_VERSION || 'v6.4.11'} /></button>` : ''}
                         </div>
+                        
                         <div class="status-center">
                             <button class="nav-btn-bottom" onClick=${goPrev} disabled=${activeIndex === 0}>◀ Prev</button>
                             <span class="semantic-time-span" title="Visible Time Span">${visibleTimeSpan || '...'}</span>
@@ -752,36 +814,20 @@
                             ${activeIndex + 1} / ${data.length}
                         </div>
                     </div>
-                </div>
 
-                <div class="modal-backdrop ${isAboutOpen ? 'open' : ''}" onClick=${() => setIsAboutOpen(false)}></div>
-                <div id="about-modal" class=${isAboutOpen ? 'open' : ''}>
-                    <button class="about-close" onClick=${() => setIsAboutOpen(false)}>×</button>
-                    <${CarTiMapperLogo} context="about" appVersion=${APP_VERSION} />
-                    
-                    <div dangerouslySetInnerHTML=${{__html: aboutData ? aboutData.description : ''}}></div>
-                    
-                    <div style="text-align: center; margin: 25px 0;">
-                        <button class="status-btn" style="padding: 8px 16px; font-size: 0.9rem; background: #eee; color: #333; border: 1px solid #ccc;" onClick=${() => { jumpToSlide(0); setIsAboutOpen(false); }}>View overview as slide</button>
+                    <div id="aboutModal" style="display: ${isAboutOpen ? 'flex' : 'none'}; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;" onClick=${() => setIsAboutOpen(false)}>
+                        <div style="background: #fff; width: 90%; max-width: 500px; padding: 25px; border-radius: 12px; position: relative;" onClick=${e => e.stopPropagation()}>
+                            <button onClick=${() => setIsAboutOpen(false)} style="position: absolute; top: 15px; right: 15px; border: none; background: none; font-size: 1.5rem; cursor: pointer;">×</button>
+                            <${CarTiMapperLogo} context="about" appVersion=${APP_VERSION || 'v6.4.11'} />
+                            <div style="margin-top: 20px; font-size: 0.95rem; line-height: 1.5; color: #444;" dangerouslySetInnerHTML=${{ __html: aboutData?.description }}></div>
+                        </div>
                     </div>
 
-                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 0.85rem; color: #666; font-family: monospace;">
-                        <div style="margin-bottom: 8px; color: #333;">CarTiMapper Core ${APP_VERSION}</div>
-                        <div style="margin-bottom: 8px;">URL Params: ${paramsList}</div>
-                        <div style="margin-bottom: 8px;">Data Source: ${aboutData ? aboutData.rawSource : 'None'}</div>
-                        <div style="margin-top: 15px; color: #333;">Usage Instructions:</div>
-                        <ul style="margin-top: 5px; padding-left: 20px;">
-                            <li>Scroll or swipe media to view galleries.</li>
-                            <li>Map and Timeline automatically sync to the active record.</li>
-                            <li>Timeline 🔓/🔒 locks automatic zooming during navigation.</li>
-                            <li>⚙️ adjusts spatial and temporal formatting.</li>
-                        </ul>
-                    </div>
                 </div>
             `;
         };
-        MODULE_VERSIONS['ContentSlider'] = 'v3.9.2';
-        // === [ END MAJOR BLOCK: ContentSlider v3.9.2 ] ===
+        MODULE_VERSIONS['ContentSlider'] = 'v3.16.0';
+        // === [ END MAJOR BLOCK: ContentSlider v3.16.0 ] ===
 
         // === [ MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan }) => {
@@ -1566,7 +1612,7 @@
                     </svg>
                 `;
                 if (context === 'splash') return html`<div class="logo-stack-splash"><div class="splash-icon-wrapper">${svgIcon}</div><div class="splash-text">CarTiMapper</div><div class="splash-version">${appVersion}</div></div>`;
-                if (context === 'status') return html`<div style="display: flex; align-items: center; gap: 6px;"><div style="width: 24px; height: 16px; display: flex; align-items: center;">${svgIcon}</div><span style="font-size: 0.8rem; color: #444; letter-spacing: -0.3px;">CarTiMapper</span><span style="font-size: 0.6rem; color: #888; margin-left: 4px;">${appVersion}</span></div>`;
+                if (context === 'status') return html`<div style="display: flex; align-items: center; gap: 4px;"><div style="width: 24px; height: 16px; display: flex; align-items: center;">${svgIcon}</div><span style="font-size: 0.8rem; color: #444; letter-spacing: -0.3px;">CarTiMapper</span><span style="font-size: 0.6rem; color: #888; margin-left: 4px;">${appVersion}</span></div>`;
                 return html`<div class="logo-horizontal-about" style="flex-direction: column; align-items: flex-start; gap: 10px;"><div style="width: 200px; height: auto;">${svgIcon}</div></div>`;
             };
 
