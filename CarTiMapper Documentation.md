@@ -171,6 +171,7 @@
 * **[REF: UI-39] Sticky Metadata Dock:** ContentSlider frozen header + Places & Tags at the top of the description.
 * **[REF: UI-40] Golden Tag UI:** Yellow SVG icons for tags.
 * **[REF: UI-43] Fixed-Geometry MiniMap:** Hard-locked to 160px for tablet portrait stability.
+* **[REF: UI-42] InvalidateSize Forcing:** Explicit map recalculation forced on initialization to guarantee base-tile rendering in all browser environments.
 
 ---
 
@@ -205,7 +206,9 @@
 * **[REF: PERF-06] Canvas Memory Leak Assassination:** The `TimelineScrubber` previously instantiated a new HTML `<canvas>` element and extracted its `2d` context every single time it needed to measure word pixel-widths for smart label wrapping. During the initial data boot, this created a catastrophic memory leak of over 40,000 abandoned DOM nodes, freezing the browser. The engine now instantiates a single, persistent `canvasCtxRef` globally and reuses it for all mathematical width measurements, dropping timeline initialization overhead to near-zero.
 * **[REF: PERF-06] Canvas Singleton Hoisting:** The `TimelineScrubber` measurement engine is now a top-level singleton. This resolves the catastrophic initialization hang by preventing the creation of ~40,000 canvas nodes.
 * **[REF: PERF-07] Scoped Utility Resilience:** `safeStripHTML` is local to components to prevent ReferenceErrors.
-
+* **[REF: PERF-08] Millisecond Chronology:** Parsing logic updated to support `ss.000` timestamp precision. Data sorting is now strictly calculated at the millisecond level to prevent positional flickering of simultaneous events.
+* **[REF: PERF-05] Bulk Cluster Ingestion:** Switched from iterative `addLayer()` calls to bulk `addLayers()`. This moves geographic cluster recalculation from $O(N^2)$ to a single $O(1)$ pass, resolving browser hangs on high-density datasets.
+* **[REF: PERF-06] Canvas Singleton Hoisting:** The `TimelineScrubber` measurement engine is now a global singleton, eliminating the creation of redundant DOM objects on load.
 ---
 
 ## IX. Developer Protocol & Workflow Standards
