@@ -161,18 +161,18 @@
 <body>
     <div id="root"></div>
     <script type="module">
-        // === [ MAJOR BLOCK: Imports & Globals v1.0.52 ] ===
+        // === [ MAJOR BLOCK: Imports & Globals v1.0.53 ] ===
         import { h, render, Component } from 'https://esm.sh/preact';
         import { useState, useEffect, useLayoutEffect, useRef } from 'https://esm.sh/preact/hooks';
         import htm from 'https://esm.sh/htm';
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.4.1';
+        const APP_VERSION = 'v6.4.2';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
+        const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.53' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
-        // === [ END MAJOR BLOCK: Imports & Globals v1.0.52 ] ===
+        // === [ END MAJOR BLOCK: Imports & Globals v1.0.53 ] ===
 
         // === [ MAJOR BLOCK: Utilities v1.0.0 ] ===
         const stripHTML = (htmlStr) => {
@@ -243,7 +243,7 @@
         };
         // === [ END MAJOR BLOCK: VibeMonitor v2.0.0 ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v3.18.0 ] ===
+        // === [ MAJOR BLOCK: MapViewer v4.0.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, mapLocale, maxAutoZoom }) => {
             const mapDomRef = useRef(null);
             const miniMapDomRef = useRef(null);
@@ -259,11 +259,18 @@
             const markersRef = useRef({}); 
             
             const hasFitBounds = useRef(false);
-            // [FIX: PERF-02] O(1) State Tracking Reference
+            
+            // [FIX: PERF-02] O(1) Tracker & Transmission Clutch
             const prevActiveIndexRef = useRef(-1);
+            const [debouncedIndex, setDebouncedIndex] = useState(activeIndex);
             
             const [mapZoom, setMapZoom] = useState(2);
             const [showGrid, setShowGrid] = useState(false);
+
+            useEffect(() => {
+                const timer = setTimeout(() => setDebouncedIndex(activeIndex), 100);
+                return () => clearTimeout(timer);
+            }, [activeIndex]);
 
             const createPinHtml = (isActive, isVip) => {
                 const color = isActive ? '#28a745' : (isVip ? '#ffb300' : '#007acc');
@@ -285,30 +292,20 @@
 
             const parseGeometryCollection = (wktStr) => {
                 const cleanStr = wktStr.trim().replace(/^GEOMETRYCOLLECTION\s*\(/i, '').replace(/\)\s*$/, '');
-                
-                let inParen = 0;
-                let currentGeom = '';
-                const geometries = [];
-                
+                let inParen = 0; let currentGeom = ''; const geometries = [];
                 for (let i = 0; i < cleanStr.length; i++) {
                     const char = cleanStr[i];
                     if (char === '(') inParen++;
                     if (char === ')') inParen--;
-                    
-                    if (char === ',' && inParen === 0) {
-                        geometries.push(currentGeom.trim());
-                        currentGeom = '';
-                    } else {
-                        currentGeom += char;
-                    }
+                    if (char === ',' && inParen === 0) { geometries.push(currentGeom.trim()); currentGeom = ''; } 
+                    else { currentGeom += char; }
                 }
                 if (currentGeom.trim()) geometries.push(currentGeom.trim());
                 
                 let extractedLayers = [];
                 geometries.forEach(geomStr => {
                     try {
-                        const wkt = new window.Wkt.Wkt();
-                        wkt.read(geomStr);
+                        const wkt = new window.Wkt.Wkt(); wkt.read(geomStr);
                         extractedLayers = extractedLayers.concat(extractLayers(wkt.toObject()));
                     } catch (e) {
                         const upper = geomStr.toUpperCase();
@@ -335,14 +332,11 @@
                     
                     const map = L.map(mapDomRef.current, { zoomControl: false }).setView([20, 0], initialZoom);
                     L.control.zoom({ position: 'topright' }).addTo(map);
-                    
                     L.control.scale({ position: 'bottomleft', imperial: true, metric: true }).addTo(map);
                     
                     map.on('zoomend', () => setMapZoom(map.getZoom()));
 
-                    tileLayerRef.current = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
-                        attribution: '© Esri & OSM' 
-                    }).addTo(map);
+                    tileLayerRef.current = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri & OSM' }).addTo(map);
                     
                     markerLayer.current = L.featureGroup().addTo(map);
                     clusterLayer.current = L.markerClusterGroup({ maxClusterRadius: 40, spiderfyOnMaxZoom: true }).addTo(map);
@@ -378,49 +372,25 @@
             useEffect(() => {
                 const map = mapInstance.current;
                 if (!map || !gridLayerRef.current) return;
-                
                 const updateGrid = () => {
                     gridLayerRef.current.clearLayers();
                     if (!showGrid) return;
-
                     const z = map.getZoom();
-                    let step = 20;
-                    if (z > 3) step = 10;
-                    if (z > 5) step = 5;
-                    if (z > 7) step = 1;
-                    if (z > 9) step = 0.5;
-                    if (z > 11) step = 0.1;
-                    if (z > 13) step = 0.05;
-                    if (z > 15) step = 0.01;
-
+                    let step = z > 15 ? 0.01 : z > 13 ? 0.05 : z > 11 ? 0.1 : z > 9 ? 0.5 : z > 7 ? 1 : z > 5 ? 5 : z > 3 ? 10 : 20;
                     const b = map.getBounds();
-                    const w = Math.floor(b.getWest() / step) * step - step;
-                    const e = Math.ceil(b.getEast() / step) * step + step;
-                    const s = Math.floor(b.getSouth() / step) * step - step;
-                    const n = Math.ceil(b.getNorth() / step) * step + step;
-
+                    const w = Math.floor(b.getWest() / step) * step - step; const e = Math.ceil(b.getEast() / step) * step + step;
+                    const s = Math.floor(b.getSouth() / step) * step - step; const n = Math.ceil(b.getNorth() / step) * step + step;
                     const style = { color: '#007acc', weight: 1, opacity: 0.25, dashArray: '2, 6', interactive: false };
-
-                    for (let lat = s; lat <= n; lat += step) {
-                        if (lat >= -90 && lat <= 90) L.polyline([[lat, w], [lat, e]], style).addTo(gridLayerRef.current);
-                    }
-                    for (let lng = w; lng <= e; lng += step) {
-                        L.polyline([[-90, lng], [90, lng]], style).addTo(gridLayerRef.current);
-                    }
+                    for (let lat = s; lat <= n; lat += step) { if (lat >= -90 && lat <= 90) L.polyline([[lat, w], [lat, e]], style).addTo(gridLayerRef.current); }
+                    for (let lng = w; lng <= e; lng += step) { L.polyline([[-90, lng], [90, lng]], style).addTo(gridLayerRef.current); }
                 };
-
                 updateGrid();
                 map.on('moveend', updateGrid);
                 return () => map.off('moveend', updateGrid);
             }, [showGrid]);
 
             useEffect(() => {
-                if (tileLayerRef.current) {
-                    const url = mapLocale === 'english'
-                        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'
-                        : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-                    tileLayerRef.current.setUrl(url);
-                }
+                if (tileLayerRef.current) tileLayerRef.current.setUrl(mapLocale === 'english' ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png');
             }, [mapLocale]);
 
             useEffect(() => {
@@ -431,8 +401,12 @@
                 markerLayer.current.clearLayers();
                 clusterLayer.current.clearLayers();
                 markersRef.current = {};
-                prevActiveIndexRef.current = -1; // Reset O(1) tracker on fresh data load
+                prevActiveIndexRef.current = -1; 
+                
                 let validMarkers = 0;
+                
+                // [FIX: PERF-05] Bulk Ingestion Array
+                const bulkClusterMarkers = [];
 
                 data.forEach((item, idx) => {
                     const locStr = String(item.location || '').trim();
@@ -441,14 +415,10 @@
                     let featureLayers = [];
 
                     try {
-                        if (locStr.match(/^GEOMETRYCOLLECTION/i)) {
-                            featureLayers = parseGeometryCollection(locStr);
-                        } else if (locStr.match(/^[A-Z]+\s*\(/)) {
-                            const wkt = new window.Wkt.Wkt(); wkt.read(locStr);
-                            featureLayers = extractLayers(wkt.toObject());
-                        } else if (locStr.startsWith('{') && locStr.includes('"type"')) {
-                            featureLayers = extractLayers(L.geoJSON(JSON.parse(locStr)));
-                        } else {
+                        if (locStr.match(/^GEOMETRYCOLLECTION/i)) { featureLayers = parseGeometryCollection(locStr); } 
+                        else if (locStr.match(/^[A-Z]+\s*\(/)) { const wkt = new window.Wkt.Wkt(); wkt.read(locStr); featureLayers = extractLayers(wkt.toObject()); } 
+                        else if (locStr.startsWith('{') && locStr.includes('"type"')) { featureLayers = extractLayers(L.geoJSON(JSON.parse(locStr))); } 
+                        else {
                             const coordMatch = locStr.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
                             if (coordMatch) featureLayers.push(L.marker([parseFloat(coordMatch[1]), parseFloat(coordMatch[2])]));
                         }
@@ -457,13 +427,9 @@
                         const isVip = String(item.priority).trim().toUpperCase() === 'VIP';
 
                         featureLayers.forEach((layer, layerIdx) => {
-                            if (layer instanceof L.Polygon) {
-                                layer.setStyle({ stroke: false, fillColor: '#007acc', fillOpacity: 0.4 });
-                            } else if (layer instanceof L.Polyline) {
-                                layer.setStyle({ color: '#007acc', weight: 2, dashArray: '5, 5' });
-                            } else if (layer.setStyle) {
-                                layer.setStyle({ color: '#007acc', weight: 4 });
-                            }
+                            if (layer instanceof L.Polygon) { layer.setStyle({ stroke: false, fillColor: '#007acc', fillOpacity: 0.4 }); } 
+                            else if (layer instanceof L.Polyline) { layer.setStyle({ color: '#007acc', weight: 2, dashArray: '5, 5' }); } 
+                            else if (layer.setStyle) { layer.setStyle({ color: '#007acc', weight: 4 }); }
 
                             if (layer instanceof L.Marker) {
                                 layer.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
@@ -474,29 +440,40 @@
                             layer.bindTooltip(labelText, { direction: 'top', offset: [0, -48], className: 'centered-tooltip' });
                             layer.on('click', () => setActiveIndex(idx));
 
-                            if (layer instanceof L.Marker && !isVip) clusterLayer.current.addLayer(layer); 
-                            else markerLayer.current.addLayer(layer); 
+                            // [FIX: PERF-05] Push to Bulk Array instead of rendering immediately
+                            if (layer instanceof L.Marker && !isVip) {
+                                bulkClusterMarkers.push(layer);
+                            } else {
+                                markerLayer.current.addLayer(layer); 
+                            }
 
                             activeLayersArray.push(layer);
                             validMarkers++;
                         });
 
                         if (activeLayersArray.length > 0) markersRef.current[idx] = activeLayersArray; 
-                    } catch(e) { console.error("Map Error Row", idx, e); }
+                    } catch(e) {}
                 });
+
+                // [FIX: PERF-05] Execute massive Leaflet math exactly once
+                if (bulkClusterMarkers.length > 0) {
+                    clusterLayer.current.addLayers(bulkClusterMarkers);
+                }
 
                 setTimeout(() => {
                     if (map && validMarkers > 0 && !hasFitBounds.current && !new URLSearchParams(window.location.search).get('mapzoom')) {
                         const bounds = L.latLngBounds();
                         markerLayer.current.eachLayer(l => { if (l.getLatLng) bounds.extend(l.getLatLng()); else if (l.getBounds) bounds.extend(l.getBounds()); });
                         clusterLayer.current.eachLayer(l => bounds.extend(l.getLatLng()));
+                        
                         if (bounds.isValid()) {
                             map.fitBounds(bounds, { padding: [30, 30], maxZoom: 6 });
-                            // [FIX: UI-38] Strict Minimap Bounding
+                            
+                            // [FIX: UI-38] Strict Minimap Frame
                             if (miniMap) {
                                 miniMap.invalidateSize();
-                                miniMap.fitBounds(bounds.pad(0.1));
-                                miniMap.setMaxBounds(bounds.pad(0.2));
+                                miniMap.fitBounds(bounds.pad(0.1), { animate: false });
+                                if (rectBoundsRef.current) rectBoundsRef.current.setBounds(map.getBounds());
                             }
                             hasFitBounds.current = true;
                         }
@@ -504,36 +481,29 @@
                 }, 150);
             }, [data]);
 
-            // [FIX: PERF-02] O(1) Mathematical Map State Updates + Flight Intercept
+            // O(1) Mathematical Map Update
             useEffect(() => {
                 const map = mapInstance.current;
                 const markers = markersRef.current;
                 if (!map || Object.keys(markers).length === 0) return;
 
                 const prevIdx = prevActiveIndexRef.current;
-                const newIdx = activeIndex;
+                const newIdx = debouncedIndex; 
 
-                // 1. Demote the previous active marker (O(1) operation)
+                // Demote old
                 if (prevIdx !== -1 && prevIdx !== newIdx && markers[prevIdx]) {
                     markers[prevIdx].forEach(l => {
-                        if (l instanceof L.Polygon) {
-                            l.setStyle({ stroke: false, fillColor: '#007acc', fillOpacity: 0.4 });
-                        } else if (l instanceof L.Polyline) {
-                            l.setStyle({ color: '#007acc', weight: 2, dashArray: '5, 5' });
-                        } else if (l instanceof L.Marker) {
+                        if (l instanceof L.Polygon) { l.setStyle({ stroke: false, fillColor: '#007acc', fillOpacity: 0.4 }); } 
+                        else if (l instanceof L.Polyline) { l.setStyle({ color: '#007acc', weight: 2, dashArray: '5, 5' }); } 
+                        else if (l instanceof L.Marker) {
                             l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
-                            if (!l.isVip) { 
-                                markerLayer.current.removeLayer(l); 
-                                clusterLayer.current.addLayer(l); 
-                            }
+                            if (!l.isVip) { markerLayer.current.removeLayer(l); clusterLayer.current.addLayer(l); }
                             l.setZIndexOffset(0);
-                        } else if (l.setStyle) {
-                            l.setStyle({ color: '#007acc', weight: 4 });
-                        }
+                        } else if (l.setStyle) { l.setStyle({ color: '#007acc', weight: 4 }); }
                     });
                 }
 
-                // 2. Promote the new active marker (O(1) operation)
+                // Promote new
                 if (markers[newIdx]) {
                     markers[newIdx].forEach(l => {
                         if (l instanceof L.Polygon) {
@@ -544,10 +514,7 @@
                             if (l.bringToFront) l.bringToFront();
                         } else if (l instanceof L.Marker) {
                             l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(true, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
-                            if (!l.isVip) { 
-                                clusterLayer.current.removeLayer(l); 
-                                markerLayer.current.addLayer(l); 
-                            }
+                            if (!l.isVip) { clusterLayer.current.removeLayer(l); markerLayer.current.addLayer(l); }
                             l.setZIndexOffset(1000);
                         } else if (l.setStyle) {
                             l.setStyle({ color: '#28a745', weight: 5 });
@@ -556,10 +523,8 @@
                     });
                 }
 
-                // 3. Update the tracker
                 prevActiveIndexRef.current = newIdx;
 
-                // 4. Hard Stop existing animations & Execute the new viewport camera flight
                 const activeLayers = markers[newIdx];
                 if (activeLayers && activeLayers.length > 0) {
                     const activeFeatureGroup = L.featureGroup(activeLayers);
@@ -567,14 +532,14 @@
                         try {
                             const bounds = activeFeatureGroup.getBounds();
                             if (bounds.isValid()) {
-                                map.stop(); // [FIX: PERF-03] Immediately terminate overlapping flight curves
+                                map.stop(); // Animation Brake
                                 map.flyToBounds(bounds, { animate: true, duration: 2.0, maxZoom: maxAutoZoom });
                             }
                             activeLayers.forEach(l => { if (l.openTooltip) l.openTooltip(); });
                         } catch(err) {}
                     }, 50);
                 }
-            }, [activeIndex, data, maxAutoZoom]);
+            }, [debouncedIndex, data, maxAutoZoom]);
 
             return html`
                 <div style="position: relative; width:100%; height:100%;">
@@ -587,8 +552,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.18.0';
-        // === [ END MAJOR BLOCK: MapViewer v3.18.0 ] ===
+        MODULE_VERSIONS['MapViewer'] = 'v4.0.0';
+        // === [ END MAJOR BLOCK: MapViewer v4.0.0 ] ===
 
         // === [ MAJOR BLOCK: MediaViewer v2.8.0 ] ===
         const MediaViewer = ({ activeSlide, addLog }) => {
