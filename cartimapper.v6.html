@@ -168,7 +168,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.3.13';
+        const APP_VERSION = 'v6.4.0';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -243,7 +243,7 @@
         };
         // === [ END MAJOR BLOCK: VibeMonitor v2.0.0 ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v3.17.0 ] ===
+        // === [ MAJOR BLOCK: MapViewer v3.18.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, mapLocale, maxAutoZoom }) => {
             const mapDomRef = useRef(null);
             const miniMapDomRef = useRef(null);
@@ -259,6 +259,9 @@
             const markersRef = useRef({}); 
             
             const hasFitBounds = useRef(false);
+            // [FIX: PERF-02] O(1) State Tracking Reference
+            const prevActiveIndexRef = useRef(-1);
+            
             const [mapZoom, setMapZoom] = useState(2);
             const [showGrid, setShowGrid] = useState(false);
 
@@ -372,7 +375,6 @@
                 }
             }, []);
 
-            // [FIX: MAP-GRID-01] Micro-Graticule Engine logic
             useEffect(() => {
                 const map = mapInstance.current;
                 if (!map || !gridLayerRef.current) return;
@@ -429,6 +431,7 @@
                 markerLayer.current.clearLayers();
                 clusterLayer.current.clearLayers();
                 markersRef.current = {};
+                prevActiveIndexRef.current = -1; // Reset O(1) tracker on fresh data load
                 let validMarkers = 0;
 
                 data.forEach((item, idx) => {
@@ -489,46 +492,73 @@
                         clusterLayer.current.eachLayer(l => bounds.extend(l.getLatLng()));
                         if (bounds.isValid()) {
                             map.fitBounds(bounds, { padding: [30, 30], maxZoom: 6 });
-                            miniMap.fitBounds(bounds, { padding: [5, 5] });
-                            baseZoomRef.current = map.getBoundsZoom(bounds);
+                            // [FIX: UI-38] Reduced Minimap Boundaries to strictly frame the active dataset.
+                            miniMap.fitBounds(bounds.pad(0.1)); 
+                            miniMap.setMaxBounds(bounds.pad(0.2)); 
+                            let baseZoomRef = map.getBoundsZoom(bounds);
                             hasFitBounds.current = true;
                         }
                     }
                 }, 150);
             }, [data]);
 
+            // [FIX: PERF-02] O(1) Mathematical Map State Updates
             useEffect(() => {
                 const map = mapInstance.current;
                 const markers = markersRef.current;
                 if (!map || Object.keys(markers).length === 0) return;
 
-                Object.keys(markers).forEach(idxStr => {
-                    const isTarget = parseInt(idxStr, 10) === activeIndex;
-                    markers[idxStr].forEach(l => {
+                const prevIdx = prevActiveIndexRef.current;
+                const newIdx = activeIndex;
+
+                // 1. Demote the previous active marker (O(1) operation)
+                if (prevIdx !== -1 && prevIdx !== newIdx && markers[prevIdx]) {
+                    markers[prevIdx].forEach(l => {
                         if (l instanceof L.Polygon) {
-                            l.setStyle({ stroke: false, fillColor: isTarget ? '#28a745' : '#007acc', fillOpacity: isTarget ? 0.6 : 0.4 });
-                            if (isTarget && l.bringToFront) l.bringToFront();
+                            l.setStyle({ stroke: false, fillColor: '#007acc', fillOpacity: 0.4 });
                         } else if (l instanceof L.Polyline) {
-                            l.setStyle({ color: isTarget ? '#28a745' : '#007acc', weight: isTarget ? 3 : 2, dashArray: '5, 5' });
-                            if (isTarget && l.bringToFront) l.bringToFront();
+                            l.setStyle({ color: '#007acc', weight: 2, dashArray: '5, 5' });
                         } else if (l instanceof L.Marker) {
-                            if (isTarget) {
-                                l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(true, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
-                                if (!l.isVip) { clusterLayer.current.removeLayer(l); markerLayer.current.addLayer(l); }
-                                l.setZIndexOffset(1000);
-                            } else {
-                                l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
-                                if (!l.isVip) { markerLayer.current.removeLayer(l); clusterLayer.current.addLayer(l); }
-                                l.setZIndexOffset(0);
+                            l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
+                            if (!l.isVip) { 
+                                markerLayer.current.removeLayer(l); 
+                                clusterLayer.current.addLayer(l); 
                             }
+                            l.setZIndexOffset(0);
                         } else if (l.setStyle) {
-                            l.setStyle({ color: isTarget ? '#28a745' : '#007acc', weight: isTarget ? 5 : 4 });
-                            if (isTarget && l.bringToFront) l.bringToFront();
+                            l.setStyle({ color: '#007acc', weight: 4 });
                         }
                     });
-                });
+                }
 
-                const activeLayers = markers[activeIndex];
+                // 2. Promote the new active marker (O(1) operation)
+                if (markers[newIdx]) {
+                    markers[newIdx].forEach(l => {
+                        if (l instanceof L.Polygon) {
+                            l.setStyle({ stroke: false, fillColor: '#28a745', fillOpacity: 0.6 });
+                            if (l.bringToFront) l.bringToFront();
+                        } else if (l instanceof L.Polyline) {
+                            l.setStyle({ color: '#28a745', weight: 3, dashArray: '5, 5' });
+                            if (l.bringToFront) l.bringToFront();
+                        } else if (l instanceof L.Marker) {
+                            l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(true, l.isVip), iconSize: [24, 34], iconAnchor: [12, 34] }));
+                            if (!l.isVip) { 
+                                clusterLayer.current.removeLayer(l); 
+                                markerLayer.current.addLayer(l); 
+                            }
+                            l.setZIndexOffset(1000);
+                        } else if (l.setStyle) {
+                            l.setStyle({ color: '#28a745', weight: 5 });
+                            if (l.bringToFront) l.bringToFront();
+                        }
+                    });
+                }
+
+                // 3. Update the tracker
+                prevActiveIndexRef.current = newIdx;
+
+                // 4. Execute the viewport camera animation
+                const activeLayers = markers[newIdx];
                 if (activeLayers && activeLayers.length > 0) {
                     const activeFeatureGroup = L.featureGroup(activeLayers);
                     setTimeout(() => {
@@ -552,8 +582,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.17.0';
-        // === [ END MAJOR BLOCK: MapViewer v3.17.0 ] ===
+        MODULE_VERSIONS['MapViewer'] = 'v3.18.0';
+        // === [ END MAJOR BLOCK: MapViewer v3.18.0 ] ===
 
         // === [ MAJOR BLOCK: MediaViewer v2.8.0 ] ===
         const MediaViewer = ({ activeSlide, addLog }) => {
