@@ -32,7 +32,7 @@
 1. **[REF: DOC-01] Two-Tier Documentation:** Master Blueprint contains "Why/What". Inline comments contain "How".
 2. **[REF: PROT-01] Documentation Supremacy:** No code patch is complete without Master Blueprint and ChangeLog updates. **Furthermore, all documentation must be delivered strictly in `.md` format.**
 3. **[REF: PROT-02] Discuss First, Code Later:** Mechanical loop: 1) Diagnose. 2) Propose. 3) Await "Go-Ahead".
-
+* **[REF: PROT-01] Documentation Supremacy & Strict MD Formatting:** No code patch, architectural adjustment, or bug fix is considered complete without its corresponding Master Blueprint and Changelog updates. **Furthermore, all documentation deliverables must be formatted strictly in isolated `.md` syntax blocks.** This protocol guarantees zero architectural drift and prevents UI formatting corruption across platforms.
 ---
 
 ## II. Active Requirements Matrix
@@ -121,6 +121,14 @@
 * **[REF: UI-40] Golden SVG Tag Identity:** Tags utilize a mathematically plotted inline `<svg>` path (`#ffc107`), overriding OS-level Emojis.
 * **[REF: UI-46] Left-Aligned Menu Dock:** Secondary tools (Settings, Monitor) are condensed into a single `☰ Menu` button absolutely anchored to the far-left of the status bar, freeing portrait space. The aesthetic CSS gap inside the About logo was eliminated to sit perfectly flush.
 * **[REF: UI-47] The 75ch Readability Clamp:** To prevent severe eye-fatigue on wide screens (without breaking vertical scrolling via CSS columns), the `.slide-desc` block is mathematically clamped to `max-width: 75ch` and horizontally centered.
+* **[REF: UI-32] Smart Date Deduplication (Same-Day Delta):** The formatting engine mathematically strips midnight `00:00:00` signatures. If an event begins and ends on the exact same Day/Month/Year but at different times, the engine isolates the time signature and outputs a clean temporal delta (e.g., `15:45 — 16:00`), entirely eliminating redundant calendar string generation.
+* **[REF: UI-39] Shrink-Wrapped Sticky Header (Direct-Child Architecture):** The `ContentSlider` enforces a strict geographic-first hierarchy. The DOM layout is mechanically forced to: **Date ➔ Places ➔ Tags ➔ Title**. 
+    * *The Physics:* Previously, the header failed to stick because it was housed inside an intermediate flex-wrapper that stretched infinitely. The DOM was refactored to make the header a *direct child* of the `overflow-y: auto` parent. This mechanically guarantees the header physically freezes at `top: 0` while the description body scrolls underneath it.
+    * *The Aesthetics:* Padding and margins are heavily compressed to absolute minimums, "shrink-wrapping" the content to maximize vertical reading real-estate.
+* **[REF: UI-40] Golden SVG Tag Identity:** Semantic Tags abandon native OS Emojis in favor of a mathematically plotted inline `<svg>` path. The vector is explicitly parameterized with a golden-yellow stroke and fill (`#ffc107`), universally rendering a flawless geometric identity across all browser engines.
+* **[REF: UI-46] Left-Aligned Menu Dock:** To preserve critical horizontal space for the central navigation arrows on narrow portrait screens, secondary utility tools (Settings, Monitor) are condensed into a single popover menu. The `☰ Menu` button is rigidly anchored to the absolute far-left edge of the status bar. The aesthetic CSS gap inside the `CarTiMapperLogo` component was eliminated so the version number sits perfectly flush alongside the logotype.
+* **[REF: UI-47] The 75ch Readability Clamp:** To prevent severe eye-tracking fatigue on massive wide-screen desktop displays (without resorting to CSS columns, which break vertical scrolling paradigms), the narrative description block (`.slide-desc`) is mathematically clamped to `max-width: 75ch`. The block automatically centers itself, preserving the natural vertical scroll while maintaining an optimal typographical line-length for human reading.
+* **[REF: UI-48] Typographical & Geometric Hierarchy:** To ensure the Event Title remains the dominant visual anchor, the Date string's `font-weight` is explicitly reduced to standard (`400`). Places and Tags are extracted into a dedicated Flexbox column strictly governed by `align-items: flex-end`. This forces the metadata badges to stack vertically flush against the right-hand container boundary, creating a clean geometric counter-weight to the left-aligned date.
 
 ---
 
