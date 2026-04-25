@@ -168,7 +168,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.3.8';
+        const APP_VERSION = 'v6.3.9';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -555,7 +555,7 @@
         MODULE_VERSIONS['MapViewer'] = 'v3.17.0';
         // === [ END MAJOR BLOCK: MapViewer v3.17.0 ] ===
 
-        // === [ MAJOR BLOCK: MediaViewer v2.7.0 ] ===
+        // === [ MAJOR BLOCK: MediaViewer v2.8.0 ] ===
         const MediaViewer = ({ activeSlide, addLog }) => {
             const carouselRef = useRef(null);
 
@@ -567,6 +567,7 @@
 
             if (!activeSlide || !activeSlide.media || activeSlide.media.length === 0) return null;
             
+            // The Omni-Splitter: Intercepts all newline variations safely
             const splitRegex = /[\r\n]+|\\n/;
             
             let mediaItems = [];
@@ -598,7 +599,7 @@
             });
             credits = credits.map(s => String(s).trim());
 
-            // [FIX: MED-20] HUD deleted. Diagnostics piped strictly to global application monitor.
+            // Global Telemetry Monitor
             useEffect(() => {
                 if (addLog) {
                     addLog(`[Media Viewer] Raw String: ${JSON.stringify(rawMediaData)}`);
@@ -616,65 +617,70 @@
                 return url;
             };
 
-            // [FIX: MED-21] Smart Click-Zone execution for left/right navigation
-            const handleImageClick = (e) => {
+            // Smart Spatial Click-Zone
+            const handleWrapperClick = (e) => {
                 if (!carouselRef.current || mediaItems.length <= 1) return;
-                const rect = e.target.getBoundingClientRect();
+                // e.currentTarget guarantees we measure the 100% width wrapper, not the image inside it
+                const rect = e.currentTarget.getBoundingClientRect(); 
                 const clickX = e.clientX - rect.left;
                 const direction = clickX < rect.width / 2 ? -1 : 1;
                 carouselRef.current.scrollBy({ left: direction * carouselRef.current.clientWidth, behavior: 'smooth' });
             };
 
-            const renderMedia = (rawUrl) => {
+            const renderMedia = (rawUrl, isMulti) => {
                 const url = rawUrl.trim();
 
                 if (url.toLowerCase().startsWith('<iframe')) {
-                    return html`<div dangerouslySetInnerHTML=${{ __html: url }} style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; pointer-events: auto;"></div>`;
+                    return html`<div dangerouslySetInnerHTML=${{ __html: url }} style="flex-grow: 1; width: 100%; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; pointer-events: auto;"></div>`;
                 }
 
                 if (url.includes('youtube.com') || url.includes('youtu.be')) {
                     const videoId = url.includes('v=') ? url.split('v=')[1].split('&')[0] : url.split('/').pop().split('?')[0];
-                    return html`<iframe src="https://www.youtube.com/embed/${videoId}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+                    return html`<div style="flex-grow: 1; width: 100%; min-height: 0; display: flex;"><iframe src="https://www.youtube.com/embed/${videoId}" style="width:100%; height:100%; border:none;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
                 }
 
                 if (url.includes('google.com/maps/embed') || url.includes('googleusercontent.com/maps')) {
-                     return html`<iframe src="${url}" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
+                     return html`<div style="flex-grow: 1; width: 100%; min-height: 0; display: flex;"><iframe src="${url}" style="width:100%; height:100%; border:none;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>`;
                 }
 
+                // [FIX: MED-23] Click-zone transferred to wrapper; flex-grow dynamically consumes available height
                 return html`
-                    <div style="display:flex; height:100%; width:100%; align-items:center; justify-content:center;">
-                        <img 
-                            src=${url} 
-                            alt="Media" 
-                            loading="lazy" 
-                            onClick=${handleImageClick}
-                            style="cursor: ${mediaItems.length > 1 ? 'ew-resize' : 'default'}; max-width: 100%; max-height: 100%; object-fit: contain;" 
-                        />
+                    <div 
+                        onClick=${isMulti ? handleWrapperClick : null}
+                        style="flex-grow: 1; display: flex; width: 100%; min-height: 0; align-items: center; justify-content: center; cursor: ${isMulti ? 'ew-resize' : 'default'};"
+                    >
+                        <img src=${url} alt="Media" loading="lazy" style="max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: none;" />
                     </div>
                 `;
             };
 
-            // [FIX: MED-22] CSS scrollbar assassination blocks inserted natively
             return html`
                 <div style="position: relative; height: 100%; width: 100%;">
                     <style>
                         .media-carousel::-webkit-scrollbar { display: none !important; }
                     </style>
-                    <div class="media-carousel" ref=${carouselRef} style="scrollbar-width: none; -ms-overflow-style: none;">
+                    <div class="media-carousel" ref=${carouselRef} style="scrollbar-width: none; -ms-overflow-style: none; height: 100%; width: 100%; display: flex; overflow-x: auto; scroll-snap-type: x mandatory;">
                         ${mediaItems.map((rawUrl, i) => {
                             const cleanUrl = getCleanUrl(rawUrl);
                             const itemCaption = captions[i] || '';
                             const itemCredit = credits[i] || '';
+                            const isMulti = mediaItems.length > 1;
 
+                            // [FIX: MED-24] Flex-column gravity perfectly segregates dynamic text height from image bounds
                             return html`
-                                <div class="media-item" key=${i}>
-                                    ${mediaItems.length > 1 ? html`<div class="media-counter">${i + 1} / ${mediaItems.length}</div>` : ''}
-                                    <div class="media-content-wrapper">${renderMedia(rawUrl)}</div>
+                                <div class="media-item" key=${i} style="display: flex; flex-direction: column; height: 100%; width: 100%; flex-shrink: 0; position: relative; scroll-snap-align: start;">
+                                    
+                                    ${isMulti ? html`<div class="media-counter" style="position: absolute; top: 10px; right: 10px; z-index: 10; background: rgba(0,0,0,0.6); color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">${i + 1} / ${mediaItems.length}</div>` : ''}
+                                    
+                                    ${renderMedia(rawUrl, isMulti)}
                                     
                                     ${(itemCaption || itemCredit) ? html`
-                                        <div class="media-meta-box">
-                                            ${itemCaption ? html`<div class="media-caption"><a href=${cleanUrl} target="_blank" rel="noopener noreferrer">${itemCaption}</a></div>` : ''}
-                                            ${itemCredit ? html`<div class="media-credit"><a href=${itemCredit} target="_blank" rel="noopener noreferrer">${itemCredit}</a></div>` : ''}
+                                        <div class="media-meta-box" style="flex-shrink: 0; width: 100%;">
+                                            ${itemCaption ? html`<div class="media-caption"><a href=${cleanUrl !== '#' ? cleanUrl : '#'} target=${cleanUrl !== '#' ? '_blank' : ''} rel="noopener noreferrer">${itemCaption}</a></div>` : ''}
+                                            <div style="display: flex; align-items: center; width: 100%; margin-top: 2px;">
+                                                ${itemCredit ? html`<div class="media-credit"><a href=${itemCredit} target="_blank" rel="noopener noreferrer">${itemCredit}</a></div>` : ''}
+                                                ${cleanUrl !== '#' ? html`<a href=${cleanUrl} target="_blank" rel="noopener noreferrer" title="Open source media" style="color: #8be9fd; text-decoration: none; font-size: 0.9rem; margin-left: auto; letter-spacing: 1px;">[↗]</a>` : ''}
+                                            </div>
                                         </div>
                                     ` : ''}
                                 </div>
@@ -684,8 +690,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MediaViewer'] = 'v2.7.0';
-        // === [ END MAJOR BLOCK: MediaViewer v2.7.0 ] ===
+        MODULE_VERSIONS['MediaViewer'] = 'v2.8.0';
+        // === [ END MAJOR BLOCK: MediaViewer v2.8.0 ] ===
 
         // === [ MAJOR BLOCK: ContentSlider v3.9.2 ] ===
         const ContentSlider = ({ data, activeIndex, setActiveIndex, jumpToSlide, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo, visibleTimeSpan }) => {
