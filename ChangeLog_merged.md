@@ -1,6 +1,11 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+### ChangeLog [v6.4.16]
+* **AppOrchestrator (v1.38.0) [MED-11]:** Replaced legacy comma-based `.split(/[;,]\s+/)` logic with the Omni-Splitter (`/[\r\n]+|\\n/`). Media, Captions, and Credits now strictly delimit via new-lines, preventing URLs containing commas from fracturing.
+* **AppOrchestrator:** Resolved the persistent metadata loss bug by physically mapping `media caption` and `media credit` to `mediaCaption` and `mediaCredit` inside the compiled JSON array, perfectly matching the required prop schema for the `MediaViewer` rendering loop.
+* **AppOrchestrator:** Fully restored the original, mathematically complex SVG vector for the `CarTiMapperLogo`, abandoning the primitive triangle placeholder. Reapplied the 4px aesthetic spacing.
+
 ### [v6.4.15]
 * **Full Application (Baseline Reconciliation):** Performed a forensic state-reconciliation against the `v6.3.10` baseline file. Successfully integrated the "Reading Room" layout architecture (v6.4.12), the Hero Overhang text pane (v6.4.11), and the Same-Day Smart Dates (v6.4.9) while completely restoring all original internal logic that was dropped during layout rewrites.
 * **AppOrchestrator (v1.37.0):** Restored the `status.isFading` class injection to reinstate smooth Splash Screen transitions. Corrected CSV mapping keys from `caption/credit` to `media caption/media credit` to match the exact v6.3.10 CSV schema and revive media text. Remounted the physical `SettingsModal` and `VibeMonitor` DOM nodes. Re-bound all 15 missing state variables and navigation props (`slideHistory`, `goBack`, `isAboutOpen`, etc.) to the `ContentSlider` execution node.
