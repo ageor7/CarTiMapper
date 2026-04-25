@@ -1,6 +1,9 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+### ChangeLog [v6.4.21]
+* **AppOrchestrator (v1.39.2) [UI-61]:** Added `touch-action: none;` CSS physical override to all resizer elements. This successfully intercepts and blocks native Android browser scroll hijacking, unlocking perfectly fluid touch-drag resizing on tablet and mobile hardware.
+
 ### ChangeLog [v6.4.18]
 * **ContentSlider (v3.17.2) [UI-58]:** Compressed the visual boundary between the sticky header metadata and the primary description body by reducing top padding to `0.2rem`.
 * **MediaViewer (v2.9.0) [MED-25]:** Enhanced the native CSS media gallery swiping by injecting a `touchMove` telemetry lock. Sliding an image firmly blocks the Left/Right click-zones from triggering an accidental double-jump navigation.
