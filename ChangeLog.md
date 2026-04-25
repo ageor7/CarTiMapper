@@ -1,6 +1,15 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+Changelog (v6.4.2)
+AppOrchestrator (v1.35.0): High-precision date parsing added.
+
+MapViewer (v4.2.0): Performance optimized via bulk loading. White-map tiles bug resolved.
+
+TimelineScrubber (v23.18.0): Critical memory leak resolved.
+
+---
+
 Changelog (v6.4.5)
 Full File: Consolidated all experimental patches into a single stable build.
 
