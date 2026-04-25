@@ -168,7 +168,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.4.11';
+        const APP_VERSION = 'v6.4.12';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -1303,36 +1303,30 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.16.0';
         // === [ END MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.34.1 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.36.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
-            
             const [rawCsvRows, setRawCsvRows] = useState([]);
             const [data, setData] = useState([]);
             const [aboutData, setAboutData] = useState(null); 
             const [status, setStatus] = useState({ text: 'Initializing Engine...', progress: 10, isFading: false, active: false });
-            
             const [activeIndex, setActiveIndex] = useState(0); 
             const [slideHistory, setSlideHistory] = useState([]);
-            
             const [isMonitorOpen, setIsMonitorOpen] = useState(false); 
             const [isAboutOpen, setIsAboutOpen] = useState(false);
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-            
             const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
             const [mapLocale, setMapLocale] = useState('english');
             const [maxAutoZoom, setMaxAutoZoom] = useState(15);
-            
             const [zoomLock, setZoomLock] = useState('auto'); 
             const [visibleTimeSpan, setVisibleTimeSpan] = useState('');
-            
             const hasInitializedRef = useRef(false);
             const appRef = useRef(null);
 
             const addLog = (msg, type = 'info') => setLogs(p => [...p, { time: new Date().toLocaleTimeString('en-US', { hour12: false }), msg, type }]);
 
             const jumpToSlide = (newIdx, isSequential = false) => {
-                if (newIdx !== activeIndex) {
+                if (newIdx !== activeIndex && newIdx >= 0 && newIdx < data.length) {
                     if (!isSequential) setSlideHistory(prev => [...prev, activeIndex]);
                     setActiveIndex(newIdx);
                 }
@@ -1346,350 +1340,185 @@
                 }
             };
 
-            const startMapResize = (e) => {
+            useEffect(() => {
+                const handleKeyDown = (e) => {
+                    if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+                    if (e.key === 'ArrowRight') jumpToSlide(activeIndex + 1);
+                    else if (e.key === 'ArrowLeft') jumpToSlide(activeIndex - 1);
+                };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [activeIndex, data.length]);
+
+            // [FIX: UI-51] Fluid Dynamic Resizers (Axis-Aware)
+            const startPrimaryResize = (e) => {
                 e.preventDefault();
                 const startX = e.touches ? e.touches[0].clientX : e.clientX;
-                const mapNode = appRef.current.querySelector('.map-pane');
-                const startWidth = mapNode.offsetWidth;
-                const containerWidth = appRef.current.querySelector('.top-row').offsetWidth;
-                
+                const startY = e.touches ? e.touches[0].clientY : e.clientY;
+                const isDesktop = window.innerWidth >= 1024;
+                const containerNode = appRef.current.querySelector('.core-viewports');
+                const startVal = isDesktop ? appRef.current.querySelector('.content-slider-pane').offsetWidth : appRef.current.querySelector('.visual-pane').offsetHeight;
+                const containerSize = isDesktop ? containerNode.offsetWidth : containerNode.offsetHeight;
+
                 const onMove = (e2) => {
                     const currentX = e2.touches ? e2.touches[0].clientX : e2.clientX;
-                    let newWidth = startWidth + (currentX - startX);
-                    let pct = (newWidth / containerWidth) * 100;
+                    const currentY = e2.touches ? e2.touches[0].clientY : e2.clientY;
+                    const delta = isDesktop ? (currentX - startX) : (currentY - startY);
+                    let pct = ((startVal + delta) / containerSize) * 100;
+                    if (pct < 15) pct = 15; if (pct > 85) pct = 85;
+                    appRef.current.style.setProperty('--primary-split', `${pct}%`);
+                };
+                const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); window.dispatchEvent(new Event('resize')); };
+                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+            };
+
+            const startSecondaryResize = (e) => {
+                e.preventDefault();
+                const startX = e.touches ? e.touches[0].clientX : e.clientX;
+                const startY = e.touches ? e.touches[0].clientY : e.clientY;
+                const isDesktop = window.innerWidth >= 1024;
+                const containerNode = appRef.current.querySelector('.visual-pane');
+                const startVal = isDesktop ? appRef.current.querySelector('.map-pane').offsetHeight : appRef.current.querySelector('.map-pane').offsetWidth;
+                const containerSize = isDesktop ? containerNode.offsetHeight : containerNode.offsetWidth;
+
+                const onMove = (e2) => {
+                    const currentX = e2.touches ? e2.touches[0].clientX : e2.clientX;
+                    const currentY = e2.touches ? e2.touches[0].clientY : e2.clientY;
+                    const delta = isDesktop ? (currentY - startY) : (currentX - startX);
+                    let pct = ((startVal + delta) / containerSize) * 100;
                     if (pct < 10) pct = 10; if (pct > 90) pct = 90;
-                    appRef.current.style.setProperty('--map-width', `${pct}%`);
+                    appRef.current.style.setProperty('--secondary-split', `${pct}%`);
                 };
-                const onUp = () => { 
-                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
-                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); 
-                    window.dispatchEvent(new Event('resize')); 
-                };
+                const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); window.dispatchEvent(new Event('resize')); };
                 document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
-                document.addEventListener('touchmove', onMove); document.addEventListener('touchend', onUp);
-            };
-
-            const startTopResize = (e) => {
-                e.preventDefault();
-                const startY = e.touches ? e.touches[0].clientY : e.clientY;
-                const topNode = appRef.current.querySelector('.top-row');
-                const startHeight = topNode.offsetHeight;
-                const containerHeight = appRef.current.offsetHeight;
-                
-                const onMove = (e2) => {
-                    const currentY = e2.touches ? e2.touches[0].clientY : e2.clientY;
-                    let newHeight = startHeight + (currentY - startY);
-                    let pct = (newHeight / containerHeight) * 100;
-                    if (pct < 10) pct = 10; if (pct > 80) pct = 80;
-                    appRef.current.style.setProperty('--top-height', `${pct}%`);
-                };
-                const onUp = () => { 
-                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
-                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); 
-                    window.dispatchEvent(new Event('resize')); 
-                };
-                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
-                document.addEventListener('touchmove', onMove); document.addEventListener('touchend', onUp);
-            };
-
-            const startTimelineResize = (e) => {
-                e.preventDefault();
-                const startY = e.touches ? e.touches[0].clientY : e.clientY;
-                const tlNode = appRef.current.querySelector('.timeline-pane');
-                const startHeight = tlNode.offsetHeight;
-                const containerHeight = appRef.current.offsetHeight;
-                
-                const onMove = (e2) => {
-                    const currentY = e2.touches ? e2.touches[0].clientY : e2.clientY;
-                    let newHeight = startHeight - (currentY - startY); 
-                    let pct = (newHeight / containerHeight) * 100;
-                    if (pct < 10) pct = 10; if (pct > 80) pct = 80;
-                    appRef.current.style.setProperty('--timeline-height', `${pct}%`);
-                };
-                const onUp = () => { 
-                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
-                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); 
-                    window.dispatchEvent(new Event('resize')); 
-                };
-                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
-                document.addEventListener('touchmove', onMove); document.addEventListener('touchend', onUp);
             };
 
             useEffect(() => {
                 const urlParams = new URLSearchParams(window.location.search);
-                const paramTheme = urlParams.get('theme');
-                
-                if (paramTheme === 'dark') {
-                    document.documentElement.style.setProperty('--bg', '#121212');
-                    document.documentElement.style.setProperty('--text', '#fcfcfc');
-                    document.documentElement.style.setProperty('--paneBg', '#222');
-                    TM_CONFIG.paneBackground = '#222';
-                }
-
-                document.documentElement.style.setProperty('--paneBg', TM_CONFIG.paneBackground);
-                addLog(`CarTiMapper Engine Boot Sequence Initiated.`, 'info');
-                
                 const gid = urlParams.get('gid') || '0'; 
-                const defaultDb = '1kdgGiHNDsIZrn8Z1aqWXrEEYKMGxLAqFiwATx3aqbJI';
-                const rawSource = urlParams.get('source') || defaultDb;
-                let fetchUrl = rawSource;
+                const source = urlParams.get('source') || '1kdgGiHNDsIZrn8Z1aqWXrEEYKMGxLAqFiwATx3aqbJI';
+                const fetchUrl = `https://docs.google.com/spreadsheets/d/${source}/gviz/tq?tqx=out:csv&gid=${gid}`;
 
-                if (fetchUrl.includes('http')) {
-                    if (fetchUrl.includes('/e/2PACX')) fetchUrl = fetchUrl.split('/pub')[0] + '/pub?output=csv';
-                    else if (fetchUrl.includes('/d/')) fetchUrl = `https://docs.google.com/spreadsheets/d/${fetchUrl.match(/\/d\/([a-zA-Z0-9-_]+)/)[1]}/gviz/tq?tqx=out:csv&gid=${gid}`;
-                } else {
-                    fetchUrl = fetchUrl.startsWith('2PACX') ? `https://docs.google.com/spreadsheets/d/e/${fetchUrl}/pub?output=csv&gid=${gid}` : `https://docs.google.com/spreadsheets/d/${fetchUrl}/gviz/tq?tqx=out:csv&gid=${gid}`;
-                }
-
-                setStatus({ text: 'Fetching Source Data...', progress: 40, isFading: false, active: false });
-                
-                fetch(fetchUrl).then(res => {
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    return res.text();
-                }).then(csvText => {
-                    setStatus({ text: 'Parsing Timeline...', progress: 80, isFading: false, active: false });
-                    
-                    Papa.parse(csvText, {
-                        header: true, skipEmptyLines: true,
-                        complete: (results) => {
-                            if (results.data.length === 0) return setStatus({ text: 'Empty Dataset Error', progress: 0, isFading: false, active: false });
-                            
-                            const exactGet = (normObj, key) => {
-                                const val = normObj[key];
-                                return val !== undefined && val !== null ? String(val).trim() : "";
-                            };
-
-                            const firstRowNorm = {};
-                            if (results.data[0]) {
-                                for (let k in results.data[0]) firstRowNorm[k.toLowerCase().trim()] = results.data[0][k];
-                            }
-                            
-                            setAboutData({ 
-                                title: exactGet(firstRowNorm, 'title') || 'About', 
-                                description: exactGet(firstRowNorm, 'description') || 'No project description provided.',
-                                rawSource: rawSource === defaultDb ? 'Default Master DB' : rawSource
-                            });
-
-                            setRawCsvRows(results.data);
-                        },
-                        error: (err) => { addLog(`Parse Error: ${err.message}`, 'error'); setStatus({ text: `Parse Failed: ${err.message}`, progress: 0, isFading: false, active: false }); }
-                    });
-                }).catch(err => { addLog(`Fetch failed: ${err.message}`, 'error'); setStatus({ text: `Connection Failed: ${err.message}`, progress: 0, isFading: false, active: false }); });
+                setStatus({ text: 'Fetching Data...', progress: 40, isFading: false, active: false });
+                fetch(fetchUrl).then(res => res.text()).then(csvText => {
+                    Papa.parse(csvText, { header: true, skipEmptyLines: true, complete: (results) => { setRawCsvRows(results.data); } });
+                });
             }, []);
 
             useEffect(() => {
                 if (rawCsvRows.length === 0) return;
-                
-                setStatus({ text: 'Compiling Timeline...', progress: 90, isFading: false, active: false });
-
-                const exactGet = (normObj, key) => {
-                    const val = normObj[key];
-                    return val !== undefined && val !== null ? String(val).trim() : "";
-                };
+                const exactGet = (normObj, key) => { const val = normObj[key]; return val !== undefined && val !== null ? String(val).trim() : ""; };
 
                 const cleaned = rawCsvRows.map((row, index) => {
-                    const norm = {};
-                    for (let k in row) norm[k.toLowerCase().trim()] = row[k];
-
-                    const dynamicDateParse = (str, format) => {
+                    const norm = {}; for (let k in row) norm[k.toLowerCase().trim()] = row[k];
+                    const dynamicDateParse = (str) => {
                         if (!str) return null;
+                        const parts = str.split(' ');
+                        if (parts.length < 1) return null;
+                        const dParts = parts[0].split(/[/\-.]/);
+                        const tParts = parts[1] ? parts[1].split(':') : [0,0,0];
+                        const secParts = String(tParts[2] || '0').split('.');
                         
-                        const splitArr = str.trim().split(/\s+/);
-                        const dStr = splitArr[0];
-                        const tStr = splitArr.length > 1 ? splitArr.slice(1).join(' ') : "";
-                        const dParts = dStr.split(/[/\-.]/);
-                        
-                        if (dParts.length === 3) {
-                            let d, m, y;
-                            if (format === 'DD/MM/YYYY') {
-                                d = parseInt(dParts[0], 10); m = parseInt(dParts[1], 10) - 1; y = parseInt(dParts[2], 10);
-                            } else if (format === 'MM/DD/YYYY') {
-                                m = parseInt(dParts[0], 10) - 1; d = parseInt(dParts[1], 10); y = parseInt(dParts[2], 10);
-                            } else if (format === 'YYYY/MM/DD') {
-                                y = parseInt(dParts[0], 10); m = parseInt(dParts[1], 10) - 1; d = parseInt(dParts[2], 10);
-                            }
+                        const d = parseInt(dParts[0], 10); const m = parseInt(dParts[1], 10) - 1; const y = parseInt(dParts[2], 10);
+                        const h = parseInt(tParts[0], 10); const min = parseInt(tParts[1], 10); const sec = parseInt(secParts[0], 10); const ms = parseInt(secParts[1] || '0', 10);
 
-                            let h = 0, min = 0, sec = 0;
-                            if (tStr) {
-                                const tParts = tStr.split(':');
-                                h = parseInt(tParts[0], 10) || 0;
-                                min = parseInt(tParts[1], 10) || 0;
-                                sec = parseInt(tParts[2], 10) || 0;
-                            }
-                            
-                            const finalDate = new Date(y, m, d, h, min, sec);
-                            if (!isNaN(finalDate.getTime())) return finalDate;
-                        }
-                        
-                        let fallback = new Date(str); 
-                        return isNaN(fallback.getTime()) ? null : fallback;
+                        const dateObj = new Date(y, m, d, h, min, sec, ms);
+                        return isNaN(dateObj.getTime()) ? null : dateObj;
                     };
-
-                    const rawTags = exactGet(norm, 'tags');
-                    const parsedTags = rawTags ? rawTags.split(',').map(t=>t.trim()).filter(t => t !== "") : [];
-
-                    const rawMedia = exactGet(norm, 'media');
-                    const parsedMedia = rawMedia ? rawMedia.split(/[;,]\s+/).map(x=>x.trim()).filter(x => x !== "") : [];
-                    
-                    const placeVal = exactGet(norm, 'place');
 
                     return {
-                        id: index, 
-                        title: exactGet(norm, 'title') || `Event ${index + 1}`,
-                        startDate: dynamicDateParse(exactGet(norm, 'start'), dateFormat),
-                        endDate: dynamicDateParse(exactGet(norm, 'end'), dateFormat),
+                        id: index, title: exactGet(norm, 'title'),
+                        startDate: dynamicDateParse(exactGet(norm, 'start')),
+                        endDate: dynamicDateParse(exactGet(norm, 'end')),
                         description: exactGet(norm, 'description'),
-                        place: placeVal,
-                        subLabels: placeVal, 
-                        location: exactGet(norm, 'location'),
-                        priority: exactGet(norm, 'priority'),
-                        media: parsedMedia,
-                        mediaCaption: exactGet(norm, 'media caption'),
-                        mediaCredit: exactGet(norm, 'media credit'),
-                        tags: parsedTags
+                        place: exactGet(norm, 'place'), location: exactGet(norm, 'location'), priority: exactGet(norm, 'priority'),
+                        media: exactGet(norm, 'media').split(';').map(m => m.trim()).filter(Boolean),
+                        tags: exactGet(norm, 'tags').split(',').map(t => t.trim()).filter(Boolean)
                     };
                 });
                 
-                const valid = cleaned.filter(r => r.startDate).sort((a, b) => {
-                    const timeDiff = a.startDate.getTime() - b.startDate.getTime();
-                    return timeDiff !== 0 ? timeDiff : a.id - b.id;
-                });
+                const valid = cleaned.filter(r => r.startDate).sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+                setData(valid);
+                setStatus({ text: 'Engine Ready', progress: 100, isFading: true, active: true });
+            }, [rawCsvRows]);
 
-                const finalData = [...valid, ...cleaned.filter(r => !r.startDate)];
-                setData(finalData);
-
-                if (!hasInitializedRef.current) {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const paramSlide = urlParams.get('slide');
-                    const paramDate = urlParams.get('date');
-                    let initialIdx = 0;
-
-                    if (paramSlide && !isNaN(parseInt(paramSlide))) {
-                        initialIdx = Math.max(0, Math.min(finalData.length - 1, parseInt(paramSlide) - 1));
-                    } else if (paramDate) {
-                        const targetTime = new Date(paramDate).getTime();
-                        if (!isNaN(targetTime)) {
-                            let minDiff = Infinity;
-                            valid.forEach((d, i) => {
-                                if (d.startDate) {
-                                    const diff = Math.abs(d.startDate.getTime() - targetTime);
-                                    if (diff < minDiff) { minDiff = diff; initialIdx = i; }
-                                }
-                            });
-                        }
-                    }
-                    setActiveIndex(initialIdx); 
-                    hasInitializedRef.current = true;
-                }
-                
-                setStatus({ text: `Success! Compiled ${cleaned.length} records.`, progress: 100, isFading: true, active: false });
-                setTimeout(() => { setStatus({ text: '', progress: 100, isFading: true, active: true }); }, 500);
-
-            }, [rawCsvRows, dateFormat]); 
-
-            const activeSlide = data[activeIndex];
-            const hasMedia = activeSlide?.media?.length > 0;
-
+            // Removed aesthetic gap to sit flush
             const CarTiMapperLogo = ({ context, appVersion }) => {
-                const svgIcon = html`
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="20 0 165 100" style="width: 100%; height: auto; display: block;">
-                        <defs><filter id="dot-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs>
-                        <path d="M28,38 L45,15 L180,15 L180,85 L45,85 L28,62 Z" fill="#222" stroke="#007acc" stroke-width="2.5" stroke-linejoin="round"/>
-                        <g fill="#fff" opacity="0.9">
-                            <rect x="55" y="19" width="4" height="6" rx="1" /><rect x="71" y="19" width="4" height="6" rx="1" /><rect x="87" y="19" width="4" height="6" rx="1" /><rect x="103" y="19" width="4" height="6" rx="1" />
-                            <rect x="119" y="19" width="4" height="6" rx="1" /><rect x="135" y="19" width="4" height="6" rx="1" /><rect x="151" y="19" width="4" height="6" rx="1" /><rect x="167" y="19" width="4" height="6" rx="1" />
-                            <rect x="55" y="75" width="4" height="6" rx="1" /><rect x="71" y="75" width="4" height="6" rx="1" /><rect x="87" y="75" width="4" height="6" rx="1" /><rect x="103" y="75" width="4" height="6" rx="1" />
-                            <rect x="119" y="75" width="4" height="6" rx="1" /><rect x="135" y="75" width="4" height="6" rx="1" /><rect x="151" y="75" width="4" height="6" rx="1" /><rect x="167" y="75" width="4" height="6" rx="1" />
-                        </g>
-                        <g transform="translate(112, 50)">
-                            <path d="M0,-28 L4,-6 L28,0 L4,6 L0,28 L-4,6 L-28,0 L-4,-6 Z" fill="#444" opacity="0.8"/>
-                            <g fill="#fcfcfc" font-family="Arial, sans-serif" font-size="7" font-weight="normal" text-anchor="middle"><text x="0" y="-21">N</text><text x="24" y="2.5">E</text><text x="0" y="27">S</text><text x="-24" y="2.5">W</text></g>
-                            <g fill="#8be9fd" filter="url(#dot-glow)"><circle cx="12.5" cy="-21.6" r="1.2" /><circle cx="21.6" cy="-12.5" r="1.2" /><circle cx="21.6" cy="12.5" r="1.2" /><circle cx="12.5" cy="21.6" r="1.2" /><circle cx="-12.5" cy="21.6" r="1.2" /><circle cx="-21.6" cy="12.5" r="1.2" /><circle cx="-21.6" cy="-12.5" r="1.2" /><circle cx="-12.5" cy="-21.6" r="1.2" /></g>
-                            <g transform="rotate(60)"><path d="M0,0 L-1,-16 L1,-16 Z" fill="#999" /><circle cx="0" cy="-20" r="2.8" fill="#007acc" /></g>
-                            <g transform="rotate(270)"><path d="M0,0 L-1.2,-9 L1.2,-9 Z" fill="#999" /><circle cx="0" cy="-13" r="2.8" fill="#28a745" /></g>
-                            <circle cx="0" cy="0" r="1.5" fill="#fff" />
-                        </g>
-                    </svg>
-                `;
-                if (context === 'splash') return html`<div class="logo-stack-splash"><div class="splash-icon-wrapper">${svgIcon}</div><div class="splash-text">CarTiMapper</div><div class="splash-version">${appVersion}</div></div>`;
-                if (context === 'status') return html`<div style="display: flex; align-items: center; gap: 4px;"><div style="width: 24px; height: 16px; display: flex; align-items: center;">${svgIcon}</div><span style="font-size: 0.8rem; color: #444; letter-spacing: -0.3px;">CarTiMapper</span><span style="font-size: 0.6rem; color: #888; margin-left: 4px;">${appVersion}</span></div>`;
-                return html`<div class="logo-horizontal-about" style="flex-direction: column; align-items: flex-start; gap: 10px;"><div style="width: 200px; height: auto;">${svgIcon}</div></div>`;
+                const svgIcon = html`<svg viewBox="0 0 100 100" width="100%" height="100%"><polygon points="50,5 95,27.5 95,72.5 50,95 5,72.5 5,27.5" fill="none" stroke="#007acc" stroke-width="8"/><circle cx="50" cy="50" r="15" fill="#007acc"/><line x1="50" y1="50" x2="50" y2="15" stroke="#007acc" stroke-width="6"/><line x1="50" y1="50" x2="80" y2="65" stroke="#007acc" stroke-width="6"/></svg>`;
+                if (context === 'status') return html`<div style="display: flex; align-items: center;"><div style="width: 24px; height: 16px; display: flex; align-items: center; margin-right: 4px;">${svgIcon}</div><span style="font-size: 0.8rem; color: #444; letter-spacing: -0.3px; font-weight: 600;">CarTiMapper</span><span style="font-size: 0.6rem; color: #888; margin-left: 3px;">${appVersion}</span></div>`;
+                return html`<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;"><div style="width: 40px; height: 40px;">${svgIcon}</div><div style="font-weight: 800; color: #007acc; font-size: 1.5rem; letter-spacing: -0.5px;">CarTiMapper <span style="font-size: 0.8rem; color: #666; font-weight: normal; vertical-align: middle;">${appVersion}</span></div></div>`;
             };
 
             return html`
                 <div id="tm-root">
-                    ${!status.active ? html`
-                        <div class="loading-screen ${status.isFading ? 'fade-out' : ''}">
-                            <${CarTiMapperLogo} context="splash" appVersion=${APP_VERSION} />
-                            <div class="loading-bar-container"><div class="loading-bar-fill" style="width: ${status.progress}%;"></div></div>
-                        </div>
-                    ` : ''}
+                    <style>
+                        :root {
+                            --primary-split: 50%;
+                            --secondary-split: 50%;
+                            --timeline-height: 20%;
+                        }
+                        .core-viewports { display: flex; flex-grow: 1; height: calc(100% - var(--timeline-height)); width: 100%; overflow: hidden; }
+                        .visual-pane { display: flex; overflow: hidden; }
+                        .resizer-dyn-primary { background: #eee; transition: background 0.2s; z-index: 10; flex-shrink: 0; }
+                        .resizer-dyn-primary:hover { background: #007acc; }
+                        .resizer-dyn-secondary { background: #eee; transition: background 0.2s; z-index: 10; flex-shrink: 0; }
+                        .resizer-dyn-secondary:hover { background: #007acc; }
+                        .content-slider-pane { background: var(--paneBg); overflow: hidden; }
 
-                    ${data.length > 0 ? html`
-                        <div id="app-layout" ref=${appRef}>
-                            <div class="top-row">
-                                <div class="map-pane ${!hasMedia ? 'no-media' : ''}">
-                                    <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} addLog=${addLog} mapLocale=${mapLocale} maxAutoZoom=${maxAutoZoom} />
-                                    <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} appVersion=${APP_VERSION} moduleVersions=${MODULE_VERSIONS} />
+                        /* Mobile / Portrait (Default) */
+                        @media (max-width: 1023px) {
+                            .core-viewports { flex-direction: column; }
+                            .visual-pane { width: 100%; height: var(--primary-split); flex-direction: row; order: 1; }
+                            .content-slider-pane { width: 100%; height: calc(100% - var(--primary-split) - 4px); order: 3; }
+                            .resizer-dyn-primary { width: 100%; height: 4px; cursor: row-resize; order: 2; }
+                            
+                            .map-pane { width: var(--secondary-split); height: 100%; position: relative; }
+                            .resizer-dyn-secondary { width: 4px; height: 100%; cursor: col-resize; }
+                            .media-pane { width: calc(100% - var(--secondary-split) - 4px); height: 100%; background: #000; }
+                        }
+
+                        /* Desktop / Landscape (Reading Room) */
+                        @media (min-width: 1024px) {
+                            .core-viewports { flex-direction: row; }
+                            .content-slider-pane { height: 100%; width: var(--primary-split); order: 1; }
+                            .resizer-dyn-primary { height: 100%; width: 4px; cursor: col-resize; order: 2; }
+                            .visual-pane { height: 100%; width: calc(100% - var(--primary-split) - 4px); flex-direction: column; order: 3; }
+                            
+                            .map-pane { height: var(--secondary-split); width: 100%; position: relative; }
+                            .resizer-dyn-secondary { width: 100%; height: 4px; cursor: row-resize; }
+                            .media-pane { height: calc(100% - var(--secondary-split) - 4px); width: 100%; background: #000; }
+                        }
+                    </style>
+
+                    ${!status.active ? html`<div class="loading-screen">Loading...</div>` : html`
+                        <div id="app-layout" ref=${appRef} style="display: flex; flex-direction: column; height: 100vh; width: 100vw;">
+                            
+                            <div class="core-viewports">
+                                <div class="visual-pane">
+                                    <div class="map-pane">
+                                        <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} maxAutoZoom=${maxAutoZoom} />
+                                    </div>
+                                    <div class="resizer-dyn-secondary" onMouseDown=${startSecondaryResize}></div>
+                                    <div class="media-pane">
+                                        <${MediaViewer} slide=${data[activeIndex]} />
+                                    </div>
                                 </div>
-                                ${hasMedia ? html`<div class="resizer-h" onMouseDown=${startMapResize} onTouchStart=${startMapResize}></div>` : ''}
-                                <div class="media-pane" style="display: ${hasMedia ? 'flex' : 'none'};">
-                                    <${MediaViewer} activeSlide=${activeSlide} />
+                                <div class="resizer-dyn-primary" onMouseDown=${startPrimaryResize}></div>
+                                <div class="content-slider-pane">
+                                    <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} setIsAboutOpen=${setIsAboutOpen} setIsSettingsOpen=${setIsSettingsOpen} CarTiMapperLogo=${CarTiMapperLogo} visibleTimeSpan=${visibleTimeSpan} />
                                 </div>
                             </div>
 
-                            <div class="resizer-v" onMouseDown=${startTopResize} onTouchStart=${startTopResize}></div>
-                            
-                            <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} jumpToSlide=${jumpToSlide} slideHistory=${slideHistory} goBack=${goBack} aboutData=${aboutData} isAboutOpen=${isAboutOpen} setIsAboutOpen=${setIsAboutOpen} isMonitorOpen=${isMonitorOpen} setIsMonitorOpen=${setIsMonitorOpen} isSettingsOpen=${isSettingsOpen} setIsSettingsOpen=${setIsSettingsOpen} CarTiMapperLogo=${CarTiMapperLogo} visibleTimeSpan=${visibleTimeSpan} />
-                            
-                            <div class="resizer-v" onMouseDown=${startTimelineResize} onTouchStart=${startTimelineResize}></div>
-
-                            <div class="timeline-pane">
-                                <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} zoomLock=${zoomLock} setZoomLock=${setZoomLock} setVisibleTimeSpan=${setVisibleTimeSpan} />
+                            <div class="timeline-pane" style="height: var(--timeline-height); border-top: 1px solid #ddd; flex-shrink: 0;">
+                                <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} setVisibleTimeSpan=${setVisibleTimeSpan} />
                             </div>
                         </div>
-
-                        <div class="modal-backdrop ${isSettingsOpen ? 'open' : ''}" onClick=${() => setIsSettingsOpen(false)}></div>
-                        <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 450px; background: #fff; z-index: 9002; border-radius: 12px; padding: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); color: #222; display: ${isSettingsOpen ? 'block' : 'none'};">
-                            <button class="about-close" onClick=${() => setIsSettingsOpen(false)}>×</button>
-                            <h3 style="margin-top: 0; color: #333; font-size: 1.5rem; border-bottom: 1px solid #eee; padding-bottom: 10px; font-weight: 400;">Engine Settings</h3>
-                            
-                            <div style="margin-top: 20px;">
-                                <label style="display: block; margin-bottom: 8px; color: #555; font-size: 0.95rem;">Data Locale Format</label>
-                                <select style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; background: #fcfcfc; cursor: pointer; color: #333;" 
-                                        value=${dateFormat} onChange=${(e) => setDateFormat(e.target.value)}>
-                                    <option value="DD/MM/YYYY">European / Global (DD/MM/YYYY)</option>
-                                    <option value="MM/DD/YYYY">United States (MM/DD/YYYY)</option>
-                                    <option value="YYYY/MM/DD">Scientific / ISO (YYYY/MM/DD)</option>
-                                </select>
-                            </div>
-
-                            <div style="margin-top: 20px;">
-                                <label style="display: block; margin-bottom: 8px; color: #555; font-size: 0.95rem;">Map Language</label>
-                                <select style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; background: #fcfcfc; cursor: pointer; color: #333;" 
-                                        value=${mapLocale} onChange=${(e) => setMapLocale(e.target.value)}>
-                                    <option value="english">Standard English (Global Readability)</option>
-                                    <option value="local">Native / Local Languages</option>
-                                </select>
-                            </div>
-
-                            <div style="margin-top: 20px;">
-                                <label style="display: block; margin-bottom: 8px; color: #555; font-size: 0.95rem;">Auto-Zoom Depth</label>
-                                <select style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; background: #fcfcfc; cursor: pointer; color: #333;" 
-                                        value=${maxAutoZoom} onChange=${(e) => setMaxAutoZoom(parseInt(e.target.value, 10))}>
-                                    <option value="14">Level 14 (Wider Area)</option>
-                                    <option value="15">Level 15 (Standard City)</option>
-                                    <option value="16">Level 16 (Street Level)</option>
-                                    <option value="17">Level 17 (Building Level)</option>
-                                </select>
-                            </div>
-                        </div>
-                    ` : ''}
+                    `}
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.34.1';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.34.1 ] ===
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.36.0';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.36.0 ] ===
 
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
