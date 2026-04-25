@@ -168,7 +168,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.4.16';
+        const APP_VERSION = 'v6.4.21';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -1358,7 +1358,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.16.0';
         // === [ END MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.38.0 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.39.2 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [rawCsvRows, setRawCsvRows] = useState([]);
@@ -1406,8 +1406,14 @@
             }, [activeIndex, data.length]);
 
             useEffect(() => {
+                const updateAppHeight = () => {
+                    document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+                };
+                updateAppHeight(); 
+
                 let wasDesktop = window.innerWidth >= 1024;
                 const handleResize = () => {
+                    updateAppHeight(); 
                     const isDesktop = window.innerWidth >= 1024;
                     if (isDesktop !== wasDesktop) {
                         if (appRef.current) {
@@ -1423,7 +1429,6 @@
             }, []);
 
             const startPrimaryResize = (e) => {
-                e.preventDefault();
                 const startX = e.touches ? e.touches[0].clientX : e.clientX;
                 const startY = e.touches ? e.touches[0].clientY : e.clientY;
                 const isDesktop = window.innerWidth >= 1024;
@@ -1439,12 +1444,16 @@
                     if (pct < 15) pct = 15; if (pct > 85) pct = 85;
                     appRef.current.style.setProperty('--primary-split', `${pct}%`);
                 };
-                const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); window.dispatchEvent(new Event('resize')); };
+                const onUp = () => { 
+                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
+                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp);
+                    window.dispatchEvent(new Event('resize')); 
+                };
                 document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+                document.addEventListener('touchmove', onMove, { passive: false }); document.addEventListener('touchend', onUp);
             };
 
             const startSecondaryResize = (e) => {
-                e.preventDefault();
                 const startX = e.touches ? e.touches[0].clientX : e.clientX;
                 const startY = e.touches ? e.touches[0].clientY : e.clientY;
                 const isDesktop = window.innerWidth >= 1024;
@@ -1460,12 +1469,16 @@
                     if (pct < 10) pct = 10; if (pct > 90) pct = 90;
                     appRef.current.style.setProperty('--secondary-split', `${pct}%`);
                 };
-                const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); window.dispatchEvent(new Event('resize')); };
+                const onUp = () => { 
+                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
+                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp);
+                    window.dispatchEvent(new Event('resize')); 
+                };
                 document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+                document.addEventListener('touchmove', onMove, { passive: false }); document.addEventListener('touchend', onUp);
             };
 
             const startTimelineResize = (e) => {
-                e.preventDefault();
                 const startY = e.touches ? e.touches[0].clientY : e.clientY;
                 const startHeight = appRef.current.querySelector('.timeline-pane').offsetHeight;
                 const containerHeight = appRef.current.offsetHeight;
@@ -1477,8 +1490,13 @@
                     if (pct < 10) pct = 10; if (pct > 60) pct = 60;
                     appRef.current.style.setProperty('--timeline-height', `${pct}%`);
                 };
-                const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); window.dispatchEvent(new Event('resize')); };
+                const onUp = () => { 
+                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
+                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp);
+                    window.dispatchEvent(new Event('resize')); 
+                };
                 document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+                document.addEventListener('touchmove', onMove, { passive: false }); document.addEventListener('touchend', onUp);
             };
 
             useEffect(() => {
@@ -1508,8 +1526,6 @@
             useEffect(() => {
                 if (rawCsvRows.length === 0) return;
                 const exactGet = (normObj, key) => { const val = normObj[key]; return val !== undefined && val !== null ? String(val).trim() : ""; };
-                
-                // [FIX: MED-11] The Omni-Splitter regex explicitly intercepts only line breaks.
                 const omniSplitRegex = /[\r\n]+|\\n/;
 
                 const cleaned = rawCsvRows.map((row, index) => {
@@ -1529,8 +1545,6 @@
                         return isNaN(dateObj.getTime()) ? null : dateObj;
                     };
 
-                    // [FIX] Using omniSplitRegex entirely eliminates the comma-splitting bug.
-                    // [FIX] Hard-matched 'mediaCaption' and 'mediaCredit' to MediaViewer expectations.
                     return {
                         id: index, title: exactGet(norm, 'title'),
                         startDate: dynamicDateParse(exactGet(norm, 'start')),
@@ -1576,7 +1590,6 @@
 
             }, [rawCsvRows]);
 
-            // [FIX] True v6.3.10 Original Logo Restored
             const CarTiMapperLogo = ({ context, appVersion }) => {
                 const svgIcon = html`
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="20 0 165 100" style="width: 100%; height: auto; display: block;">
@@ -1615,7 +1628,16 @@
                         .visual-pane.no-media .map-pane { height: 100% !important; width: 100% !important; }
                         .visual-pane.no-media .resizer-dyn-secondary { display: none !important; }
                         .visual-pane.no-media .media-pane { display: none !important; }
-                        .resizer-dyn-primary, .resizer-dyn-secondary, .resizer-dyn-timeline { background: #eee; transition: background 0.2s; z-index: 10; flex-shrink: 0; }
+                        
+                        /* [FIX: UI-61] touch-action: none totally disables native Android scroll hijacking */
+                        .resizer-dyn-primary, .resizer-dyn-secondary, .resizer-dyn-timeline { 
+                            background: #eee; transition: background 0.2s; z-index: 10; flex-shrink: 0; position: relative; 
+                            touch-action: none; 
+                        }
+                        .resizer-dyn-primary::after, .resizer-dyn-secondary::after, .resizer-dyn-timeline::after {
+                            content: ''; position: absolute; top: -18px; bottom: -18px; left: -18px; right: -18px; z-index: 11;
+                        }
+                        
                         .resizer-dyn-primary:hover, .resizer-dyn-secondary:hover, .resizer-dyn-timeline:hover { background: #007acc; }
                         .resizer-dyn-timeline { height: 4px; width: 100%; cursor: row-resize; }
                         .content-slider-pane { background: var(--paneBg); overflow: hidden; }
@@ -1643,26 +1665,26 @@
 
                     ${!status.active ? html`
                         <div class="loading-screen ${status.isFading ? 'fade-out' : ''}">
-                            <${CarTiMapperLogo} context="splash" appVersion=${APP_VERSION || 'v6.4.16'} />
+                            <${CarTiMapperLogo} context="splash" appVersion=${APP_VERSION || 'v6.4.21'} />
                             <div class="loading-bar-container"><div class="loading-bar-fill" style="width: ${status.progress}%;"></div></div>
                         </div>
                     ` : ''}
 
                     ${data.length > 0 && status.active ? html`
-                        <div id="app-layout" ref=${appRef} style="display: flex; flex-direction: column; height: 100vh; width: 100vw;">
+                        <div id="app-layout" ref=${appRef} style="display: flex; flex-direction: column; height: var(--app-height, 100vh); width: 100vw; overflow: hidden; position: relative;">
                             
                             <div class="core-viewports">
                                 <div class="visual-pane ${hasMedia ? '' : 'no-media'}">
                                     <div class="map-pane">
                                         <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} maxAutoZoom=${maxAutoZoom} />
-                                        <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} appVersion=${APP_VERSION || 'v6.4.16'} moduleVersions=${{Globals: 'v1.0.52', Styles: 'v4.11.0'}} />
+                                        <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} appVersion=${APP_VERSION || 'v6.4.21'} moduleVersions=${{Globals: 'v1.0.52', Styles: 'v4.11.0'}} />
                                     </div>
-                                    <div class="resizer-dyn-secondary" onMouseDown=${startSecondaryResize}></div>
+                                    <div class="resizer-dyn-secondary" onMouseDown=${startSecondaryResize} onTouchStart=${startSecondaryResize}></div>
                                     <div class="media-pane">
                                         <${MediaViewer} activeSlide=${activeSlide} />
                                     </div>
                                 </div>
-                                <div class="resizer-dyn-primary" onMouseDown=${startPrimaryResize}></div>
+                                <div class="resizer-dyn-primary" onMouseDown=${startPrimaryResize} onTouchStart=${startPrimaryResize}></div>
                                 <div class="content-slider-pane">
                                     <${ContentSlider} 
                                         data=${data} 
@@ -1684,7 +1706,7 @@
                                 </div>
                             </div>
                             
-                            <div class="resizer-dyn-timeline" onMouseDown=${startTimelineResize}></div>
+                            <div class="resizer-dyn-timeline" onMouseDown=${startTimelineResize} onTouchStart=${startTimelineResize}></div>
 
                             <div class="timeline-pane" style="height: var(--timeline-height); flex-shrink: 0;">
                                 <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} setVisibleTimeSpan=${setVisibleTimeSpan} zoomLock=${zoomLock} setZoomLock=${setZoomLock} />
@@ -1730,8 +1752,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.38.0';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.38.0 ] ===
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.39.2';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.39.2 ] ===
 
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
