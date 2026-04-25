@@ -168,7 +168,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.3.12';
+        const APP_VERSION = 'v6.3.13';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -693,21 +693,51 @@
         MODULE_VERSIONS['MediaViewer'] = 'v2.8.0';
         // === [ END MAJOR BLOCK: MediaViewer v2.8.0 ] ===
 
-        // === [ MAJOR BLOCK: ContentSlider v3.9.2 ] ===
+        // === [ MAJOR BLOCK: ContentSlider v3.10.0 ] ===
         const ContentSlider = ({ data, activeIndex, setActiveIndex, jumpToSlide, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo, visibleTimeSpan }) => {
             const slide = data[activeIndex];
             if (!slide) return null;
 
-            const formatSmartDate = (sD, eD) => {
-                if (!sD) return '';
-                const hasTime = (d) => d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0;
-                const fDate = (d) => {
-                    const opts = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
-                    if (hasTime(d)) { opts.hour = '2-digit'; opts.minute = '2-digit'; }
-                    return d.toLocaleString('en-GB', opts);
-                };
-                return `${fDate(sD)}${eD && sD.getTime() !== eD.getTime() ? ` - ${fDate(eD)}` : ''}`;
+            // [FIX: UI-32] Smart Date Deduplication Engine
+            const formatSmartDate = (start, end) => {
+                if (!start || isNaN(start.getTime())) return 'Unknown Date';
+                
+                const formatOpts = { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+                const sStr = start.toLocaleString('en-GB', formatOpts).replace(', 00:00', '').replace(' 00:00', '');
+                
+                if (!end || isNaN(end.getTime()) || start.getTime() === end.getTime()) return sStr;
+                
+                const eStr = end.toLocaleString('en-GB', formatOpts).replace(', 00:00', '').replace(' 00:00', '');
+                
+                const sParts = sStr.split(' ');
+                const eParts = eStr.split(' ');
+                
+                if (sParts.length >= 3 && eParts.length >= 3) {
+                    if (sParts[2] === eParts[2] && sParts[1] === eParts[1]) {
+                        return `${sParts[0]} - ${eStr}`; // Same month & year
+                    }
+                    if (sParts[2] === eParts[2]) {
+                        return `${sParts[0]} ${sParts[1]} - ${eStr}`; // Same year
+                    }
+                }
+                return `${sStr} — ${eStr}`;
             };
+
+            // [FIX: UI-33] Omni-Splitter applied to Tags for discrete pills
+            const getParsedTags = (rawTagsArray) => {
+                if (!rawTagsArray || rawTagsArray.length === 0) return [];
+                const splitRegex = /[\r\n]+|\\n/;
+                let arr = [];
+                const rawData = Array.isArray(rawTagsArray) ? rawTagsArray : [rawTagsArray];
+                rawData.forEach(t => {
+                    if (typeof t === 'string') arr.push(...t.split(splitRegex));
+                    else arr.push(t);
+                });
+                return arr.map(s => String(s).trim()).filter(Boolean);
+            };
+
+            const tags = getParsedTags(slide.tags);
+            const hasLocation = slide.place && String(slide.place).trim() !== '';
 
             const goPrev = () => { if (activeIndex > 0) setActiveIndex(activeIndex - 1); };
             const goNext = () => { if (activeIndex < data.length - 1) setActiveIndex(activeIndex + 1); };
@@ -716,30 +746,67 @@
             const paramsList = Array.from(urlParams.entries()).map(([k, v]) => `${k}=${v}`).join(' | ') || 'None';
 
             return html`
-                <div class="content-pane-wrapper">
-                    <div class="click-zone click-zone-left" onClick=${goPrev} title="Previous"></div>
-                    <div class="click-zone click-zone-right" onClick=${goNext} title="Next"></div>
+                <div class="content-pane-wrapper" style="display: flex; flex-direction: column; height: 100%;">
+                    
+                    <div style="position: relative; flex-grow: 1; overflow-y: auto;">
+                        <div class="click-zone click-zone-left" onClick=${goPrev} title="Previous"></div>
+                        <div class="click-zone click-zone-right" onClick=${goNext} title="Next"></div>
 
-                    <div class="content-scroll-area">
-                        <div class="slide-container">
-                            <div class="slide-header-row">
-                                <div class="slide-date-container">
-                                    <div class="slide-date">${formatSmartDate(slide.startDate, slide.endDate)}</div>
-                                </div>
-                                <div class="slide-header-right">
-                                    <div class="tags-container">${slide.tags.map(t => html`<span class="tag-badge">${t}</span>`)}</div>
-                                    ${slide.place ? html`<div class="slide-place-badge">📍 ${slide.place}</div>` : ''}
+                        <div class="content-scroll-area" style="display: flex; flex-direction: column; min-height: 100%;">
+                            
+                            <div style="flex-shrink: 0; position: sticky; top: 0; background: var(--paneBg, #ffffff); z-index: 10; padding: 1.5rem 2rem 0.5rem 2rem; border-bottom: 1px solid rgba(128,128,128,0.2);">
+                                <h2 class="slide-title" style="margin: 0 0 0.5rem 0;" dangerouslySetInnerHTML=${{ __html: slide.title }}></h2>
+                                <div class="slide-date" style="font-weight: 600; color: #007acc; font-size: 0.9rem;">
+                                    ${formatSmartDate(slide.startDate, slide.endDate)}
                                 </div>
                             </div>
-                            <h2 class="slide-title" dangerouslySetInnerHTML=${{ __html: slide.title }}></h2>
-                            <div class="slide-desc" dangerouslySetInnerHTML=${{ __html: slide.description }}></div>
+
+                            <div style="flex-grow: 1; padding: 1rem 2rem 2rem 2rem; display: flex; flex-direction: column;">
+                                <div class="slide-desc" dangerouslySetInnerHTML=${{ __html: slide.description }}></div>
+                                
+                                <div style="flex-grow: 1;"></div>
+
+                                ${(hasLocation || tags.length > 0) ? html`
+                                    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px dashed rgba(128,128,128,0.3); display: flex; flex-direction: column; gap: 0.8rem;">
+                                        
+                                        ${hasLocation ? html`
+                                            <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                                                <span style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.08); color: var(--text-color, #444); padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; border: 1px solid rgba(128,128,128,0.15);">
+                                                    <span style="margin-right: 6px;">📍</span> ${slide.place}
+                                                </span>
+                                            </div>
+                                        ` : ''}
+
+                                        ${tags.length > 0 ? html`
+                                            <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                                                ${tags.map(tag => html`
+                                                    <span style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.08); color: var(--text-color, #444); padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; border: 1px solid rgba(128,128,128,0.15);">
+                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; opacity: 0.6;">
+                                                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                                                            <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                                                        </svg>
+                                                        ${tag}
+                                                    </span>
+                                                `)}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                ` : ''}
+                            </div>
                         </div>
                     </div>
 
-                    <div class="unified-status-bar">
+                    <div class="unified-status-bar" style="flex-shrink: 0; z-index: 20;">
                         <div class="status-left">
                             ${aboutData ? html`<button class="status-btn" style="padding: 4px 10px; display: flex; align-items: center;" onClick=${() => setIsAboutOpen(true)}><${CarTiMapperLogo} context="status" appVersion=${APP_VERSION} /></button>` : ''}
-                            <button class="status-btn" onClick=${() => setIsSettingsOpen(true)}>⚙️</button>
+                            
+                            <button class="status-btn" onClick=${() => setIsSettingsOpen(true)} title="Settings" style="display: flex; align-items: center; justify-content: center; padding: 4px 8px;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                                </svg>
+                            </button>
+                            
                             <button class="status-btn" onClick=${() => setIsMonitorOpen(!isMonitorOpen)}>Monitor</button>
                         </div>
                         <div class="status-center">
@@ -780,8 +847,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['ContentSlider'] = 'v3.9.2';
-        // === [ END MAJOR BLOCK: ContentSlider v3.9.2 ] ===
+        MODULE_VERSIONS['ContentSlider'] = 'v3.10.0';
+        // === [ END MAJOR BLOCK: ContentSlider v3.10.0 ] ===
 
         // === [ MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan }) => {
@@ -1257,7 +1324,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.16.0';
         // === [ END MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.35.1 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.35.2 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             
@@ -1286,7 +1353,7 @@
             const addLog = (msg, type = 'info') => setLogs(p => [...p, { time: new Date().toLocaleTimeString('en-US', { hour12: false }), msg, type }]);
 
             const jumpToSlide = (newIdx, isSequential = false) => {
-                if (newIdx !== activeIndex) {
+                if (newIdx !== activeIndex && newIdx >= 0 && newIdx < data.length) {
                     if (!isSequential) setSlideHistory(prev => [...prev, activeIndex]);
                     setActiveIndex(newIdx);
                 }
@@ -1300,34 +1367,21 @@
                 }
             };
 
+            // [FIX: PERF-01] Memory Leak Assassination: State updates strictly decoupled.
             useEffect(() => {
                 const handleKeyDown = (e) => {
                     if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
                     
                     if (e.key === 'ArrowRight') {
-                        setActiveIndex(prev => {
-                            const newIndex = prev + 1;
-                            if (newIndex < data.length) {
-                                setSlideHistory(h => [...h, prev]);
-                                return newIndex;
-                            }
-                            return prev;
-                        });
+                        if (activeIndex < data.length - 1) jumpToSlide(activeIndex + 1);
                     } else if (e.key === 'ArrowLeft') {
-                        setActiveIndex(prev => {
-                            const newIndex = prev - 1;
-                            if (newIndex >= 0) {
-                                setSlideHistory(h => [...h, prev]);
-                                return newIndex;
-                            }
-                            return prev;
-                        });
+                        if (activeIndex > 0) jumpToSlide(activeIndex - 1);
                     }
                 };
 
                 window.addEventListener('keydown', handleKeyDown);
                 return () => window.removeEventListener('keydown', handleKeyDown);
-            }, [data.length]);
+            }, [activeIndex, data.length]); // Clean closure rebinding prevents stale state without loop explosions
 
             const startMapResize = (e) => {
                 e.preventDefault();
@@ -1542,7 +1596,6 @@
                 setData(finalData);
 
                 if (!hasInitializedRef.current) {
-                    // [FIX: TYPO] Corrected to "new URLSearchParams"
                     const urlParams = new URLSearchParams(window.location.search);
                     const paramSlide = urlParams.get('slide');
                     const paramDate = urlParams.get('date');
@@ -1600,6 +1653,7 @@
                 return html`<div class="logo-horizontal-about" style="flex-direction: column; align-items: flex-start; gap: 10px;"><div style="width: 200px; height: auto;">${svgIcon}</div></div>`;
             };
 
+            // [FIX: UI-36] Removed invasive top-level App Header that was pushing UI elements downward
             return html`
                 <div id="tm-root">
                     ${!status.active ? html`
@@ -1623,20 +1677,6 @@
                             </div>
 
                             <div class="resizer-v" onMouseDown=${startTopResize} onTouchStart=${startTopResize}></div>
-                            
-                            <div class="app-header" style="position: absolute; top: 0; left: 0; right: 0; height: 35px; background: var(--paneBg, #fff); border-bottom: 1px solid rgba(128,128,128,0.2); z-index: 50; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                                <div class="header-left">
-                                    <${CarTiMapperLogo} context="status" appVersion=${APP_VERSION} />
-                                </div>
-                                <div class="header-right" style="padding-right: 10px;">
-                                    <button class="icon-btn" onClick=${() => setIsSettingsOpen(true)} title="Settings" style="background: none; border: none; cursor: pointer; color: #666; display: flex; align-items: center; justify-content: center; padding: 4px;">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <circle cx="12" cy="12" r="3"></circle>
-                                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
                             
                             <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} jumpToSlide=${jumpToSlide} slideHistory=${slideHistory} goBack=${goBack} aboutData=${aboutData} isAboutOpen=${isAboutOpen} setIsAboutOpen=${setIsAboutOpen} isMonitorOpen=${isMonitorOpen} setIsMonitorOpen=${setIsMonitorOpen} isSettingsOpen=${isSettingsOpen} setIsSettingsOpen=${setIsSettingsOpen} CarTiMapperLogo=${CarTiMapperLogo} visibleTimeSpan=${visibleTimeSpan} />
                             
@@ -1686,8 +1726,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.35.1';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.35.1 ] ===
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.35.2';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.35.2 ] ===
 
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
