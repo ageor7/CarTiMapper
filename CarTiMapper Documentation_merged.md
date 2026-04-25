@@ -149,7 +149,9 @@
 * **[REF: MED-25] Touch/Click Collision Prevention:** The Media gallery successfully utilizes native CSS `overflow-x: auto` to provide buttery-smooth, 1:1 physical swiping on tablets. To prevent mobile browsers from accidentally firing a navigation "Click" at the end of a swipe, the engine utilizes a `touchMove` coordinate delta. If finger travel exceeds `10px`, the underlying `onClick` event is mathematically locked out.
 * **[REF: UI-61] CSS Native Touch Override (The Panning Hijack Fix):** Even when custom Javascript touch listeners (`onTouchStart`, `touchMove`) are correctly mapped to invisible hit-boxes, Android and iOS Safari engines will natively interpret immediate, forceful finger drags as a command to "scroll" or "pan" the page viewport, violently hijacking the telemetry loop and breaking the resizer drag. 
     * *The Fix:* The CSS `touch-action: none;` directive is surgically applied directly to the `.resizer-dyn` classes. This physically overrides the mobile browser's default behavior mechanism at the hardware level, explicitly commanding the OS to ignore all native pan/scroll interpretations and yield 100% of the raw touch coordinates to the JavaScript delta engine.
-    
+* **[REF: URL-02] The Deep-Link Omni-Parser:** Android Chrome introduces severe deep-linking bottlenecks: it natively strips `?` parameters from local `file:///` executions, and Android messaging apps routinely corrupt `&` symbols into `&amp;` HTML entities. 
+    * *The Fix:* The deep-linking engine replaces native URL parsing with `getOmniParam()`. This custom JavaScript function mathematically searches across both the `window.location.search` array AND the `window.location.hash` array to find parameters. It natively sanitizes `amp;` corruptions. If a URL parameter is stripped by the browser security layer, the engine seamlessly falls back to Hash Routing (e.g., `#slide=82`), ensuring 100% deep-link execution parity across iOS, Android, and Desktop environments.
+
 ---
 
 ## VI. Algorithms, Analytics & Methodologies
