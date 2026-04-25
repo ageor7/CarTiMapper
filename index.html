@@ -168,7 +168,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.4.16';
+        const APP_VERSION = 'v6.4.21';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -555,9 +555,12 @@
         MODULE_VERSIONS['MapViewer'] = 'v3.17.0';
         // === [ END MAJOR BLOCK: MapViewer v3.17.0 ] ===
 
-        // === [ MAJOR BLOCK: MediaViewer v2.8.0 ] ===
+        // === [ MAJOR BLOCK: MediaViewer v2.9.0 ] ===
         const MediaViewer = ({ activeSlide, addLog }) => {
             const carouselRef = useRef(null);
+            // Used to prevent clicks firing if the user is swiping natively
+            const isSwiping = useRef(false);
+            const touchStartX = useRef(0);
 
             useEffect(() => {
                 if (carouselRef.current) {
@@ -567,7 +570,6 @@
 
             if (!activeSlide || !activeSlide.media || activeSlide.media.length === 0) return null;
             
-            // The Omni-Splitter: Intercepts all newline variations safely
             const splitRegex = /[\r\n]+|\\n/;
             
             let mediaItems = [];
@@ -599,7 +601,6 @@
             });
             credits = credits.map(s => String(s).trim());
 
-            // Global Telemetry Monitor
             useEffect(() => {
                 if (addLog) {
                     addLog(`[Media Viewer] Raw String: ${JSON.stringify(rawMediaData)}`);
@@ -617,10 +618,27 @@
                 return url;
             };
 
-            // Smart Spatial Click-Zone
+            const handleTouchStart = (e) => {
+                touchStartX.current = e.touches[0].clientX;
+                isSwiping.current = false;
+            };
+
+            const handleTouchMove = (e) => {
+                // If they drag finger more than 10px, flag it as a swipe to block the click
+                if (Math.abs(e.touches[0].clientX - touchStartX.current) > 10) {
+                    isSwiping.current = true;
+                }
+            };
+
             const handleWrapperClick = (e) => {
                 if (!carouselRef.current || mediaItems.length <= 1) return;
-                // e.currentTarget guarantees we measure the 100% width wrapper, not the image inside it
+                
+                // Block click logic if the user was actively swiping natively
+                if (isSwiping.current) {
+                    isSwiping.current = false;
+                    return;
+                }
+
                 const rect = e.currentTarget.getBoundingClientRect(); 
                 const clickX = e.clientX - rect.left;
                 const direction = clickX < rect.width / 2 ? -1 : 1;
@@ -643,10 +661,12 @@
                      return html`<div style="flex-grow: 1; width: 100%; min-height: 0; display: flex;"><iframe src="${url}" style="width:100%; height:100%; border:none;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>`;
                 }
 
-                // [FIX: MED-23] Click-zone transferred to wrapper; flex-grow dynamically consumes available height
+                // [FIX: MED-25] Embedded Touch Collision Prevention math
                 return html`
                     <div 
                         onClick=${isMulti ? handleWrapperClick : null}
+                        onTouchStart=${handleTouchStart}
+                        onTouchMove=${handleTouchMove}
                         style="flex-grow: 1; display: flex; width: 100%; min-height: 0; align-items: center; justify-content: center; cursor: ${isMulti ? 'ew-resize' : 'default'};"
                     >
                         <img src=${url} alt="Media" loading="lazy" style="max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: none;" />
@@ -666,7 +686,6 @@
                             const itemCredit = credits[i] || '';
                             const isMulti = mediaItems.length > 1;
 
-                            // [FIX: MED-24] Flex-column gravity perfectly segregates dynamic text height from image bounds
                             return html`
                                 <div class="media-item" key=${i} style="display: flex; flex-direction: column; height: 100%; width: 100%; flex-shrink: 0; position: relative; scroll-snap-align: start;">
                                     
@@ -690,19 +709,19 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MediaViewer'] = 'v2.8.0';
-        // === [ END MAJOR BLOCK: MediaViewer v2.8.0 ] ===
+        MODULE_VERSIONS['MediaViewer'] = 'v2.9.0';
+        // === [ END MAJOR BLOCK: MediaViewer v2.9.0 ] ===
 
-        // === [ MAJOR BLOCK: ContentSlider v3.17.0 ] ===
+        // === [ MAJOR BLOCK: ContentSlider v3.17.2 ] ===
         const ContentSlider = ({ data, activeIndex, setActiveIndex, jumpToSlide, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo, visibleTimeSpan }) => {
             const [isMenuOpen, setIsMenuOpen] = useState(false);
+            const touchStartX = useRef(0);
+            
             const slide = data[activeIndex];
             if (!slide) return null;
 
-            // [FIXED] Restored v6.3.10 year/month deduplication + Same Day Time delta
             const formatSmartDate = (start, end) => {
                 if (!start || isNaN(start.getTime())) return 'Unknown Date';
-                
                 const optsD = { day: 'numeric', month: 'short', year: 'numeric' };
                 const optsT = { hour: '2-digit', minute: '2-digit' };
 
@@ -715,17 +734,14 @@
 
                 const eDate = end.toLocaleDateString('en-GB', optsD);
                 const eTime = end.toLocaleTimeString('en-GB', optsT).replace(/^00:00$/, '');
-
                 const sParts = sDate.split(' '); 
                 const eParts = eDate.split(' '); 
 
-                // Exact Same Day (Return Time Delta)
                 if (sDate === eDate) {
                     if (sTime && eTime && sTime !== eTime) return `${sDate}, ${sTime} — ${eTime}`;
                     return sTime ? `${sDate}, ${sTime}` : sDate;
                 }
 
-                // Restored Deduplication Logic (Same Year / Same Month)
                 if (sParts[2] === eParts[2]) { 
                     if (sParts[1] === eParts[1]) return `${sParts[0]} - ${eDate}${eTime ? `, ${eTime}` : ''}`;
                     return `${sParts[0]} ${sParts[1]} - ${eDate}${eTime ? `, ${eTime}` : ''}`;
@@ -749,19 +765,26 @@
             const goNext = () => { if (activeIndex < data.length - 1) setActiveIndex(activeIndex + 1); };
             const handlePaneClick = () => { if (isMenuOpen) setIsMenuOpen(false); };
 
+            const handleTouchStart = (e) => { touchStartX.current = e.changedTouches[0].screenX; };
+            const handleTouchEnd = (e) => {
+                const touchEndX = e.changedTouches[0].screenX;
+                if (touchStartX.current - touchEndX > 50) goNext(); 
+                if (touchEndX - touchStartX.current > 50) goPrev(); 
+            };
+
             const urlParams = new URLSearchParams(window.location.search);
             const paramsList = Array.from(urlParams.entries()).map(([k, v]) => `${k}=${v}`).join(' | ') || 'None';
 
             return html`
                 <div class="content-pane-wrapper" style="display: flex; flex-direction: column; height: 100%;" onClick=${handlePaneClick}>
                     
-                    <div style="position: relative; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column;">
+                    <div style="position: relative; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column;" onTouchStart=${handleTouchStart} onTouchEnd=${handleTouchEnd}>
                         <div class="click-zone click-zone-left" onClick=${goPrev} title="Previous"></div>
                         <div class="click-zone click-zone-right" onClick=${goNext} title="Next"></div>
 
-                        <div style="flex-shrink: 0; position: sticky; top: 0; background: var(--paneBg, #ffffff); z-index: 10; padding: 1.2rem 1.5rem 0.8rem 1.5rem; border-bottom: 1px solid rgba(128,128,128,0.2); box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; justify-content: center;">
+                        <div style="flex-shrink: 0; position: sticky; top: 0; background: var(--paneBg, #ffffff); z-index: 10; padding: 1.2rem 1.5rem 0.2rem 1.5rem; border-bottom: 1px solid rgba(128,128,128,0.2); box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; justify-content: center;">
                             <div style="max-width: 90ch; width: 100%;">
-                                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; margin-bottom: 0.8rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; margin-bottom: 0.4rem;">
                                     
                                     <div class="slide-date" style="font-weight: 400; color: #007acc; font-size: 0.9rem; padding-top: 2px;">
                                         ${formatSmartDate(slide.startDate, slide.endDate)}
@@ -794,7 +817,7 @@
                             </div>
                         </div>
 
-                        <div style="flex-grow: 1; padding: 1.5rem 2rem 2rem 2rem; display: flex; justify-content: center;">
+                        <div style="flex-grow: 1; padding: 0.2rem 2rem 2rem 2rem; display: flex; justify-content: center;">
                             <div class="slide-desc" style="max-width: 75ch; width: 100%; font-size: 1.05rem; line-height: 1.6;" dangerouslySetInnerHTML=${{ __html: slide.description }}></div>
                         </div>
                     </div>
@@ -817,7 +840,7 @@
                                 </div>
                             ` : ''}
 
-                            ${aboutData ? html`<button class="status-btn" style="padding: 4px; display: flex; align-items: center;" onClick=${() => setIsAboutOpen(true)}><${CarTiMapperLogo} context="status" appVersion=${APP_VERSION || 'v6.4.15'} /></button>` : ''}
+                            ${aboutData ? html`<button class="status-btn" style="padding: 4px; display: flex; align-items: center;" onClick=${() => setIsAboutOpen(true)}><${CarTiMapperLogo} context="status" appVersion=${APP_VERSION} /></button>` : ''}
                         </div>
                         
                         <div class="status-center">
@@ -834,7 +857,7 @@
                     <div class="modal-backdrop ${isAboutOpen ? 'open' : ''}" onClick=${() => setIsAboutOpen(false)} style="display: ${isAboutOpen ? 'block' : 'none'}; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9000;"></div>
                     <div id="about-modal" class=${isAboutOpen ? 'open' : ''} style="display: ${isAboutOpen ? 'block' : 'none'}; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 700px; max-height: 85vh; background: #fff; z-index: 9001; border-radius: 12px; padding: 30px; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid #ccc; color: #222;">
                         <button class="about-close" onClick=${() => setIsAboutOpen(false)} style="position: absolute; top: 15px; right: 15px; border: none; background: none; font-size: 1.5rem; cursor: pointer; color: #999;">×</button>
-                        <${CarTiMapperLogo} context="about" appVersion=${APP_VERSION || 'v6.4.15'} />
+                        <${CarTiMapperLogo} context="about" appVersion=${APP_VERSION} />
                         
                         <div dangerouslySetInnerHTML=${{__html: aboutData ? aboutData.description : ''}}></div>
                         
@@ -843,7 +866,7 @@
                         </div>
 
                         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 0.85rem; color: #666; font-family: monospace;">
-                            <div style="margin-bottom: 8px; color: #333;">CarTiMapper Core ${APP_VERSION || 'v6.4.15'}</div>
+                            <div style="margin-bottom: 8px; color: #333;">CarTiMapper Core ${APP_VERSION}</div>
                             <div style="margin-bottom: 8px;">URL Params: ${paramsList}</div>
                             <div style="margin-bottom: 8px;">Data Source: ${aboutData ? aboutData.rawSource : 'None'}</div>
                             <div style="margin-top: 15px; color: #333;">Usage Instructions:</div>
@@ -858,8 +881,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['ContentSlider'] = 'v3.17.0';
-        // === [ END MAJOR BLOCK: ContentSlider v3.17.0 ] ===
+        MODULE_VERSIONS['ContentSlider'] = 'v3.17.2';
+        // === [ END MAJOR BLOCK: ContentSlider v3.17.2 ] ===
 
         // === [ MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan }) => {
@@ -1335,7 +1358,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.16.0';
         // === [ END MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.38.0 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.39.2 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [rawCsvRows, setRawCsvRows] = useState([]);
@@ -1383,8 +1406,14 @@
             }, [activeIndex, data.length]);
 
             useEffect(() => {
+                const updateAppHeight = () => {
+                    document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+                };
+                updateAppHeight(); 
+
                 let wasDesktop = window.innerWidth >= 1024;
                 const handleResize = () => {
+                    updateAppHeight(); 
                     const isDesktop = window.innerWidth >= 1024;
                     if (isDesktop !== wasDesktop) {
                         if (appRef.current) {
@@ -1400,7 +1429,6 @@
             }, []);
 
             const startPrimaryResize = (e) => {
-                e.preventDefault();
                 const startX = e.touches ? e.touches[0].clientX : e.clientX;
                 const startY = e.touches ? e.touches[0].clientY : e.clientY;
                 const isDesktop = window.innerWidth >= 1024;
@@ -1416,12 +1444,16 @@
                     if (pct < 15) pct = 15; if (pct > 85) pct = 85;
                     appRef.current.style.setProperty('--primary-split', `${pct}%`);
                 };
-                const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); window.dispatchEvent(new Event('resize')); };
+                const onUp = () => { 
+                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
+                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp);
+                    window.dispatchEvent(new Event('resize')); 
+                };
                 document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+                document.addEventListener('touchmove', onMove, { passive: false }); document.addEventListener('touchend', onUp);
             };
 
             const startSecondaryResize = (e) => {
-                e.preventDefault();
                 const startX = e.touches ? e.touches[0].clientX : e.clientX;
                 const startY = e.touches ? e.touches[0].clientY : e.clientY;
                 const isDesktop = window.innerWidth >= 1024;
@@ -1437,12 +1469,16 @@
                     if (pct < 10) pct = 10; if (pct > 90) pct = 90;
                     appRef.current.style.setProperty('--secondary-split', `${pct}%`);
                 };
-                const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); window.dispatchEvent(new Event('resize')); };
+                const onUp = () => { 
+                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
+                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp);
+                    window.dispatchEvent(new Event('resize')); 
+                };
                 document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+                document.addEventListener('touchmove', onMove, { passive: false }); document.addEventListener('touchend', onUp);
             };
 
             const startTimelineResize = (e) => {
-                e.preventDefault();
                 const startY = e.touches ? e.touches[0].clientY : e.clientY;
                 const startHeight = appRef.current.querySelector('.timeline-pane').offsetHeight;
                 const containerHeight = appRef.current.offsetHeight;
@@ -1454,8 +1490,13 @@
                     if (pct < 10) pct = 10; if (pct > 60) pct = 60;
                     appRef.current.style.setProperty('--timeline-height', `${pct}%`);
                 };
-                const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); window.dispatchEvent(new Event('resize')); };
+                const onUp = () => { 
+                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
+                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp);
+                    window.dispatchEvent(new Event('resize')); 
+                };
                 document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+                document.addEventListener('touchmove', onMove, { passive: false }); document.addEventListener('touchend', onUp);
             };
 
             useEffect(() => {
@@ -1485,8 +1526,6 @@
             useEffect(() => {
                 if (rawCsvRows.length === 0) return;
                 const exactGet = (normObj, key) => { const val = normObj[key]; return val !== undefined && val !== null ? String(val).trim() : ""; };
-                
-                // [FIX: MED-11] The Omni-Splitter regex explicitly intercepts only line breaks.
                 const omniSplitRegex = /[\r\n]+|\\n/;
 
                 const cleaned = rawCsvRows.map((row, index) => {
@@ -1506,8 +1545,6 @@
                         return isNaN(dateObj.getTime()) ? null : dateObj;
                     };
 
-                    // [FIX] Using omniSplitRegex entirely eliminates the comma-splitting bug.
-                    // [FIX] Hard-matched 'mediaCaption' and 'mediaCredit' to MediaViewer expectations.
                     return {
                         id: index, title: exactGet(norm, 'title'),
                         startDate: dynamicDateParse(exactGet(norm, 'start')),
@@ -1553,7 +1590,6 @@
 
             }, [rawCsvRows]);
 
-            // [FIX] True v6.3.10 Original Logo Restored
             const CarTiMapperLogo = ({ context, appVersion }) => {
                 const svgIcon = html`
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="20 0 165 100" style="width: 100%; height: auto; display: block;">
@@ -1592,7 +1628,16 @@
                         .visual-pane.no-media .map-pane { height: 100% !important; width: 100% !important; }
                         .visual-pane.no-media .resizer-dyn-secondary { display: none !important; }
                         .visual-pane.no-media .media-pane { display: none !important; }
-                        .resizer-dyn-primary, .resizer-dyn-secondary, .resizer-dyn-timeline { background: #eee; transition: background 0.2s; z-index: 10; flex-shrink: 0; }
+                        
+                        /* [FIX: UI-61] touch-action: none totally disables native Android scroll hijacking */
+                        .resizer-dyn-primary, .resizer-dyn-secondary, .resizer-dyn-timeline { 
+                            background: #eee; transition: background 0.2s; z-index: 10; flex-shrink: 0; position: relative; 
+                            touch-action: none; 
+                        }
+                        .resizer-dyn-primary::after, .resizer-dyn-secondary::after, .resizer-dyn-timeline::after {
+                            content: ''; position: absolute; top: -18px; bottom: -18px; left: -18px; right: -18px; z-index: 11;
+                        }
+                        
                         .resizer-dyn-primary:hover, .resizer-dyn-secondary:hover, .resizer-dyn-timeline:hover { background: #007acc; }
                         .resizer-dyn-timeline { height: 4px; width: 100%; cursor: row-resize; }
                         .content-slider-pane { background: var(--paneBg); overflow: hidden; }
@@ -1620,26 +1665,26 @@
 
                     ${!status.active ? html`
                         <div class="loading-screen ${status.isFading ? 'fade-out' : ''}">
-                            <${CarTiMapperLogo} context="splash" appVersion=${APP_VERSION || 'v6.4.16'} />
+                            <${CarTiMapperLogo} context="splash" appVersion=${APP_VERSION || 'v6.4.21'} />
                             <div class="loading-bar-container"><div class="loading-bar-fill" style="width: ${status.progress}%;"></div></div>
                         </div>
                     ` : ''}
 
                     ${data.length > 0 && status.active ? html`
-                        <div id="app-layout" ref=${appRef} style="display: flex; flex-direction: column; height: 100vh; width: 100vw;">
+                        <div id="app-layout" ref=${appRef} style="display: flex; flex-direction: column; height: var(--app-height, 100vh); width: 100vw; overflow: hidden; position: relative;">
                             
                             <div class="core-viewports">
                                 <div class="visual-pane ${hasMedia ? '' : 'no-media'}">
                                     <div class="map-pane">
                                         <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} maxAutoZoom=${maxAutoZoom} />
-                                        <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} appVersion=${APP_VERSION || 'v6.4.16'} moduleVersions=${{Globals: 'v1.0.52', Styles: 'v4.11.0'}} />
+                                        <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} appVersion=${APP_VERSION || 'v6.4.21'} moduleVersions=${{Globals: 'v1.0.52', Styles: 'v4.11.0'}} />
                                     </div>
-                                    <div class="resizer-dyn-secondary" onMouseDown=${startSecondaryResize}></div>
+                                    <div class="resizer-dyn-secondary" onMouseDown=${startSecondaryResize} onTouchStart=${startSecondaryResize}></div>
                                     <div class="media-pane">
                                         <${MediaViewer} activeSlide=${activeSlide} />
                                     </div>
                                 </div>
-                                <div class="resizer-dyn-primary" onMouseDown=${startPrimaryResize}></div>
+                                <div class="resizer-dyn-primary" onMouseDown=${startPrimaryResize} onTouchStart=${startPrimaryResize}></div>
                                 <div class="content-slider-pane">
                                     <${ContentSlider} 
                                         data=${data} 
@@ -1661,7 +1706,7 @@
                                 </div>
                             </div>
                             
-                            <div class="resizer-dyn-timeline" onMouseDown=${startTimelineResize}></div>
+                            <div class="resizer-dyn-timeline" onMouseDown=${startTimelineResize} onTouchStart=${startTimelineResize}></div>
 
                             <div class="timeline-pane" style="height: var(--timeline-height); flex-shrink: 0;">
                                 <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} setVisibleTimeSpan=${setVisibleTimeSpan} zoomLock=${zoomLock} setZoomLock=${setZoomLock} />
@@ -1707,8 +1752,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.38.0';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.38.0 ] ===
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.39.2';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.39.2 ] ===
 
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
