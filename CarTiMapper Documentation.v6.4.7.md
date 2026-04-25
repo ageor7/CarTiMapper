@@ -1,5 +1,5 @@
 # CarTiMapper Engine Master Blueprint
-**Version:** v6.0.6| **Date:** April 2026
+**Version:** v6.4.7| **Date:** April 25, 2026
 
 ## I.a Engineering Protocols & Coding Rules
 
