@@ -1,6 +1,10 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+### [v6.4.12]
+* **AppOrchestrator (v1.36.0) [UI-51]:** Deployed the "Reading Room" architectural layout. Replaced legacy hardcoded grid wrappers with dynamic CSS Flexbox media queries (`<style>` block injection). On screens wider than 1024px, the text pane dynamically snaps to the left column, while the Map and Media panes stack in the right column, maximizing screen real-estate.
+* **AppOrchestrator [UI-51]:** Engineered Fluid Dynamic Resizers. Primary and Secondary drag-bars instantly detect the browser's portrait/landscape mode and mathematically invert their axis tracking (X-delta vs Y-delta) on the fly, preventing navigation failure during responsive window scaling.
+
 ### [v6.4.11]
 * **ContentSlider (v3.16.0) [UI-49]:** Deployed the "Hero Overhang" aesthetic. Wrapped the Sticky Header in a `max-width: 90ch` container, keeping the Date and Metadata elements visually anchored to the `75ch` narrative text column, while allowing long titles to elegantly expand past the reading margins.
 * **ContentSlider [UI-50]:** Restored the physical HTML DOM nodes for the `aboutModal` overlay, fixing a UI break where the About state triggered successfully but had no physical overlay to render.
