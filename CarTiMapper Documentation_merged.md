@@ -1,5 +1,5 @@
 # CarTiMapper Engine Master Blueprint
-**Version:** v6.4.7 | **Date:** April 25, 2026
+**Version:** v6.4.9 | **Date:** April 25, 2026
 
 **Source Repositories:**
 * **CarTiMapper App:** 'CarTiMapper/cartimapper.v6.html at main · ageor7/CarTiMapper' (<https://github.com/ageor7/CarTiMapper/blob/main/index.html>)
@@ -29,6 +29,9 @@
 11. **[REF: DOC-03] GitHub Artifact Generation:** Every code alteration requires explicit Markdown artifacts prior to code delivery: Commits/Changelogs for history, and Master Blueprint updates for architecture.
 12. **[REF: PROT-01] Documentation Supremacy:** No code patch, architectural adjustment, or bug fix is considered complete without its corresponding Master Blueprint and Changelog updates formatted in strict Markdown. This acts as a legal binding contract to prevent documentation desynchronization.
 13. **[REF: PROT-02] Discuss First, Code Later:** The developer AI is physically prohibited from generating or outputting code blocks without prior explicit authorization. The mechanical operational loop is strictly locked to: 1) Diagnose Physics. 2) Propose Architecture. 3) Await Explicit User "Go-Ahead". This permanently terminates version fragmentation and unrequested UI drift.
+1. **[REF: DOC-01] Two-Tier Documentation:** Master Blueprint contains "Why/What". Inline comments contain "How".
+2. **[REF: PROT-01] Documentation Supremacy:** No code patch is complete without Master Blueprint and ChangeLog updates. **Furthermore, all documentation must be delivered strictly in `.md` format.**
+3. **[REF: PROT-02] Discuss First, Code Later:** Mechanical loop: 1) Diagnose. 2) Propose. 3) Await "Go-Ahead".
 
 ---
 
@@ -113,6 +116,11 @@
 * **[REF: UI-39] Sticky Metadata Header (Right-Docked):** The `ContentSlider` text pane pins the Event Title, Smart Date, Places, and Tags to the UI ceiling (`position: sticky`). Contextual metadata (Places & Tags) are dynamically flex-aligned to the right-hand side of the date to maximize vertical reading space for the description body.
 * **[REF: UI-40] Golden SVG Tag Identity:** Tags abandon native OS Emojis in favor of a mathematically plotted inline `<svg>` path. The vector is explicitly parameterized with a golden-yellow stroke/fill (`#ffc107`), ensuring flawless geometric identity across all browser engines.
 * **[REF: UI-46] Status Bar Space-Saver Menu:** To prevent UI overlapping on narrow portrait displays (mobile/tablet), secondary utility functions (Settings, Monitor) are condensed into a single `☰` menu button. Expanding the menu triggers an absolute-positioned floating popover, preserving critical horizontal space for the central navigation arrows.
+* **[REF: UI-32] Smart Date Deduplication (Same-Day Delta):** Date engine strips redundant `00:00` midnights. If an event begins and ends on the exact same Day/Month/Year but at different times, it outputs a pristine time delta (`15:45 — 16:00`).
+* **[REF: UI-39] Shrink-Wrapped Sticky Header:** ContentSlider rigidly pins metadata to the UI ceiling. The DOM order is explicitly forced to: **Date ➔ Places ➔ Tags ➔ Title**. Margins and padding are heavily compressed to maximize vertical real-estate for the description.
+* **[REF: UI-40] Golden SVG Tag Identity:** Tags utilize a mathematically plotted inline `<svg>` path (`#ffc107`), overriding OS-level Emojis.
+* **[REF: UI-46] Left-Aligned Menu Dock:** Secondary tools (Settings, Monitor) are condensed into a single `☰ Menu` button absolutely anchored to the far-left of the status bar, freeing portrait space. The aesthetic CSS gap inside the About logo was eliminated to sit perfectly flush.
+* **[REF: UI-47] The 75ch Readability Clamp:** To prevent severe eye-fatigue on wide screens (without breaking vertical scrolling via CSS columns), the `.slide-desc` block is mathematically clamped to `max-width: 75ch` and horizontally centered.
 
 ---
 
