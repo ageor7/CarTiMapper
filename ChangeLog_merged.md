@@ -1,10 +1,17 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
-### [v6.4.7] 
-* **Merged and normalized
+#### [v6.4.8]
+ContentSlider (v3.11.0): * [FIX: UI-39] Consolidated the Title, Date, Place, and Tags into a unified Sticky Header. Right-aligned the Place and Tag metadata to save vertical space.
+
+[FIX: UI-40] Injected Golden SVG vector icons for Tags.
+
+[FIX: UI-46] Condenses Settings and Monitor triggers into a space-saving ☰ popover menu to accommodate portrait/mobile aspect ratios. Left the Arrow navigation and About buttons completely untouched.
 
 ---
+
+### [v6.4.7] 
+* **Merged and normalized
 
 ---
 
