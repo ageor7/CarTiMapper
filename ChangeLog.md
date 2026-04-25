@@ -1,7 +1,12 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
-Changelog (v6.4.2)
+Changelog (v6.4.7)
+Project Management: * [FIX: PROT-02] Appended the "Discuss First, Code Later" directive to the Master Blueprint. All future interactions will strictly adhere to a two-step process: diagnostic strategy agreement, followed by code execution upon explicit user approval.
+
+---
+
+Changelog (v6.4.6)
 AppOrchestrator (v1.35.0): High-precision date parsing added.
 
 MapViewer (v4.2.0): Performance optimized via bulk loading. White-map tiles bug resolved.
