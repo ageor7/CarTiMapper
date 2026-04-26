@@ -1,6 +1,10 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+### ChangeLog [v6.4.26]
+* **MapViewer (v3.17.2) [MAP-09]:** Resolved the "dead setting" bug in the dynamic radar. Wired the `minimapOffset` to a live `useRef` and added a standalone `useEffect` that forces the `miniMapInstance` to instantly recalculate and snap to the new zoom depth the second the user adjusts the dropdown.
+* **GlobalStyles (v4.12.1) [UI-64]:** Injected a mobile-exclusive `@media` query to radically shrink the minimap to `90px` by `65px` on phones, preventing DPI multiplication from artificially inflating the module into a massive obstruction.
+
 ### [v6.4.25]
 * **MapViewer (v3.17.1) [MAP-08]:** Replaced the static, frozen minimap initialization with a synchronized Dynamic Radar engine. The secondary `miniMap` instance now actively tracks the main map's `getCenter()` and applies the user-selected `minimapOffset` (from `-2` to `-8`), ensuring the blue bounding rectangle never shrinks into oblivion during deep zooms.
 
