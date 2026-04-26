@@ -1,6 +1,11 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+### ChangeLog [v6.4.24]
+* **MapViewer (v2.10.0) [MAP-08]:** Deployed Dynamic Radar tracking. The minimap now actively intercepts main map pan/zoom events, scaling the blue aiming rectangle proportionately instead of shrinking into oblivion.
+* **AppOrchestrator (v1.41.0) [UI-63]:** Added the `minimapOffset` state array. Injected a new `<select>` dropdown into the Settings Modal allowing seamless selection of minimap radar depth from `-2` to `-8` levels.
+* **GlobalStyles (v4.12.0) [UI-62]:** Injected the absolute geometric `!important` containment cage over `.leaflet-control-minimap`, permanently terminating the Android "Exploding Map" bug.
+
 ### ChangeLog [v6.4.22]
 * **AppOrchestrator (v1.40.0) [URL-02]:** Engineered the Deep-Link Omni-Parser. Solved the "Android URL Parameter Bug" by actively scanning both URL queries and Hash strings, while natively correcting `&amp;` corruptions injected by mobile messaging applications.
 
