@@ -1,6 +1,10 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+### ChangeLog [v6.4.28]
+* **AppOrchestrator (v1.42.0) [MAP-11]:** Converted the legacy UI toggle into a fully descriptive `<select>` dropdown menu labeled "Map υπόβαθρο". Added rich descriptive text for the 5 curated providers to assist user decisions.
+* **MapViewer (v3.19.0) [MAP-11]:** Implemented the `BASEMAPS` Core Registry array. The Leaflet engine now safely un-mounts and mounts independent tile providers in real-time, perfectly synchronizing the UI choice across both the main geographic viewport and the minimap radar.
+
 ### ChangeLog [v6.4.27]
 * **MapViewer (v3.18.0) [MAP-10]:** Implemented the Minimum Projection Math clamp to the Custom Minimap. The blue aiming viewport is now allowed to expand indefinitely when zoomed out, but will mathematically halt its contraction at exactly `30px`, ensuring perfect visibility at extreme zoom depths.
 * **MapViewer:** Updated UI label on the spatial overlay button from `Lat/Lon` to `Grid`.
