@@ -1,6 +1,9 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+### [v6.4.25]
+* **MapViewer (v3.17.1) [MAP-08]:** Replaced the static, frozen minimap initialization with a synchronized Dynamic Radar engine. The secondary `miniMap` instance now actively tracks the main map's `getCenter()` and applies the user-selected `minimapOffset` (from `-2` to `-8`), ensuring the blue bounding rectangle never shrinks into oblivion during deep zooms.
+
 ### ChangeLog [v6.4.24]
 * **MapViewer (v2.10.0) [MAP-08]:** Deployed Dynamic Radar tracking. The minimap now actively intercepts main map pan/zoom events, scaling the blue aiming rectangle proportionately instead of shrinking into oblivion.
 * **AppOrchestrator (v1.41.0) [UI-63]:** Added the `minimapOffset` state array. Injected a new `<select>` dropdown into the Settings Modal allowing seamless selection of minimap radar depth from `-2` to `-8` levels.
