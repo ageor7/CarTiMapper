@@ -58,8 +58,7 @@
         
         .map-zoom-indicator { position: absolute; bottom: 15px; right: 15px; z-index: 1000; background: rgba(255,255,255,0.9); padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; color: #333; pointer-events: none; border: 1px solid #ccc; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
         
-        /* [FIX: UI-62] Strict Android Flexbox Containment Cage */
-        .minimap-container, .leaflet-control-minimap { 
+        .minimap-container { 
             position: absolute !important; 
             bottom: 50px !important; 
             right: 15px !important; 
@@ -76,7 +75,18 @@
             transition: transform 0.2s !important; 
             flex-shrink: 0 !important;
         }
-        .minimap-container:hover, .leaflet-control-minimap:hover { transform: scale(1.05) !important; }
+        .minimap-container:hover { transform: scale(1.05) !important; }
+
+        /* [FIX: UI-64] High-DPI Mobile Minimap Crunch */
+        @media (max-width: 1023px) {
+            .minimap-container {
+                width: 90px !important;
+                height: 65px !important;
+                bottom: 45px !important;
+                right: 10px !important;
+                border-width: 1px !important;
+            }
+        }
 
         .marker-cluster-small { background-color: rgba(255, 180, 80, 0.6) !important; }
         .marker-cluster-small div { background-color: rgba(240, 140, 40, 0.7) !important; color: white !important; }
@@ -259,7 +269,7 @@
         };
         // === [ END MAJOR BLOCK: VibeMonitor v2.0.0 ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v3.17.1 ] ===
+        // === [ MAJOR BLOCK: MapViewer v3.17.2 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, mapLocale, maxAutoZoom, minimapOffset }) => {
             const mapDomRef = useRef(null);
             const miniMapDomRef = useRef(null);
@@ -277,6 +287,19 @@
             const hasFitBounds = useRef(false);
             const [mapZoom, setMapZoom] = useState(2);
             const [showGrid, setShowGrid] = useState(false);
+
+            // [FIX: MAP-09] The Telemetry Bridge for Stale Closures
+            const minimapOffsetRef = useRef(minimapOffset || -4);
+
+            // Instantly update the minimap if the user changes the Settings dropdown
+            useEffect(() => {
+                minimapOffsetRef.current = minimapOffset;
+                if (mapInstance.current && miniMapInstance.current) {
+                    let targetMiniZoom = mapInstance.current.getZoom() + minimapOffset;
+                    if (targetMiniZoom < 0) targetMiniZoom = 0;
+                    miniMapInstance.current.setView(mapInstance.current.getCenter(), targetMiniZoom, { animate: true });
+                }
+            }, [minimapOffset]);
 
             const createPinHtml = (isActive, isVip) => {
                 const color = isActive ? '#28a745' : (isVip ? '#ffb300' : '#007acc');
@@ -376,14 +399,12 @@
                     const boundsRect = L.rectangle(map.getBounds(), { color: '#007acc', weight: 2, fillOpacity: 0.15 }).addTo(miniMap);
                     rectBoundsRef.current = boundsRect;
 
-                    // [FIX: MAP-08] Dynamic Radar Tracking System
                     map.on('move', () => { 
                         boundsRect.setBounds(map.getBounds());
-                        // Calculate target minimap zoom based on the user-selected minimapOffset setting (Default: -4)
-                        let targetMiniZoom = map.getZoom() + (minimapOffset || -4);
+                        // [FIX: MAP-09] Pulling directly from the real-time Ref bridge
+                        let targetMiniZoom = map.getZoom() + minimapOffsetRef.current;
                         if (targetMiniZoom < 0) targetMiniZoom = 0; 
                         
-                        // Force the minimap to perfectly track the main map's focal point and adjusted zoom
                         miniMap.setView(map.getCenter(), targetMiniZoom, { animate: false });
                     });
 
@@ -395,7 +416,7 @@
                         ro.observe(mapDomRef.current.parentElement);
                     }
                 }
-            }, [minimapOffset]);
+            }, []);
 
             useEffect(() => {
                 const map = mapInstance.current;
@@ -574,8 +595,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.17.1';
-        // === [ END MAJOR BLOCK: MapViewer v3.17.1 ] ===
+        MODULE_VERSIONS['MapViewer'] = 'v3.17.2';
+        // === [ END MAJOR BLOCK: MapViewer v3.17.2 ] ===
 
         // === [ MAJOR BLOCK: MediaViewer v2.9.0 ] ===
         const MediaViewer = ({ activeSlide, addLog }) => {
