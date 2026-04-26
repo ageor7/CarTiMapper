@@ -269,7 +269,7 @@
         };
         // === [ END MAJOR BLOCK: VibeMonitor v2.0.0 ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v3.17.2 ] ===
+        // === [ MAJOR BLOCK: MapViewer v3.18.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, mapLocale, maxAutoZoom, minimapOffset }) => {
             const mapDomRef = useRef(null);
             const miniMapDomRef = useRef(null);
@@ -288,10 +288,8 @@
             const [mapZoom, setMapZoom] = useState(2);
             const [showGrid, setShowGrid] = useState(false);
 
-            // [FIX: MAP-09] The Telemetry Bridge for Stale Closures
             const minimapOffsetRef = useRef(minimapOffset || -4);
 
-            // Instantly update the minimap if the user changes the Settings dropdown
             useEffect(() => {
                 minimapOffsetRef.current = minimapOffset;
                 if (mapInstance.current && miniMapInstance.current) {
@@ -371,7 +369,6 @@
                     
                     const map = L.map(mapDomRef.current, { zoomControl: false }).setView([20, 0], initialZoom);
                     L.control.zoom({ position: 'topright' }).addTo(map);
-                    
                     L.control.scale({ position: 'bottomleft', imperial: true, metric: true }).addTo(map);
                     
                     map.on('zoomend', () => setMapZoom(map.getZoom()));
@@ -399,13 +396,37 @@
                     const boundsRect = L.rectangle(map.getBounds(), { color: '#007acc', weight: 2, fillOpacity: 0.15 }).addTo(miniMap);
                     rectBoundsRef.current = boundsRect;
 
+                    // [FIX: MAP-10] Minimum Visual Projection Math
                     map.on('move', () => { 
-                        boundsRect.setBounds(map.getBounds());
-                        // [FIX: MAP-09] Pulling directly from the real-time Ref bridge
                         let targetMiniZoom = map.getZoom() + minimapOffsetRef.current;
                         if (targetMiniZoom < 0) targetMiniZoom = 0; 
                         
                         miniMap.setView(map.getCenter(), targetMiniZoom, { animate: false });
+
+                        const mapBounds = map.getBounds();
+                        const center = map.getCenter();
+                        const nw = miniMap.project(mapBounds.getNorthWest(), targetMiniZoom);
+                        const se = miniMap.project(mapBounds.getSouthEast(), targetMiniZoom);
+                        
+                        const w = Math.abs(se.x - nw.x);
+                        const h = Math.abs(se.y - nw.y);
+                        const MIN_PX = 30; 
+                        
+                        if (w < MIN_PX || h < MIN_PX) {
+                            const cPx = miniMap.project(center, targetMiniZoom);
+                            const adjW = Math.max(w, MIN_PX);
+                            const adjH = Math.max(h, MIN_PX);
+                            
+                            const newNw = L.point(cPx.x - adjW / 2, cPx.y - adjH / 2);
+                            const newSe = L.point(cPx.x + adjW / 2, cPx.y + adjH / 2);
+                            
+                            boundsRect.setBounds(L.latLngBounds(
+                                miniMap.unproject(newNw, targetMiniZoom),
+                                miniMap.unproject(newSe, targetMiniZoom)
+                            ));
+                        } else {
+                            boundsRect.setBounds(mapBounds);
+                        }
                     });
 
                     mapInstance.current = map;
@@ -588,15 +609,15 @@
                 <div style="position: relative; width:100%; height:100%;">
                     <div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>
                     <div style="position: absolute; bottom: 15px; right: 15px; z-index: 1000; display: flex; gap: 8px; align-items: center;">
-                        <button onClick=${() => setShowGrid(!showGrid)} style="background: ${showGrid ? '#007acc' : '#fcfcfc'}; color: ${showGrid ? '#fff' : '#333'}; border: 1px solid #ccc; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.2); transition: all 0.2s;">Lat/Lon</button>
+                        <button onClick=${() => setShowGrid(!showGrid)} style="background: ${showGrid ? '#007acc' : '#fcfcfc'}; color: ${showGrid ? '#fff' : '#333'}; border: 1px solid #ccc; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.2); transition: all 0.2s;">Grid</button>
                         <div style="background: rgba(255,255,255,0.9); padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; color: #333; border: 1px solid #ccc; box-shadow: 0 1px 4px rgba(0,0,0,0.2);">Zoom: ${mapZoom}</div>
                     </div>
                     <div class="minimap-container" ref=${miniMapDomRef}></div>
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.17.2';
-        // === [ END MAJOR BLOCK: MapViewer v3.17.2 ] ===
+        MODULE_VERSIONS['MapViewer'] = 'v3.18.0';
+        // === [ END MAJOR BLOCK: MapViewer v3.18.0 ] ===
 
         // === [ MAJOR BLOCK: MediaViewer v2.9.0 ] ===
         const MediaViewer = ({ activeSlide, addLog }) => {
