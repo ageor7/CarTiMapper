@@ -194,7 +194,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.4.27';
+        const APP_VERSION = 'v6.4.28';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -269,8 +269,8 @@
         };
         // === [ END MAJOR BLOCK: VibeMonitor v2.0.0 ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v3.18.0 ] ===
-        const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, mapLocale, maxAutoZoom, minimapOffset }) => {
+        // === [ MAJOR BLOCK: MapViewer v3.19.0 ] ===
+        const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, mapBasemap, maxAutoZoom, minimapOffset }) => {
             const mapDomRef = useRef(null);
             const miniMapDomRef = useRef(null);
             
@@ -281,6 +281,7 @@
             const markerLayer = useRef(null); 
             const clusterLayer = useRef(null); 
             const tileLayerRef = useRef(null);
+            const miniMapTileLayerRef = useRef(null);
             const gridLayerRef = useRef(null);
             const markersRef = useRef({}); 
             
@@ -289,6 +290,15 @@
             const [showGrid, setShowGrid] = useState(false);
 
             const minimapOffsetRef = useRef(minimapOffset || -4);
+
+            // [FIX: MAP-11] The Basemap Core Registry
+            const BASEMAPS = {
+                'carto-light': { url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', opts: { maxZoom: 19, attribution: '© OpenStreetMap, © CartoDB' } },
+                'esri-street': { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19, attribution: 'Tiles © Esri' } },
+                'esri-sat': { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19, attribution: 'Tiles © Esri' } },
+                'osm': { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { maxZoom: 19, attribution: '© OpenStreetMap' } },
+                'topo': { url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', opts: { maxZoom: 17, attribution: '© OpenTopoMap, OSM' } }
+            };
 
             useEffect(() => {
                 minimapOffsetRef.current = minimapOffset;
@@ -319,7 +329,6 @@
 
             const parseGeometryCollection = (wktStr) => {
                 const cleanStr = wktStr.trim().replace(/^GEOMETRYCOLLECTION\s*\(/i, '').replace(/\)\s*$/, '');
-                
                 let inParen = 0;
                 let currentGeom = '';
                 const geometries = [];
@@ -373,9 +382,8 @@
                     
                     map.on('zoomend', () => setMapZoom(map.getZoom()));
 
-                    tileLayerRef.current = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
-                        attribution: '© Esri & OSM' 
-                    }).addTo(map);
+                    const baseConfig = BASEMAPS[mapBasemap] || BASEMAPS['carto-light'];
+                    tileLayerRef.current = L.tileLayer(baseConfig.url, baseConfig.opts).addTo(map);
                     
                     markerLayer.current = L.featureGroup().addTo(map);
                     clusterLayer.current = L.markerClusterGroup({ maxClusterRadius: 40, spiderfyOnMaxZoom: true }).addTo(map);
@@ -391,12 +399,11 @@
                     clusterLayer.current.on('clustermouseout', (c) => c.layer.unbindTooltip());
 
                     const miniMap = L.map(miniMapDomRef.current, { zoomControl: false, attributionControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false }).setView([20, 0], 0);
-                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(miniMap);
+                    miniMapTileLayerRef.current = L.tileLayer(baseConfig.url, baseConfig.opts).addTo(miniMap);
                     
                     const boundsRect = L.rectangle(map.getBounds(), { color: '#007acc', weight: 2, fillOpacity: 0.15 }).addTo(miniMap);
                     rectBoundsRef.current = boundsRect;
 
-                    // [FIX: MAP-10] Minimum Visual Projection Math
                     map.on('move', () => { 
                         let targetMiniZoom = map.getZoom() + minimapOffsetRef.current;
                         if (targetMiniZoom < 0) targetMiniZoom = 0; 
@@ -478,14 +485,21 @@
                 return () => map.off('moveend', updateGrid);
             }, [showGrid]);
 
+            // [FIX: MAP-11] The Real-Time Tile Un-mounting Loop
             useEffect(() => {
-                if (tileLayerRef.current) {
-                    const url = mapLocale === 'english'
-                        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'
-                        : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-                    tileLayerRef.current.setUrl(url);
-                }
-            }, [mapLocale]);
+                const map = mapInstance.current;
+                const miniMap = miniMapInstance.current;
+                if (!map || !miniMap) return;
+
+                const config = BASEMAPS[mapBasemap] || BASEMAPS['carto-light'];
+                
+                if (tileLayerRef.current) map.removeLayer(tileLayerRef.current);
+                tileLayerRef.current = L.tileLayer(config.url, config.opts).addTo(map);
+                
+                if (miniMapTileLayerRef.current) miniMap.removeLayer(miniMapTileLayerRef.current);
+                miniMapTileLayerRef.current = L.tileLayer(config.url, config.opts).addTo(miniMap);
+                
+            }, [mapBasemap]);
 
             useEffect(() => {
                 const map = mapInstance.current;
@@ -616,8 +630,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.18.0';
-        // === [ END MAJOR BLOCK: MapViewer v3.18.0 ] ===
+        MODULE_VERSIONS['MapViewer'] = 'v3.19.0';
+        // === [ END MAJOR BLOCK: MapViewer v3.19.0 ] ===
 
         // === [ MAJOR BLOCK: MediaViewer v2.9.0 ] ===
         const MediaViewer = ({ activeSlide, addLog }) => {
@@ -1422,7 +1436,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.16.0';
         // === [ END MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.41.0 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.42.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [rawCsvRows, setRawCsvRows] = useState([]);
@@ -1435,9 +1449,11 @@
             const [isAboutOpen, setIsAboutOpen] = useState(false);
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
             const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
-            const [mapLocale, setMapLocale] = useState('english');
+            
+            // [FIX: MAP-11] The Basemap Architecture State
+            const [mapBasemap, setMapBasemap] = useState('carto-light');
+            
             const [maxAutoZoom, setMaxAutoZoom] = useState(15);
-            // [FIX: UI-63] Dynamic Radar Minimap Settings State
             const [minimapOffset, setMinimapOffset] = useState(-4); 
             const [zoomLock, setZoomLock] = useState('auto'); 
             const [visibleTimeSpan, setVisibleTimeSpan] = useState('');
@@ -1738,7 +1754,7 @@
 
                     ${!status.active ? html`
                         <div class="loading-screen ${status.isFading ? 'fade-out' : ''}">
-                            <${CarTiMapperLogo} context="splash" appVersion=${APP_VERSION || 'v6.4.24'} />
+                            <${CarTiMapperLogo} context="splash" appVersion=${APP_VERSION || 'v6.4.28'} />
                             <div class="loading-bar-container"><div class="loading-bar-fill" style="width: ${status.progress}%;"></div></div>
                         </div>
                     ` : ''}
@@ -1749,8 +1765,8 @@
                             <div class="core-viewports">
                                 <div class="visual-pane ${hasMedia ? '' : 'no-media'}">
                                     <div class="map-pane">
-                                        <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} maxAutoZoom=${maxAutoZoom} minimapOffset=${minimapOffset} />
-                                        <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} appVersion=${APP_VERSION || 'v6.4.24'} moduleVersions=${{Globals: 'v1.0.52', Styles: 'v4.12.0', MapViewer: 'v2.10.0'}} />
+                                        <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} maxAutoZoom=${maxAutoZoom} minimapOffset=${minimapOffset} mapBasemap=${mapBasemap} />
+                                        <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} appVersion=${APP_VERSION || 'v6.4.28'} moduleVersions=${{Globals: 'v1.0.52', Styles: 'v4.12.1'}} />
                                     </div>
                                     <div class="resizer-dyn-secondary" onMouseDown=${startSecondaryResize} onTouchStart=${startSecondaryResize}></div>
                                     <div class="media-pane">
@@ -1802,11 +1818,14 @@
                             </div>
 
                             <div style="margin-top: 20px;">
-                                <label style="display: block; margin-bottom: 8px; color: #555; font-size: 0.95rem;">Map Language</label>
+                                <label style="display: block; margin-bottom: 8px; color: #555; font-size: 0.95rem;">Basemap</label>
                                 <select style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; background: #fcfcfc; cursor: pointer; color: #333;" 
-                                        value=${mapLocale} onChange=${(e) => setMapLocale(e.target.value)}>
-                                    <option value="english">Standard English (Global Readability)</option>
-                                    <option value="local">Native / Local Languages</option>
+                                        value=${mapBasemap} onChange=${(e) => setMapBasemap(e.target.value)}>
+                                    <option value="carto-light">CartoDB Light (Minimalist & Clean)</option>
+                                    <option value="esri-street">Esri World Street (Traditional Detail)</option>
+                                    <option value="esri-sat">Esri World Imagery (Satellite High-Res)</option>
+                                    <option value="osm">OpenStreetMap (Native Local Languages)</option>
+                                    <option value="topo">OpenTopoMap (Terrain & Elevation)</option>
                                 </select>
                             </div>
 
@@ -1836,8 +1855,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.41.0';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.41.0 ] ===
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.42.0';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.42.0 ] ===
 
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
