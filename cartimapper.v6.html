@@ -184,7 +184,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.4.24';
+        const APP_VERSION = 'v6.4.25';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -259,8 +259,8 @@
         };
         // === [ END MAJOR BLOCK: VibeMonitor v2.0.0 ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v3.17.0 ] ===
-        const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, mapLocale, maxAutoZoom }) => {
+        // === [ MAJOR BLOCK: MapViewer v3.17.1 ] ===
+        const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, mapLocale, maxAutoZoom, minimapOffset }) => {
             const mapDomRef = useRef(null);
             const miniMapDomRef = useRef(null);
             
@@ -376,7 +376,16 @@
                     const boundsRect = L.rectangle(map.getBounds(), { color: '#007acc', weight: 2, fillOpacity: 0.15 }).addTo(miniMap);
                     rectBoundsRef.current = boundsRect;
 
-                    map.on('move', () => { boundsRect.setBounds(map.getBounds()); });
+                    // [FIX: MAP-08] Dynamic Radar Tracking System
+                    map.on('move', () => { 
+                        boundsRect.setBounds(map.getBounds());
+                        // Calculate target minimap zoom based on the user-selected minimapOffset setting (Default: -4)
+                        let targetMiniZoom = map.getZoom() + (minimapOffset || -4);
+                        if (targetMiniZoom < 0) targetMiniZoom = 0; 
+                        
+                        // Force the minimap to perfectly track the main map's focal point and adjusted zoom
+                        miniMap.setView(map.getCenter(), targetMiniZoom, { animate: false });
+                    });
 
                     mapInstance.current = map;
                     miniMapInstance.current = miniMap;
@@ -386,9 +395,8 @@
                         ro.observe(mapDomRef.current.parentElement);
                     }
                 }
-            }, []);
+            }, [minimapOffset]);
 
-            // [FIX: MAP-GRID-01] Micro-Graticule Engine logic
             useEffect(() => {
                 const map = mapInstance.current;
                 if (!map || !gridLayerRef.current) return;
@@ -505,8 +513,6 @@
                         clusterLayer.current.eachLayer(l => bounds.extend(l.getLatLng()));
                         if (bounds.isValid()) {
                             map.fitBounds(bounds, { padding: [30, 30], maxZoom: 6 });
-                            miniMap.fitBounds(bounds, { padding: [5, 5] });
-                            baseZoomRef.current = map.getBoundsZoom(bounds);
                             hasFitBounds.current = true;
                         }
                     }
@@ -568,8 +574,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.17.0';
-        // === [ END MAJOR BLOCK: MapViewer v3.17.0 ] ===
+        MODULE_VERSIONS['MapViewer'] = 'v3.17.1';
+        // === [ END MAJOR BLOCK: MapViewer v3.17.1 ] ===
 
         // === [ MAJOR BLOCK: MediaViewer v2.9.0 ] ===
         const MediaViewer = ({ activeSlide, addLog }) => {
@@ -1374,7 +1380,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.16.0';
         // === [ END MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.40.0 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.41.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [rawCsvRows, setRawCsvRows] = useState([]);
@@ -1389,6 +1395,8 @@
             const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
             const [mapLocale, setMapLocale] = useState('english');
             const [maxAutoZoom, setMaxAutoZoom] = useState(15);
+            // [FIX: UI-63] Dynamic Radar Minimap Settings State
+            const [minimapOffset, setMinimapOffset] = useState(-4); 
             const [zoomLock, setZoomLock] = useState('auto'); 
             const [visibleTimeSpan, setVisibleTimeSpan] = useState('');
             const hasInitializedRef = useRef(false);
@@ -1396,7 +1404,6 @@
 
             const addLog = (msg, type = 'info') => setLogs(p => [...p, { time: new Date().toLocaleTimeString('en-US', { hour12: false }), msg, type }]);
 
-            // [FIX: URL-02] The Deep-Link Omni-Parser
             const getOmniParam = (key) => {
                 const searchParams = new URLSearchParams(window.location.search);
                 let val = searchParams.get(key) || searchParams.get(`amp;${key}`);
@@ -1689,7 +1696,7 @@
 
                     ${!status.active ? html`
                         <div class="loading-screen ${status.isFading ? 'fade-out' : ''}">
-                            <${CarTiMapperLogo} context="splash" appVersion=${APP_VERSION || 'v6.4.22'} />
+                            <${CarTiMapperLogo} context="splash" appVersion=${APP_VERSION || 'v6.4.24'} />
                             <div class="loading-bar-container"><div class="loading-bar-fill" style="width: ${status.progress}%;"></div></div>
                         </div>
                     ` : ''}
@@ -1700,8 +1707,8 @@
                             <div class="core-viewports">
                                 <div class="visual-pane ${hasMedia ? '' : 'no-media'}">
                                     <div class="map-pane">
-                                        <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} maxAutoZoom=${maxAutoZoom} />
-                                        <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} appVersion=${APP_VERSION || 'v6.4.22'} moduleVersions=${{Globals: 'v1.0.52', Styles: 'v4.11.0'}} />
+                                        <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} maxAutoZoom=${maxAutoZoom} minimapOffset=${minimapOffset} />
+                                        <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} appVersion=${APP_VERSION || 'v6.4.24'} moduleVersions=${{Globals: 'v1.0.52', Styles: 'v4.12.0', MapViewer: 'v2.10.0'}} />
                                     </div>
                                     <div class="resizer-dyn-secondary" onMouseDown=${startSecondaryResize} onTouchStart=${startSecondaryResize}></div>
                                     <div class="media-pane">
@@ -1771,13 +1778,24 @@
                                     <option value="17">Level 17 (Building Level)</option>
                                 </select>
                             </div>
+
+                            <div style="margin-top: 20px;">
+                                <label style="display: block; margin-bottom: 8px; color: #555; font-size: 0.95rem;">Radar Minimap Offset</label>
+                                <select style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; background: #fcfcfc; cursor: pointer; color: #333;" 
+                                        value=${minimapOffset} onChange=${(e) => setMinimapOffset(parseInt(e.target.value, 10))}>
+                                    ${[-2, -3, -4, -5, -6, -7, -8].map(lvl => html`
+                                        <option value=${lvl}>${lvl} Levels Out</option>
+                                    `)}
+                                </select>
+                            </div>
+
                         </div>
                     ` : ''}
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.40.0';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.40.0 ] ===
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.41.0';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.41.0 ] ===
 
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
