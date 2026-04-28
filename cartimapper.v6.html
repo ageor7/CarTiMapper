@@ -77,7 +77,6 @@
         }
         .minimap-container:hover { transform: scale(1.05) !important; }
 
-        /* [FIX: UI-64] High-DPI Mobile Minimap Crunch */
         @media (max-width: 1023px) {
             .minimap-container {
                 width: 90px !important;
@@ -114,20 +113,16 @@
         /* --- [ End SubBlock: Media Carousel ] --- */
 
         /* --- [ SubBlock: Narrative Content Slider ] --- */
-        .content-scroll-area { flex: 1; overflow-y: auto; padding: 2rem 4rem; display: flex; flex-direction: column; z-index: 5; }
+        .content-scroll-area { flex: 1; overflow-y: auto; padding: 2rem 4rem; display: flex; flex-direction: column; z-index: 5; scroll-behavior: smooth; }
         .slide-container { width: 100%; max-width: 1000px; margin: 0 auto; flex: 1; box-sizing: border-box; }
-        .slide-header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.8rem; }
-        .slide-date { color: #007acc; font-size: 1.1rem; letter-spacing: 0.5px; }
-        .slide-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; max-width: 80%; }
-        .tag-badge, .slide-place-badge { background: #e0e0e0; color: #444; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; border: 1px solid #ccc; }
-        .tag-badge { white-space: nowrap; }
-        .slide-place-badge { display: inline-flex; align-items: center; gap: 4px; white-space: normal; text-align: right; text-wrap: balance; line-height: 1.3; max-width: 100%; }
-        .tags-container { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-        .slide-title { margin: 0 0 1.5rem 0; font-size: 2.5rem; color: #111; line-height: 1.1; }
         .slide-desc { line-height: 1.6; font-size: 1.15rem; color: #333; width: 100%; }
         .click-zone { position: absolute; top: 0; bottom: 40px; width: 15%; z-index: 10; cursor: pointer; }
         .click-zone-left { left: 0; }
         .click-zone-right { right: 0; }
+        
+        /* [FIX: UI-65] Micro-Scroll Ribbon CSS */
+        .metadata-ribbon { display: flex; gap: 8px; align-items: center; overflow-x: auto; scrollbar-width: none; white-space: nowrap; -ms-overflow-style: none; }
+        .metadata-ribbon::-webkit-scrollbar { display: none; }
         /* --- [ End SubBlock: Narrative Content Slider ] --- */
 
         /* --- [ SubBlock: Status Bar & Modals ] --- */
@@ -143,10 +138,17 @@
         .nav-btn-bottom:disabled { opacity: 0.3; cursor: not-allowed; }
         .semantic-time-span { font-size: 0.75rem; color: #007acc; padding: 0 10px; border-left: 1px solid #ddd; border-right: 1px solid #ddd; margin: 0 5px; display: flex; align-items: center; height: 20px;}
         
-        #about-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 700px; max-height: 85vh; background: #fff; z-index: 9001; border-radius: 12px; padding: 30px; overflow-y: auto; display: none; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid #ccc; color: #222; font-size: 1.1rem; }
-        #about-modal.open { display: block; }
-        .about-close { position: absolute; top: 15px; right: 15px; border: none; background: none; font-size: 1.5rem; cursor: pointer; color: #999; }
-        .logo-horizontal-about { display: flex; flex-direction: column; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid #eee; padding-bottom: 20px; }
+        #about-modal, #search-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 700px; max-height: 85vh; background: #fff; z-index: 9001; border-radius: 12px; padding: 30px; overflow-y: auto; display: none; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid #ccc; color: #222; font-size: 1.1rem; }
+        #about-modal.open, #search-modal.open { display: block; }
+        .modal-close { position: absolute; top: 15px; right: 15px; border: none; background: none; font-size: 1.5rem; cursor: pointer; color: #999; }
+        
+        /* [FIX: UI-66] Omni-Search UI Elements */
+        .search-input { width: 100%; padding: 12px 15px; font-size: 1.1rem; border: 2px solid #ccc; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; outline: none; transition: border-color 0.2s; }
+        .search-input:focus { border-color: #007acc; }
+        .search-result-item { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s; }
+        .search-result-item:hover { background: #f4f8fb; }
+        .search-result-title { font-weight: bold; font-size: 1rem; color: #222; }
+        .search-result-meta { font-size: 0.8rem; color: #666; margin-top: 4px; }
         /* --- [ End SubBlock: Status Bar & Modals ] --- */
 
         /* --- [ SubBlock: Timeline UI & Leaflet Controls ] --- */
@@ -173,16 +175,7 @@
         .timeline-leaflet-btn:hover { background: #f4f4f4; }
         .timeline-leaflet-text { font-size: 0.65rem; line-height: 1; display: flex; align-items: center; justify-content: center; height: 24px; border-bottom: 1px solid #ccc; background: #fff; color: #333; }
         /* --- [ End SubBlock: Timeline UI & Leaflet Controls ] --- */
-
-        /* --- [ SubBlock: Vibe Monitor UI ] --- */
-        #vibe-monitor { position: absolute; bottom: 50px; left: 10px; width: 400px; height: 300px; background: rgba(10, 10, 15, 0.95); border: 1px solid #444; border-radius: 8px; display: flex; flex-direction: column; z-index: 9999; color: #eee; box-shadow: 0 8px 32px rgba(0,0,0,0.9); resize: both; overflow: hidden; font-family: monospace; }
-        #vibe-header { background: #222; padding: 8px; cursor: move; border-bottom: 1px solid #444; display: flex; justify-content: space-between; align-items: center; user-select: none; }
-        .vibe-close-btn { background: #ff5555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; padding: 2px 6px; }
-        #vibe-logs { flex: 1; overflow-y: auto; padding: 10px; font-size: 12px; line-height: 1.4; word-wrap: break-word; }
-        .log-info { color: #8be9fd; } .log-success { color: #50fa7b; } .log-warn { color: #ffb86c; } .log-error { color: #ff5555; }
-        /* --- [ End SubBlock: Vibe Monitor UI ] --- */
     </style>
-    ```
 </head>
 <body>
     <div id="root"></div>
@@ -194,7 +187,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.4.28';
+        const APP_VERSION = 'v6.5.0';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -269,7 +262,7 @@
         };
         // === [ END MAJOR BLOCK: VibeMonitor v2.0.0 ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v3.19.0 ] ===
+        // === [ MAJOR BLOCK: MapViewer v3.20.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, mapBasemap, maxAutoZoom, minimapOffset }) => {
             const mapDomRef = useRef(null);
             const miniMapDomRef = useRef(null);
@@ -291,13 +284,18 @@
 
             const minimapOffsetRef = useRef(minimapOffset || -4);
 
-            // [FIX: MAP-11] The Basemap Core Registry
             const BASEMAPS = {
                 'carto-light': { url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', opts: { maxZoom: 19, attribution: '© OpenStreetMap, © CartoDB' } },
                 'esri-street': { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19, attribution: 'Tiles © Esri' } },
                 'esri-sat': { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19, attribution: 'Tiles © Esri' } },
                 'osm': { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { maxZoom: 19, attribution: '© OpenStreetMap' } },
                 'topo': { url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', opts: { maxZoom: 17, attribution: '© OpenTopoMap, OSM' } }
+            };
+
+            // [FIX: DATA-05] The Multi-Place Truncation Formatter
+            const formatPlaces = (str) => {
+                if (!str) return '';
+                return str.split(/[|\-·;]/).map(s => s.split(',')[0].trim()).filter(Boolean).join(' | ');
             };
 
             useEffect(() => {
@@ -485,7 +483,6 @@
                 return () => map.off('moveend', updateGrid);
             }, [showGrid]);
 
-            // [FIX: MAP-11] The Real-Time Tile Un-mounting Loop
             useEffect(() => {
                 const map = mapInstance.current;
                 const miniMap = miniMapInstance.current;
@@ -510,6 +507,12 @@
                 clusterLayer.current.clearLayers();
                 markersRef.current = {};
                 let validMarkers = 0;
+
+                const stripHTML = (html) => {
+                    const tmp = document.createElement("DIV");
+                    tmp.innerHTML = html;
+                    return tmp.textContent || tmp.innerText || "";
+                };
 
                 data.forEach((item, idx) => {
                     const locStr = String(item.location || '').trim();
@@ -547,7 +550,10 @@
                                 layer.isVip = isVip;
                             } 
                             
-                            let labelText = subLabels[layerIdx] ? subLabels[layerIdx] : (item.place ? stripHTML(item.place) : stripHTML(item.title));
+                            // [FIX: DATA-05] Apply `formatPlaces` cleanly to the rendering layer string
+                            let rawLabel = subLabels[layerIdx] ? subLabels[layerIdx] : (item.place ? formatPlaces(item.place) : item.title);
+                            let labelText = stripHTML(rawLabel);
+                            
                             layer.bindTooltip(labelText, { direction: 'top', offset: [0, -48], className: 'centered-tooltip' });
                             layer.on('click', () => setActiveIndex(idx));
 
@@ -630,8 +636,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.19.0';
-        // === [ END MAJOR BLOCK: MapViewer v3.19.0 ] ===
+        MODULE_VERSIONS['MapViewer'] = 'v3.20.0';
+        // === [ END MAJOR BLOCK: MapViewer v3.20.0 ] ===
 
         // === [ MAJOR BLOCK: MediaViewer v2.9.0 ] ===
         const MediaViewer = ({ activeSlide, addLog }) => {
@@ -790,11 +796,22 @@
         MODULE_VERSIONS['MediaViewer'] = 'v2.9.0';
         // === [ END MAJOR BLOCK: MediaViewer v2.9.0 ] ===
 
-        // === [ MAJOR BLOCK: ContentSlider v3.17.2 ] ===
+        // === [ MAJOR BLOCK: ContentSlider v3.18.0 ] ===
         const ContentSlider = ({ data, activeIndex, setActiveIndex, jumpToSlide, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo, visibleTimeSpan }) => {
             const [isMenuOpen, setIsMenuOpen] = useState(false);
             const touchStartX = useRef(0);
             
+            // [FIX: UI-65] The Dynamic Scroll State
+            const [isScrolled, setIsScrolled] = useState(false);
+            
+            // [FIX: UI-66] Omni-Search State & Persistent History
+            const [isSearchOpen, setIsSearchOpen] = useState(false);
+            const [searchQuery, setSearchQuery] = useState('');
+            const [searchHistory, setSearchHistory] = useState(() => {
+                try { return JSON.parse(localStorage.getItem('tm_search_history')) || []; } 
+                catch(e) { return []; }
+            });
+
             const slide = data[activeIndex];
             if (!slide) return null;
 
@@ -836,6 +853,12 @@
                 return arr.map(s => String(s).trim()).filter(Boolean);
             };
 
+            // [FIX: DATA-05] Place Truncation Format
+            const formatPlaces = (str) => {
+                if (!str) return '';
+                return str.split(/[|\-·;]/).map(s => s.split(',')[0].trim()).filter(Boolean).join(' | ');
+            };
+
             const tags = getParsedTags(slide.tags);
             const hasLocation = slide.place && String(slide.place).trim() !== '';
 
@@ -850,53 +873,76 @@
                 if (touchEndX - touchStartX.current > 50) goPrev(); 
             };
 
+            const handleScroll = (e) => {
+                const scrollTop = e.target.scrollTop;
+                if (scrollTop > 40 && !isScrolled) setIsScrolled(true);
+                else if (scrollTop <= 40 && isScrolled) setIsScrolled(false);
+            };
+
+            const executeSearch = (query) => {
+                if (!query.trim()) return [];
+                const q = query.toLowerCase();
+                return data.filter(d => {
+                    const titleMatch = d.title && d.title.toLowerCase().includes(q);
+                    const descMatch = d.description && d.description.toLowerCase().includes(q);
+                    const placeMatch = d.place && d.place.toLowerCase().includes(q);
+                    const tagsMatch = d.tags && d.tags.some(t => t.toLowerCase().includes(q));
+                    const dateMatch = formatSmartDate(d.startDate, d.endDate).toLowerCase().includes(q);
+                    return titleMatch || descMatch || placeMatch || tagsMatch || dateMatch;
+                });
+            };
+
+            const handleResultClick = (idx, qString) => {
+                jumpToSlide(idx);
+                setIsSearchOpen(false);
+                if (qString && !searchHistory.includes(qString)) {
+                    const newHistory = [qString, ...searchHistory].slice(0, 8); 
+                    setSearchHistory(newHistory);
+                    localStorage.setItem('tm_search_history', JSON.stringify(newHistory));
+                }
+            };
+
+            const searchResults = executeSearch(searchQuery);
             const urlParams = new URLSearchParams(window.location.search);
             const paramsList = Array.from(urlParams.entries()).map(([k, v]) => `${k}=${v}`).join(' | ') || 'None';
 
             return html`
                 <div class="content-pane-wrapper" style="display: flex; flex-direction: column; height: 100%;" onClick=${handlePaneClick}>
                     
-                    <div style="position: relative; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column;" onTouchStart=${handleTouchStart} onTouchEnd=${handleTouchEnd}>
+                    <div style="position: relative; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; scroll-behavior: smooth;" onTouchStart=${handleTouchStart} onTouchEnd=${handleTouchEnd} onScroll=${handleScroll}>
                         <div class="click-zone click-zone-left" onClick=${goPrev} title="Previous"></div>
                         <div class="click-zone click-zone-right" onClick=${goNext} title="Next"></div>
 
-                        <div style="flex-shrink: 0; position: sticky; top: 0; background: var(--paneBg, #ffffff); z-index: 10; padding: 1.2rem 1.5rem 0.2rem 1.5rem; border-bottom: 1px solid rgba(128,128,128,0.2); box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; justify-content: center;">
-                            <div style="max-width: 90ch; width: 100%;">
-                                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; margin-bottom: 0.4rem;">
-                                    
-                                    <div class="slide-date" style="font-weight: 400; color: #007acc; font-size: 0.9rem; padding-top: 2px;">
+                        <div style="flex-shrink: 0; position: sticky; top: 0; background: var(--paneBg, #ffffff); z-index: 10; padding: ${isScrolled ? '0.6rem 1.5rem 0.4rem 1.5rem' : '1.2rem 1.5rem 0.2rem 1.5rem'}; border-bottom: 1px solid rgba(128,128,128,0.2); box-shadow: ${isScrolled ? '0 4px 12px rgba(0,0,0,0.06)' : '0 2px 8px rgba(0,0,0,0.04)'}; display: flex; justify-content: center; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);">
+                            <div style="max-width: 90ch; width: 100%; display: flex; flex-direction: column;">
+                                
+                                <div class="metadata-ribbon" style="margin-bottom: ${isScrolled ? '0.2rem' : '0.4rem'};">
+                                    <div class="slide-date" style="font-weight: 400; color: #007acc; font-size: 0.9rem; flex-shrink: 0;">
                                         ${formatSmartDate(slide.startDate, slide.endDate)}
                                     </div>
                                     
-                                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px; max-width: 60%;">
-                                        ${hasLocation ? html`
-                                            <span style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.06); color: var(--text-color, #444); padding: 3px 10px; border-radius: 10px; font-size: 0.75rem; border: 1px solid rgba(128,128,128,0.15); text-align: right;">
-                                                <span style="margin-right: 4px;">📍</span> ${slide.place}
-                                            </span>
-                                        ` : ''}
+                                    ${hasLocation ? html`
+                                        <span style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.06); color: var(--text-color, #444); padding: 3px 10px; border-radius: 10px; font-size: 0.75rem; border: 1px solid rgba(128,128,128,0.15); flex-shrink: 0;">
+                                            <span style="margin-right: 4px;">📍</span> ${formatPlaces(slide.place)}
+                                        </span>
+                                    ` : ''}
 
-                                        ${tags.length > 0 ? html`
-                                            <div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px;">
-                                                ${tags.map(tag => html`
-                                                    <span style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.06); color: var(--text-color, #444); padding: 3px 10px; border-radius: 10px; font-size: 0.75rem; border: 1px solid rgba(128,128,128,0.15);">
-                                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="rgba(255, 193, 7, 0.2)" stroke="#ffc107" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;">
-                                                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                                                            <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                                                        </svg>
-                                                        <span style="white-space: nowrap;">${tag}</span>
-                                                    </span>
-                                                `)}
-                                            </div>
-                                        ` : ''}
-                                    </div>
+                                    ${tags.map(tag => html`
+                                        <span style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.06); color: var(--text-color, #444); padding: 3px 10px; border-radius: 10px; font-size: 0.75rem; border: 1px solid rgba(128,128,128,0.15); flex-shrink: 0;">
+                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="rgba(255, 193, 7, 0.2)" stroke="#ffc107" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;">
+                                                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line>
+                                            </svg>
+                                            <span>${tag}</span>
+                                        </span>
+                                    `)}
                                 </div>
 
-                                <h2 class="slide-title" style="margin: 0; font-size: 1.4rem; line-height: 1.2;" dangerouslySetInnerHTML=${{ __html: slide.title }}></h2>
+                                <h2 class="slide-title" style="margin: 0; font-size: ${isScrolled ? '1.1rem' : '1.4rem'}; line-height: 1.2; transition: font-size 0.3s ease;" dangerouslySetInnerHTML=${{ __html: slide.title }}></h2>
                             </div>
                         </div>
 
                         <div style="flex-grow: 1; padding: 0.2rem 2rem 2rem 2rem; display: flex; justify-content: center;">
-                            <div class="slide-desc" style="max-width: 75ch; width: 100%; font-size: 1.05rem; line-height: 1.6;" dangerouslySetInnerHTML=${{ __html: slide.description }}></div>
+                            <div class="slide-desc" dangerouslySetInnerHTML=${{ __html: slide.description }}></div>
                         </div>
                     </div>
 
@@ -926,15 +972,49 @@
                             <span class="semantic-time-span" title="Visible Time Span">${visibleTimeSpan || '...'}</span>
                             <button class="nav-btn-bottom" onClick=${goNext} disabled=${activeIndex === data.length - 1}>Next ▶</button>
                         </div>
-                        <div class="status-right">
+                        
+                        <div class="status-right" style="display: flex; gap: 10px; align-items: center;">
+                            <button class="status-btn" onClick=${() => setIsSearchOpen(true)}>🔍 Search</button>
                             ${slideHistory && slideHistory.length > 0 ? html`<button class="status-btn" onClick=${goBack}>↩ Back</button>` : ''}
-                            ${activeIndex + 1} / ${data.length}
+                            <span>${activeIndex + 1} / ${data.length}</span>
+                        </div>
+                    </div>
+
+                    <div class="modal-backdrop ${isSearchOpen ? 'open' : ''}" onClick=${() => setIsSearchOpen(false)} style="display: ${isSearchOpen ? 'block' : 'none'};"></div>
+                    <div id="search-modal" class=${isSearchOpen ? 'open' : ''} style="display: ${isSearchOpen ? 'flex' : 'none'}; flex-direction: column;">
+                        <button class="modal-close" onClick=${() => setIsSearchOpen(false)}>×</button>
+                        <h3 style="margin-top: 0; font-size: 1.3rem; margin-bottom: 15px;">Search Dataset</h3>
+                        
+                        <input type="text" class="search-input" placeholder="Search events, places, dates..." value=${searchQuery} onInput=${e => setSearchQuery(e.target.value)} autoFocus />
+                        
+                        ${searchHistory.length > 0 && !searchQuery ? html`
+                            <div style="margin-bottom: 15px;">
+                                <div style="font-size: 0.8rem; color: #888; margin-bottom: 8px;">Recent Searches:</div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                    ${searchHistory.map(hist => html`
+                                        <button style="background: #f0f0f0; border: 1px solid #ddd; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; cursor: pointer; color: #444;" onClick=${() => setSearchQuery(hist)}>${hist}</button>
+                                    `)}
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        <div style="flex-grow: 1; overflow-y: auto; border-top: 1px solid #eee;">
+                            ${searchQuery && searchResults.length === 0 ? html`
+                                <div style="padding: 20px; text-align: center; color: #888;">No events found for "${searchQuery}"</div>
+                            ` : ''}
+                            
+                            ${searchResults.map(res => html`
+                                <div class="search-result-item" onClick=${() => handleResultClick(res.id, searchQuery)}>
+                                    <div class="search-result-title">${res.title}</div>
+                                    <div class="search-result-meta">${formatSmartDate(res.startDate, res.endDate)} ${res.place ? ` • ${formatPlaces(res.place)}` : ''}</div>
+                                </div>
+                            `)}
                         </div>
                     </div>
 
                     <div class="modal-backdrop ${isAboutOpen ? 'open' : ''}" onClick=${() => setIsAboutOpen(false)} style="display: ${isAboutOpen ? 'block' : 'none'}; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9000;"></div>
                     <div id="about-modal" class=${isAboutOpen ? 'open' : ''} style="display: ${isAboutOpen ? 'block' : 'none'}; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 700px; max-height: 85vh; background: #fff; z-index: 9001; border-radius: 12px; padding: 30px; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid #ccc; color: #222;">
-                        <button class="about-close" onClick=${() => setIsAboutOpen(false)} style="position: absolute; top: 15px; right: 15px; border: none; background: none; font-size: 1.5rem; cursor: pointer; color: #999;">×</button>
+                        <button class="modal-close" onClick=${() => setIsAboutOpen(false)}>×</button>
                         <${CarTiMapperLogo} context="about" appVersion=${APP_VERSION} />
                         
                         <div dangerouslySetInnerHTML=${{__html: aboutData ? aboutData.description : ''}}></div>
@@ -959,8 +1039,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['ContentSlider'] = 'v3.17.2';
-        // === [ END MAJOR BLOCK: ContentSlider v3.17.2 ] ===
+        MODULE_VERSIONS['ContentSlider'] = 'v3.18.0';
+        // === [ END MAJOR BLOCK: ContentSlider v3.18.0 ] ===
 
         // === [ MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan }) => {
