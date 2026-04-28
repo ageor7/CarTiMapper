@@ -42,7 +42,7 @@ Because this project uses a **Zero-Build Architecture**, there is nothing to ins
 ### 1. Deployment
 1. Format a Google Sheet with the standard schema.
 2. Publish your Google Sheet to the web as a CSV.
-3. Host the `index.html` file on any static server (GitHub Pages, Vercel, Netlify, or simply open it locally in your browser).
+3. Uset this depoyment (https://ageor7.github.io/CarTiMapper/) or host the `index.html` file on any static server (GitHub Pages, Vercel, Netlify, or simply open it locally in your browser).
 4. Pass the Google Sheet ID to the URL syntax:
    `https://your-domain.com/index.html?source=YOUR_GOOGLE_SHEET_ID`
 
@@ -78,16 +78,16 @@ By utilizing the Omni-Splitter matrix, you can roll up duplicate rows and `TEXTJ
 
 Users can customize the engine's behavior via the ☰ Menu -> **Settings** panel:
 * **Data Locale Format:** Toggles Date parsing visual outputs (Global `DD/MM/YYYY`, US `MM/DD/YYYY`, or ISO `YYYY/MM/DD`).
-* **Map υπόβαθρο (Basemaps):** Natively swaps the tile provider across the main map and minimap. Options include Minimalist CartoDB, Esri Street, Esri Satellite, localized OpenStreetMap, and OpenTopoMap.
+* **Map Basemaps:** Natively swaps the tile provider across the main map and minimap. Options include Minimalist CartoDB, Esri Street, Esri Satellite, localized OpenStreetMap, and OpenTopoMap.
 * **Auto-Zoom Depth:** Defines the mathematical maximum zoom ceiling when the engine auto-focuses on an active geometry (Levels 14 through 17).
 * **Radar Minimap Offset:** Adjusts the proportional tracking distance of the radar (e.g., locking the minimap to always render 4 levels further out than the main focal point).
 * **Icon-Only UI Mode:** Toggles button text labels on/off in favor of pure SVG iconography to maximize screen real estate on mobile devices.
 
-**Control the initialization state appending query parameters:**
+**Control the initialization state appending query parameters (1st parameter starts with '?', the rest with '&':**
 * `?source=YOUR_SHEET_ID` — Targets a specific Google Sheet. (Defaults to the Master DB if omitted).
-* `?gid=YOUR_TAB_ID` — Targets a specific tab within the Google Sheet. (Defaults to `0`).
-* `?slide=X` — Forces the engine to initialize on a specific slide index (e.g., `?slide=5`).
-* `?date=YYYY-MM-DD` — Forces the engine to initialize on the event closest to the requested temporal date.
+* `&gid=YOUR_TAB_ID` — Targets a specific tab within the Google Sheet. (Defaults to `0`).
+* `&slide=X` — Forces the engine to initialize on a specific slide index (e.g., `?slide=5`).
+* `&date=YYYY-MM-DD` — Forces the engine to initialize on the event closest to the requested temporal date.
 
 ---
 
