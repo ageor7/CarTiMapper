@@ -1,6 +1,12 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+### [v6.5.1]
+* **AppOrchestrator (v1.43.0) [UI-67]:** Instantiated the `showButtonText` state variable and injected its toggle controller into the Settings Modal UI to support Minimalist Mode.
+* **MapViewer (v3.21.0) [UI-67, UI-68]:** Replaced the Map HUD text labels with custom Globe (Grid) and Crosshair (Zoom) SVGs. Hooked the Grid label render logic into the global `showButtonText` state.
+* **ContentSlider (v3.19.0) [UI-67, UI-69]:** Injected the `margin-left: auto` fluid spacer into the Micro-Scroll Ribbon, restoring the Date (Left) / Metadata (Right) split. Replaced the Back button icon with a standard UI `↺` SVG. Wired bottom navigation buttons to the `showButtonText` toggle.
+* **TimelineScrubber (v23.17.0) [UI-68, UI-69]:** Compressed the dynamic telemetry output string to `Span: X`. Replaced the emoji-based zoom locks with distinct, state-driven Padlock SVGs for immediate visual feedback.
+
 ### ChangeLog [v6.5.0]
 * **GlobalStyles (v4.13.0) [UI-65, UI-66]: Deployed CSS state classes for .metadata-ribbon to control horizontal scroll concealment. Implemented UI structural elements for #search-modal, inputs, and history buttons.
 * **MapViewer (v3.20.0) [DATA-05]: Injected formatPlaces() to the Tooltip render loop, strictly enforcing first-comma truncation for map labeling independently from memory.
