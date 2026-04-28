@@ -1,6 +1,11 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+### ChangeLog [v6.5.0]
+* **GlobalStyles (v4.13.0) [UI-65, UI-66]: Deployed CSS state classes for .metadata-ribbon to control horizontal scroll concealment. Implemented UI structural elements for #search-modal, inputs, and history buttons.
+* **MapViewer (v3.20.0) [DATA-05]: Injected formatPlaces() to the Tooltip render loop, strictly enforcing first-comma truncation for map labeling independently from memory.
+* **ContentSlider (v3.18.0) [UI-65, UI-66]: Activated the onScroll threshold sensor for the dynamic header matrix. Engineered the Omni-Search modal component, wiring it into the bottom-right status bar in a [Search] [Back] [Counter] flex layout. Activated localStorage parsing for cross-session search history persistence.
+
 ### ChangeLog [v6.4.28]
 * **AppOrchestrator (v1.42.0) [MAP-11]:** Converted the legacy UI toggle into a fully descriptive `<select>` dropdown menu labeled "Map υπόβαθρο". Added rich descriptive text for the 5 curated providers to assist user decisions.
 * **MapViewer (v3.19.0) [MAP-11]:** Implemented the `BASEMAPS` Core Registry array. The Leaflet engine now safely un-mounts and mounts independent tile providers in real-time, perfectly synchronizing the UI choice across both the main geographic viewport and the minimap radar.
