@@ -164,7 +164,16 @@
 * **[REF: DATA-05] Visual Place Truncation Engine: To preserve pristine spatial querying while reducing UI clutter, the engine implements formatPlaces(). Rather than deleting deep string data from memory, this function intercepts multi-place strings at the render layer. It isolates individual locations, cleanly splits and truncates each at the first comma, and reconstructs the string. This guarantees MapViewer tooltips and ContentSlider badges remain visually minimalist while perfectly preserving the full dataset for search and validation.
 * **[REF: UI-65] The Micro-Scroll Ribbon (Dynamic Header): To maximize readability during deep vertical scrolling, the ContentSlider text pane attaches a highly optimized onScroll listener. Breaching the 40px scroll threshold initiates a CSS matrix transition: the header's padding compresses, the Title shrinks proportionately, and all metadata arrays (Date, Places, Tags) merge into a single white-space: nowrap horizontal flex-row. This creates a razor-thin sticky header that allows horizontal touch-swiping across overflowed tags without disrupting the viewport integrity.
 * **[REF: UI-66] Omni-Search Engine & LocalStorage Persistence: The application replaces brute-force DOM searches with a dedicated memory-layer React Modal. This case-insensitive Regex filter simultaneously queries titles, descriptions, places, tags, and dynamically reconstructed temporal spans (startDate/endDate). A secondary state hook bridges directly to the browser's localStorage API, capturing executed query strings to automatically present a clickable "Recent Searches" history pool across application reloads.
-
+### Add to: V. UI/UX Elements & Design Solutions
+* **[REF: UI-67] Minimalist Icon-Only Mode:** To maximize physical screen real estate on mobile devices, the application supports a global "Icon-Only" mode governed by the `showButtonText` state variable. When toggled off in Settings, text labels are mathematically stripped from the Bottom Navigation Bar (Prev, Next, Search, Back) and the Map HUD (Grid), leaving only clean, universally recognizable SVGs.
+* **[REF: UI-68] Custom SVG Iconography:** The engine replaces default browser emojis and text with custom SVG vectors to reduce cognitive friction:
+    * *Map Grid:* A Globe/Graticule SVG representing coordinates.
+    * *Map Zoom:* A Crosshair/Focus box representing focal depth.
+    * *Timeline Lock:* A dynamic Padlock SVG (Faded/Open for unlocked, Bold Blue/Closed for locked) providing instantaneous state recognition.
+    * *Navigation Back:* A counter-clockwise `↺` arrow representing history/rewind.
+* **[REF: UI-69] Ribbon Alignment & Telemetry Compression:** * *Flexbox Splitting:* The Dynamic Header ribbon uses a fluid CSS spacer (`margin-left: auto`) injected into the first metadata badge. This forces the Date to anchor permanently to the left, while instantly pushing all Tags and Places to the far right, preserving split-alignment even when the central Title compresses.
+    * *Temporal Compression:* The Timeline telemetry output is reduced from `Viewing: X [Unit]` to `Span: X [Unit]`, saving horizontal pixels in the unified status bar.
+    
 ---
 
 ## VI. Algorithms, Analytics & Methodologies
