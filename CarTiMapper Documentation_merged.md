@@ -174,7 +174,12 @@
 * **[REF: UI-69] Ribbon Alignment & Telemetry Compression:** * *Flexbox Splitting:* The Dynamic Header ribbon uses a fluid CSS spacer (`margin-left: auto`) injected into the first metadata badge. This forces the Date to anchor permanently to the left, while instantly pushing all Tags and Places to the far right, preserving split-alignment even when the central Title compresses.
     * *Temporal Compression:* The Timeline telemetry output is reduced from `Viewing: X [Unit]` to `Span: X [Unit]`, saving horizontal pixels in the unified status bar.
 * **[REF: CMS-01] Headless CMS Basemap Architecture:** The engine no longer relies exclusively on hardcoded basemap configurations. By appending the `&bgid=YOUR_TAB_ID` parameter to the URL, `AppOrchestrator` triggers a concurrent `Promise.all()` fetch loop, digesting a secondary Google Sheets CSV matrix. This tab dynamically constructs the `BASEMAPS` registry array (`id`, `label`, `url`, `maxZoom`, `attribution`), transforming the Settings UI dropdown and hot-swapping the Leaflet tiles natively without a page reload.
-
+* **[REF: CMS-02] Scalable CMS Layer Merge:** The engine now seamlessly merges the hardcoded `DEFAULT_BASEMAPS` array with any dynamic data parsed from a `bgid` Google Sheets fetch. This expansion logic protects default application state while permitting dynamic, per-project injection of historical WebGL overlays (like Allmaps XYZ URLs).
+* **[REF: CMS-03] Unified Map HUD & Layer Interactivity:** All spatial toggles have been decoupled from the primary App Settings modal and aggregated into a single, cohesive absolute flex-container (`top: 15px, right: 15px`). 
+    * Leaflet's native Zoom controls are disabled to prevent CSS clashing; the engine executes manual `.zoomIn()` and `.zoomOut()` calls.
+    * A custom React Layer Menu empowers users to independently toggle mutually exclusive `base` layers (z-index 0) and stackable `overlay` layers (z-index 10+). This layer matrix synchronizes precisely across both the Main Viewport and the Dynamic Radar Minimap.
+* **[REF: UI-70] Map HUD Typography & Interaction Matrix:** The isolated zoom controls have been fundamentally redesigned into a vertical "Sandwich" flexbox column (`[+]`, `[14z]`, `[-]`). This layout anchors the focal integer directly between the action triggers, removing the need for ambiguous iconography while saving screen space. The Grid toggle has been reverted to the universal `🌐` emoji, while the Layers toggle now utilizes a solid isometric SVG to perfectly mirror traditional Google Maps UI paradigms.
+* 
 ---
 
 ## VI. Algorithms, Analytics & Methodologies
