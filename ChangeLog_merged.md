@@ -1,7 +1,14 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
-### ChangeLog [v6.6.0]
+### ChangeLog [v6.6.3]
+* **MapViewer (v3.24.0) [UI-70]:** Deployed the vertical "Sandwich" matrix for Leaflet zoom controls. Replaced the minimalist Feather layer icon with a solid isometric SVG stack. Swapped the SVG graticule back to a universal `🌐` text emoji per design specification.
+
+### ChangeLog [v6.6.2]
+* **AppOrchestrator (v1.45.0) [CMS-02]:** Upgraded the CMS URL payload handler. The secondary fetch loop now mathematically checks incoming basemap IDs against defaults, updating bounds for existing IDs and safely appending new ones without overwriting the static global defaults.
+* **MapViewer (v3.23.0) [CMS-03]:** Dismantled scattered HUD artifacts. Deployed the Unified top-right control stack (Zoom Level, Focus, Grid, Layers). Engineered the dual-state tile loop to stack unchecked `base` and arrayed `overlay` layers, forcing Leaflet Z-Index priority.
+
+* ### ChangeLog [v6.6.0]
 * **AppOrchestrator (v1.44.0) [CMS-01]:** Converted the linear data fetch into a concurrent `Promise.all()` pipeline to support the `&bgid=` URL parameter. Updated `basemapsRegistry` state to dynamically overwrite the default hardcoded array if secondary CMS data is detected. Hardcoded defaults now include the georeferenced `athens-1944` layer via Allmaps.
 * **MapViewer (v3.22.0) [CMS-01]:** Decoupled internal tile configs from the static `BASEMAPS` object. The component now accepts `basemapsRegistry` as a direct prop, extracting dynamic `url`, `maxZoom`, and `attribution` bounds in real-time as the user toggles settings.
 
