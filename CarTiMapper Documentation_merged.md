@@ -173,7 +173,8 @@
     * *Navigation Back:* A counter-clockwise `↺` arrow representing history/rewind.
 * **[REF: UI-69] Ribbon Alignment & Telemetry Compression:** * *Flexbox Splitting:* The Dynamic Header ribbon uses a fluid CSS spacer (`margin-left: auto`) injected into the first metadata badge. This forces the Date to anchor permanently to the left, while instantly pushing all Tags and Places to the far right, preserving split-alignment even when the central Title compresses.
     * *Temporal Compression:* The Timeline telemetry output is reduced from `Viewing: X [Unit]` to `Span: X [Unit]`, saving horizontal pixels in the unified status bar.
-    
+* **[REF: CMS-01] Headless CMS Basemap Architecture:** The engine no longer relies exclusively on hardcoded basemap configurations. By appending the `&bgid=YOUR_TAB_ID` parameter to the URL, `AppOrchestrator` triggers a concurrent `Promise.all()` fetch loop, digesting a secondary Google Sheets CSV matrix. This tab dynamically constructs the `BASEMAPS` registry array (`id`, `label`, `url`, `maxZoom`, `attribution`), transforming the Settings UI dropdown and hot-swapping the Leaflet tiles natively without a page reload.
+
 ---
 
 ## VI. Algorithms, Analytics & Methodologies
