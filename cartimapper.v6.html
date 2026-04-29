@@ -262,8 +262,8 @@
         };
         // === [ END MAJOR BLOCK: VibeMonitor v2.0.0 ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v3.21.0 ] ===
-        const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, mapBasemap, maxAutoZoom, minimapOffset, showButtonText }) => {
+        // === [ MAJOR BLOCK: MapViewer v3.22.0 ] ===
+        const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, mapBasemap, basemapsRegistry, maxAutoZoom, minimapOffset, showButtonText }) => {
             const mapDomRef = useRef(null);
             const miniMapDomRef = useRef(null);
             
@@ -283,14 +283,6 @@
             const [showGrid, setShowGrid] = useState(false);
 
             const minimapOffsetRef = useRef(minimapOffset || -4);
-
-            const BASEMAPS = {
-                'carto-light': { url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', opts: { maxZoom: 19, attribution: '© OpenStreetMap, © CartoDB' } },
-                'esri-street': { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19, attribution: 'Tiles © Esri' } },
-                'esri-sat': { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19, attribution: 'Tiles © Esri' } },
-                'osm': { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { maxZoom: 19, attribution: '© OpenStreetMap' } },
-                'topo': { url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', opts: { maxZoom: 17, attribution: '© OpenTopoMap, OSM' } }
-            };
 
             const formatPlaces = (str) => {
                 if (!str) return '';
@@ -368,7 +360,7 @@
             };
 
             useEffect(() => {
-                if (mapDomRef.current && miniMapDomRef.current && !mapInstance.current && window.L) {
+                if (mapDomRef.current && miniMapDomRef.current && !mapInstance.current && window.L && basemapsRegistry) {
                     const urlParams = new URLSearchParams(window.location.search);
                     const initialZoom = urlParams.get('mapzoom') ? parseInt(urlParams.get('mapzoom')) : 2;
                     setMapZoom(initialZoom);
@@ -379,8 +371,11 @@
                     
                     map.on('zoomend', () => setMapZoom(map.getZoom()));
 
-                    const baseConfig = BASEMAPS[mapBasemap] || BASEMAPS['carto-light'];
-                    tileLayerRef.current = L.tileLayer(baseConfig.url, baseConfig.opts).addTo(map);
+                    // [FIX: CMS-01] Dynamic Tile Config Extraction
+                    const activeBasemap = basemapsRegistry.find(b => b.id === mapBasemap) || basemapsRegistry[0];
+                    const config = { url: activeBasemap.url, opts: { maxZoom: activeBasemap.maxZoom, attribution: activeBasemap.attribution } };
+                    
+                    tileLayerRef.current = L.tileLayer(config.url, config.opts).addTo(map);
                     
                     markerLayer.current = L.featureGroup().addTo(map);
                     clusterLayer.current = L.markerClusterGroup({ maxClusterRadius: 40, spiderfyOnMaxZoom: true }).addTo(map);
@@ -396,7 +391,7 @@
                     clusterLayer.current.on('clustermouseout', (c) => c.layer.unbindTooltip());
 
                     const miniMap = L.map(miniMapDomRef.current, { zoomControl: false, attributionControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false }).setView([20, 0], 0);
-                    miniMapTileLayerRef.current = L.tileLayer(baseConfig.url, baseConfig.opts).addTo(miniMap);
+                    miniMapTileLayerRef.current = L.tileLayer(config.url, config.opts).addTo(miniMap);
                     
                     const boundsRect = L.rectangle(map.getBounds(), { color: '#007acc', weight: 2, fillOpacity: 0.15 }).addTo(miniMap);
                     rectBoundsRef.current = boundsRect;
@@ -441,7 +436,7 @@
                         ro.observe(mapDomRef.current.parentElement);
                     }
                 }
-            }, []);
+            }, [basemapsRegistry]);
 
             useEffect(() => {
                 const map = mapInstance.current;
@@ -482,12 +477,14 @@
                 return () => map.off('moveend', updateGrid);
             }, [showGrid]);
 
+            // [FIX: CMS-01] CMS Config State Swap Loop
             useEffect(() => {
                 const map = mapInstance.current;
                 const miniMap = miniMapInstance.current;
-                if (!map || !miniMap) return;
+                if (!map || !miniMap || !basemapsRegistry || basemapsRegistry.length === 0) return;
 
-                const config = BASEMAPS[mapBasemap] || BASEMAPS['carto-light'];
+                const activeBasemap = basemapsRegistry.find(b => b.id === mapBasemap) || basemapsRegistry[0];
+                const config = { url: activeBasemap.url, opts: { maxZoom: activeBasemap.maxZoom, attribution: activeBasemap.attribution } };
                 
                 if (tileLayerRef.current) map.removeLayer(tileLayerRef.current);
                 tileLayerRef.current = L.tileLayer(config.url, config.opts).addTo(map);
@@ -495,7 +492,7 @@
                 if (miniMapTileLayerRef.current) miniMap.removeLayer(miniMapTileLayerRef.current);
                 miniMapTileLayerRef.current = L.tileLayer(config.url, config.opts).addTo(miniMap);
                 
-            }, [mapBasemap]);
+            }, [mapBasemap, basemapsRegistry]);
 
             useEffect(() => {
                 const map = mapInstance.current;
@@ -623,7 +620,6 @@
                 }
             }, [activeIndex, data, maxAutoZoom]);
 
-            // [FIX: UI-68] SVG Iconography Injection
             return html`
                 <div style="position: relative; width:100%; height:100%;">
                     <div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>
@@ -644,8 +640,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.21.0';
-        // === [ END MAJOR BLOCK: MapViewer v3.21.0 ] ===
+        MODULE_VERSIONS['MapViewer'] = 'v3.22.0';
+        // === [ END MAJOR BLOCK: MapViewer v3.22.0 ] ===
 
         // === [ MAJOR BLOCK: MediaViewer v2.9.0 ] ===
         const MediaViewer = ({ activeSlide, addLog }) => {
@@ -1538,7 +1534,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.17.0';
         // === [ END MAJOR BLOCK: TimelineScrubber v23.17.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.43.0 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.44.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [rawCsvRows, setRawCsvRows] = useState([]);
@@ -1552,14 +1548,22 @@
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
             const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
             
+            // [FIX: CMS-01] Dynamic Basemap State & Default Hardcoded Array
+            const DEFAULT_BASEMAPS = [
+                { id: 'carto-light', label: 'CartoDB Light (Minimalist & Clean)', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', maxZoom: 19, attribution: '© OpenStreetMap, © CartoDB' },
+                { id: 'esri-street', label: 'Esri World Street (Traditional Detail)', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', maxZoom: 19, attribution: 'Tiles © Esri' },
+                { id: 'esri-sat', label: 'Esri World Imagery (Satellite High-Res)', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', maxZoom: 19, attribution: 'Tiles © Esri' },
+                { id: 'osm', label: 'OpenStreetMap (Native Local Languages)', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', maxZoom: 19, attribution: '© OpenStreetMap' },
+                { id: 'topo', label: 'OpenTopoMap (Terrain & Elevation)', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', maxZoom: 17, attribution: '© OpenTopoMap, OSM' },
+                { id: 'athens-1944', label: 'Athens 1944 (GSGS 4457)', url: 'https://allmaps.xyz/images/59dc92d35e7d424b/{z}/{x}/{y}@2x.png', maxZoom: 21, attribution: '© GSGS, Princeton Univ.' }
+            ];
+            const [basemapsRegistry, setBasemapsRegistry] = useState(DEFAULT_BASEMAPS);
             const [mapBasemap, setMapBasemap] = useState('carto-light');
             
             const [maxAutoZoom, setMaxAutoZoom] = useState(15);
             const [minimapOffset, setMinimapOffset] = useState(-4); 
             const [zoomLock, setZoomLock] = useState('auto'); 
             const [visibleTimeSpan, setVisibleTimeSpan] = useState('');
-            
-            // [FIX: UI-67] Global Icon-Only Mode Setting
             const [showButtonText, setShowButtonText] = useState(false);
 
             const hasInitializedRef = useRef(false);
@@ -1696,14 +1700,40 @@
                 document.addEventListener('touchmove', onMove, { passive: false }); document.addEventListener('touchend', onUp);
             };
 
+            // [FIX: CMS-01] Headless CMS Dual-Fetch Architecture
             useEffect(() => {
                 const gid = getOmniParam('gid') || '0'; 
+                const bgid = getOmniParam('bgid'); 
                 const source = getOmniParam('source') || '1kdgGiHNDsIZrn8Z1aqWXrEEYKMGxLAqFiwATx3aqbJI';
-                const fetchUrl = `https://docs.google.com/spreadsheets/d/${source}/gviz/tq?tqx=out:csv&gid=${gid}`;
+                
+                setStatus({ text: 'Fetching CMS Manifests...', progress: 30, isFading: false, active: false });
 
-                setStatus({ text: 'Fetching Data...', progress: 40, isFading: false, active: false });
-                fetch(fetchUrl).then(res => res.text()).then(csvText => {
-                    Papa.parse(csvText, { header: true, skipEmptyLines: true, complete: (results) => { 
+                const fetchUrlPrimary = `https://docs.google.com/spreadsheets/d/${source}/gviz/tq?tqx=out:csv&gid=${gid}`;
+                const primaryFetch = fetch(fetchUrlPrimary).then(res => res.text());
+                
+                let basemapsFetch = Promise.resolve(null);
+                if (bgid) {
+                    const fetchUrlBasemaps = `https://docs.google.com/spreadsheets/d/${source}/gviz/tq?tqx=out:csv&gid=${bgid}`;
+                    basemapsFetch = fetch(fetchUrlBasemaps).then(res => res.text()).catch(e => { console.warn("Basemaps CMS Fetch Failed", e); return null; });
+                }
+
+                Promise.all([primaryFetch, basemapsFetch]).then(([csvPrimary, csvBasemaps]) => {
+                    setStatus({ text: 'Parsing Data...', progress: 60, isFading: false, active: false });
+                    
+                    if (csvBasemaps) {
+                        Papa.parse(csvBasemaps, { header: true, skipEmptyLines: true, complete: (res) => {
+                            const parsedBMs = res.data.map(row => {
+                                const norm = {}; for (let k in row) norm[k.toLowerCase().trim()] = row[k];
+                                return {
+                                    id: norm.id || '', label: norm.label || '', url: norm.url || '',
+                                    maxZoom: parseInt(norm.maxzoom, 10) || 19, attribution: norm.attribution || ''
+                                };
+                            }).filter(b => b.id && b.url);
+                            if (parsedBMs.length > 0) setBasemapsRegistry(parsedBMs);
+                        }});
+                    }
+
+                    Papa.parse(csvPrimary, { header: true, skipEmptyLines: true, complete: (results) => { 
                         const firstRowNorm = {};
                         if (results.data[0]) {
                             for (let k in results.data[0]) firstRowNorm[k.toLowerCase().trim()] = results.data[0][k];
@@ -1715,7 +1745,10 @@
                             rawSource: source === '1kdgGiHNDsIZrn8Z1aqWXrEEYKMGxLAqFiwATx3aqbJI' ? 'Default Master DB' : source
                         });
                         setRawCsvRows(results.data); 
-                    } });
+                    }});
+                }).catch(err => {
+                    console.error("Fatal CMS Error", err);
+                    setStatus({ text: 'Error Loading Data', progress: 100, isFading: false, active: false });
                 });
             }, []);
 
@@ -1859,7 +1892,7 @@
 
                     ${!status.active ? html`
                         <div class="loading-screen ${status.isFading ? 'fade-out' : ''}">
-                            <${CarTiMapperLogo} context="splash" appVersion=${APP_VERSION || 'v6.5.1'} />
+                            <${CarTiMapperLogo} context="splash" appVersion=${APP_VERSION || 'v6.6.0'} />
                             <div class="loading-bar-container"><div class="loading-bar-fill" style="width: ${status.progress}%;"></div></div>
                         </div>
                     ` : ''}
@@ -1870,8 +1903,8 @@
                             <div class="core-viewports">
                                 <div class="visual-pane ${hasMedia ? '' : 'no-media'}">
                                     <div class="map-pane">
-                                        <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} maxAutoZoom=${maxAutoZoom} minimapOffset=${minimapOffset} mapBasemap=${mapBasemap} showButtonText=${showButtonText} />
-                                        <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} appVersion=${APP_VERSION || 'v6.5.1'} moduleVersions=${{Globals: 'v1.0.52', Styles: 'v4.13.0'}} />
+                                        <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} maxAutoZoom=${maxAutoZoom} minimapOffset=${minimapOffset} mapBasemap=${mapBasemap} basemapsRegistry=${basemapsRegistry} showButtonText=${showButtonText} />
+                                        <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} appVersion=${APP_VERSION || 'v6.6.0'} moduleVersions=${{Globals: 'v1.0.52', Styles: 'v4.13.0'}} />
                                     </div>
                                     <div class="resizer-dyn-secondary" onMouseDown=${startSecondaryResize} onTouchStart=${startSecondaryResize}></div>
                                     <div class="media-pane">
@@ -1927,11 +1960,9 @@
                                 <label style="display: block; margin-bottom: 8px; color: #555; font-size: 0.95rem;">Map υπόβαθρο (Basemap)</label>
                                 <select style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; background: #fcfcfc; cursor: pointer; color: #333;" 
                                         value=${mapBasemap} onChange=${(e) => setMapBasemap(e.target.value)}>
-                                    <option value="carto-light">CartoDB Light (Minimalist & Clean)</option>
-                                    <option value="esri-street">Esri World Street (Traditional Detail)</option>
-                                    <option value="esri-sat">Esri World Imagery (Satellite High-Res)</option>
-                                    <option value="osm">OpenStreetMap (Native Local Languages)</option>
-                                    <option value="topo">OpenTopoMap (Terrain & Elevation)</option>
+                                    ${basemapsRegistry.map(bm => html`
+                                        <option value=${bm.id}>${bm.label}</option>
+                                    `)}
                                 </select>
                             </div>
 
@@ -1943,6 +1974,7 @@
                                     <option value="15">Level 15 (Standard City)</option>
                                     <option value="16">Level 16 (Street Level)</option>
                                     <option value="17">Level 17 (Building Level)</option>
+                                    <option value="18">Level 18 (Campus Level)</option>
                                 </select>
                             </div>
 
@@ -1966,8 +1998,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.43.0';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.43.0 ] ===
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.44.0';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.44.0 ] ===
         
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
