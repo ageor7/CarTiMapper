@@ -8,7 +8,7 @@
 
 ---
 
-## I. Engineering Protocols & Coding Rules
+## I. Engineering Protocols & Coding Rules / Core Protocols & Standing Directives
 
 1. **[REF: DOC-01] Two-Tier Documentation (REF-TAGS):** Documentation is strictly bifurcated. The Master Blueprint contains the "Why" and "What" (Architecture, UI/UX Rules, Physics). The inline code comments contain the "How" (Mechanics, Loops, Variables). They are permanently interlinked using `[REF: TAG-NAME]` semantic anchors. **Zero duplication.**
 2. **Spreadsheet REF-TAGS:** Because Google Sheets does not support native code comments, REF-TAGs are securely injected into the ETL formula using `LET()` dummy variables (e.g., `_ref_map01, "[REF: MAP-01]..."`) to preserve the documentation pipeline without breaking mathematical execution.
@@ -39,6 +39,7 @@
 * **[PROT-03] Safety & Functionality Verification:** Every proposed architectural patch must be mathematically and structurally cross-referenced against the current active functionality. No update shall be executed if it risks destabilizing existing flexbox layouts, mobile touch-targets, or spatial synchronization engines.
 * **[PROT-04] Architectural Pushback:** The engine (AI) is explicitly authorized and required to challenge user suggestions or design decisions if they violate DOM physics, introduce structural fragility, or break mobile responsiveness (e.g., forcing unwrapped text into portrait bounds). A logic-based case and safe counter-proposals must always be presented.
 * **[PROT-05] Context Acquisition (The Block Gate):** If a diagnosis requires altering a component whose exact current state is not actively locked in the engine's immediate memory, the engine must explicitly request the user to paste the necessary component code block *alongside* the request for the execution "go-ahead". No blind overwriting is permitted.
+* **[PROT-06] Touch Target Preservation (Fitts’s Law):** The engine refuses structural UI requests that compromise safe touch interactions on mobile. Primary interaction labels (like toggling maps) cannot be wholly enveloped in `<a href>` routing tags, as this conflates discrete actions (Layer Toggle vs. External Navigation) and causes UX failure on smaller viewports.
 ---
 
 ## II. Active Requirements Matrix
@@ -179,7 +180,8 @@
     * Leaflet's native Zoom controls are disabled to prevent CSS clashing; the engine executes manual `.zoomIn()` and `.zoomOut()` calls.
     * A custom React Layer Menu empowers users to independently toggle mutually exclusive `base` layers (z-index 0) and stackable `overlay` layers (z-index 10+). This layer matrix synchronizes precisely across both the Main Viewport and the Dynamic Radar Minimap.
 * **[REF: UI-70] Map HUD Typography & Interaction Matrix:** The isolated zoom controls have been fundamentally redesigned into a vertical "Sandwich" flexbox column (`[+]`, `[14z]`, `[-]`). This layout anchors the focal integer directly between the action triggers, removing the need for ambiguous iconography while saving screen space. The Grid toggle has been reverted to the universal `🌐` emoji, while the Layers toggle now utilizes a solid isometric SVG to perfectly mirror traditional Google Maps UI paradigms.
-* 
+* **[REF: CMS-05] Inline Link Fusion:** To conserve critical vertical space within the Maps Layer menu without violating touch-target protocols, the engine utilizes *Inline Fusion*. Primary layer labels act as standard radio/checkbox triggers, while external `<a href>` attribution links are dynamically injected onto the exact same horizontal axis, separated by a minimalist `|` pipe.
+
 ---
 
 ## VI. Algorithms, Analytics & Methodologies
