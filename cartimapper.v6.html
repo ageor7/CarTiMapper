@@ -262,7 +262,7 @@
         };
         // === [ END MAJOR BLOCK: VibeMonitor v2.0.0 ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v3.24.1 ] ===
+        // === [ MAJOR BLOCK: MapViewer v3.26.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, basemapsRegistry, maxAutoZoom, minimapOffset, showButtonText }) => {
             const mapDomRef = useRef(null);
             const miniMapDomRef = useRef(null);
@@ -296,7 +296,6 @@
                 return str.split(/[|\-·;]/).map(s => s.split(',')[0].trim()).filter(Boolean).join(' | ');
             };
 
-            // [FIX: CRASH-01] Calculate the absolute maximum zoom ceiling across all loaded CMS layers
             const maxGlobalZoom = basemapsRegistry && basemapsRegistry.length > 0 
                 ? Math.max(...basemapsRegistry.map(b => b.maxZoom || 19)) 
                 : 22;
@@ -377,7 +376,6 @@
                     const initialZoom = urlParams.get('mapzoom') ? parseInt(urlParams.get('mapzoom')) : 2;
                     setMapZoom(initialZoom);
                     
-                    // [FIX: CRASH-01] Hardcode maxZoom into Map Init so MarkerCluster can spiderfy safely
                     const map = L.map(mapDomRef.current, { zoomControl: false, maxZoom: maxGlobalZoom }).setView([20, 0], initialZoom);
                     L.control.scale({ position: 'bottomleft', imperial: true, metric: true }).addTo(map);
                     
@@ -482,7 +480,6 @@
                 return () => map.off('moveend', updateGrid);
             }, [showGrid]);
 
-            // [FIX: CRASH-01] Apply maxNativeZoom to Base Layers to enable seamless deep-zoom scaling
             useEffect(() => {
                 const map = mapInstance.current;
                 const miniMap = miniMapInstance.current;
@@ -498,7 +495,6 @@
                 
             }, [activeBasemap, basemapsRegistry, maxGlobalZoom]);
 
-            // [FIX: CRASH-01] Apply maxNativeZoom to Overlays
             useEffect(() => {
                 const map = mapInstance.current;
                 const miniMap = miniMapInstance.current;
@@ -658,6 +654,12 @@
 
             return html`
                 <div style="position: relative; width:100%; height:100%;">
+                    
+                    <style>
+                        .layer-attribution-link a { color: #888; text-decoration: underline; text-decoration-color: #ccc; transition: all 0.2s; }
+                        .layer-attribution-link a:hover { color: #007acc; text-decoration-color: #007acc; }
+                    </style>
+
                     <div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>
                     
                     <div style="position: absolute; top: 15px; right: 15px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
@@ -693,28 +695,34 @@
                         </div>
 
                         ${showLayersMenu ? html`
-                            <div style="background: rgba(255,255,255,0.95); border: 1px solid #ccc; border-radius: 6px; padding: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 220px; font-size: 0.85rem; color: #333;">
+                            <div style="background: rgba(255,255,255,0.98); border: 1px solid #ccc; border-radius: 6px; padding: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); width: max-content; max-width: 320px; font-size: 0.85rem; color: #333;">
                                 
                                 <div style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">Basemaps</div>
-                                <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px;">
+                                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
                                     ${bases.map(b => html`
-                                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                                            <input type="radio" name="basemap_radio" checked=${activeBasemap === b.id} onChange=${() => setActiveBasemap(b.id)} style="margin:0; cursor: pointer;" />
-                                            ${b.label}
-                                        </label>
+                                        <div style="display: flex; align-items: flex-start; gap: 8px; line-height: 1.3;">
+                                            <input type="radio" id="base_${b.id}" name="basemap_radio" checked=${activeBasemap === b.id} onChange=${() => setActiveBasemap(b.id)} style="margin: 2px 0 0 0; cursor: pointer; flex-shrink: 0;" />
+                                            <label for="base_${b.id}" style="cursor: pointer; margin: 0; display: inline;">
+                                                <span style="font-weight: 500; color: #222;">${b.label}</span>
+                                                ${b.attribution ? html`<span style="margin: 0 4px; color: #ccc;">|</span><span class="layer-attribution-link" style="font-size: 0.75rem;" dangerouslySetInnerHTML=${{ __html: b.attribution }}></span>` : ''}
+                                            </label>
+                                        </div>
                                     `)}
                                 </div>
 
-                                <div style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">Historical Overlays</div>
-                                <div style="display: flex; flex-direction: column; gap: 6px;">
+                                <div style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">Overlays</div>
+                                <div style="display: flex; flex-direction: column; gap: 8px;">
                                     ${overlays.length > 0 ? overlays.map(o => html`
-                                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                                            <input type="checkbox" checked=${activeOverlays.includes(o.id)} onChange=${(e) => {
+                                        <div style="display: flex; align-items: flex-start; gap: 8px; line-height: 1.3;">
+                                            <input type="checkbox" id="over_${o.id}" checked=${activeOverlays.includes(o.id)} onChange=${(e) => {
                                                 if (e.target.checked) setActiveOverlays(prev => [...prev, o.id]);
                                                 else setActiveOverlays(prev => prev.filter(id => id !== o.id));
-                                            }} style="margin:0; cursor: pointer;" />
-                                            ${o.label}
-                                        </label>
+                                            }} style="margin: 2px 0 0 0; cursor: pointer; flex-shrink: 0;" />
+                                            <label for="over_${o.id}" style="cursor: pointer; margin: 0; display: inline;">
+                                                <span style="font-weight: 500; color: #222;">${o.label}</span>
+                                                ${o.attribution ? html`<span style="margin: 0 4px; color: #ccc;">|</span><span class="layer-attribution-link" style="font-size: 0.75rem;" dangerouslySetInnerHTML=${{ __html: o.attribution }}></span>` : ''}
+                                            </label>
+                                        </div>
                                     `) : html`<div style="color: #888; font-style: italic;">No overlays available.</div>`}
                                 </div>
                             </div>
@@ -725,8 +733,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.24.1';
-        // === [ END MAJOR BLOCK: MapViewer v3.24.1 ] ===
+        MODULE_VERSIONS['MapViewer'] = 'v3.26.0';
+        // === [ END MAJOR BLOCK: MapViewer v3.26.0 ] ===
 
         // === [ MAJOR BLOCK: MediaViewer v2.9.0 ] ===
         const MediaViewer = ({ activeSlide, addLog }) => {
