@@ -1,6 +1,10 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+### ChangeLog [v6.6.0]
+* **AppOrchestrator (v1.44.0) [CMS-01]:** Converted the linear data fetch into a concurrent `Promise.all()` pipeline to support the `&bgid=` URL parameter. Updated `basemapsRegistry` state to dynamically overwrite the default hardcoded array if secondary CMS data is detected. Hardcoded defaults now include the georeferenced `athens-1944` layer via Allmaps.
+* **MapViewer (v3.22.0) [CMS-01]:** Decoupled internal tile configs from the static `BASEMAPS` object. The component now accepts `basemapsRegistry` as a direct prop, extracting dynamic `url`, `maxZoom`, and `attribution` bounds in real-time as the user toggles settings.
+
 ### [v6.5.1]
 * **AppOrchestrator (v1.43.0) [UI-67]:** Instantiated the `showButtonText` state variable and injected its toggle controller into the Settings Modal UI to support Minimalist Mode.
 * **MapViewer (v3.21.0) [UI-67, UI-68]:** Replaced the Map HUD text labels with custom Globe (Grid) and Crosshair (Zoom) SVGs. Hooked the Grid label render logic into the global `showButtonText` state.
