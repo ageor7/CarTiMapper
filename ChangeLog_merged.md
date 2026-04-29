@@ -1,6 +1,9 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+### [v6.6.4]
+* **MapViewer (v3.24.1) [CRASH-01]:** Fixed a fatal Leaflet initialization crash caused by `MarkerCluster` querying a missing `maxZoom` property. Deployed the `maxGlobalZoom` integer calculation to scan the CMS array and lock the map's absolute zoom ceiling. Upgraded all `L.tileLayer` injections to utilize `maxNativeZoom`, unlocking native tile-stretching for global basemaps beneath deep historical overlays.
+
 ### ChangeLog [v6.6.3]
 * **MapViewer (v3.24.0) [UI-70]:** Deployed the vertical "Sandwich" matrix for Leaflet zoom controls. Replaced the minimalist Feather layer icon with a solid isometric SVG stack. Swapped the SVG graticule back to a universal `🌐` text emoji per design specification.
 
