@@ -209,3 +209,10 @@
 
 * **[REF: PERF-01] Strict Mode Memory Leak Assassination:** The global keyboard spatial navigation engine (`AppOrchestrator`) was refactored to decouple history state mutation (`setSlideHistory`) from the active state update loop. By wrapping the side-effects in a mathematically pure `jumpToSlide` closure, we prevent recursive Virtual DOM re-renders, permanently eliminating catastrophic memory stack overflows during rapid arrow-key navigation.
 * **[REF: PERF-06] Canvas Memory Leak Assassination (Singleton Hoisting):** To automatically wrap long narrative titles into visually pleasing 2 or 3 line breaks, the Timeline relies on a `measureTextWidth` algorithm. Because HTML canvas interactions are invisible and heavily reliant on browser rendering engines, invoking `document.createElement('canvas')` iteratively inside the active rendering loop bypasses the Javascript Garbage Collector (GC). Booting a 500-event timeline physically generated and abandoned over 40,000 isolated DOM context nodes in milliseconds, causing an Out-Of-Memory system crash. The architecture completely eradicates this failure by hoisting the mathematical tool entirely outside the React lifecycle. A singular, immutable `_globalTmCtx` singleton variable is instantiated once during script load and serves as a permanent, zero-leak mathematical reference for all global geometry calculations.
+
+---
+
+## IX. Cartographic & Spatial Physics
+
+* **[REF: CRASH-01] Dynamic Zoom Ceilings & Tile Stretching:** To prevent race-condition crashes during Leaflet initialization (specifically when the `MarkerCluster` plugin attempts to "spiderfy" overlapping coordinates before the map knows its depth limit), the engine dynamically calculates an absolute `maxGlobalZoom` from the highest available CMS layer. 
+* Furthermore, all spatial layers utilize a decoupled `maxNativeZoom` vs `maxZoom` matrix. This commands Leaflet to physically stretch lower-resolution tiles (e.g., CartoDB Level 19) to seamlessly fill the viewport when the user zooms deep into high-resolution historical overlays (e.g., Athens 1944 Level 21), preventing the base world map from disappearing into a blank void.
