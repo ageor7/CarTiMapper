@@ -1,7 +1,10 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
-### [v6.6.4]
+### ChangeLog [v6.6.6]
+* **MapViewer (v3.26.0) [CMS-05]:** Deprecated the vertically stacked attribution UI layout. Deployed an inline DOM structure, combining Map Labels and Attribution Hyperlinks onto a unified horizontal axis to reduce the Map HUD's overall vertical pixel consumption by ~40%.
+
+### ChangeLog [v6.6.4]
 * **MapViewer (v3.24.1) [CRASH-01]:** Fixed a fatal Leaflet initialization crash caused by `MarkerCluster` querying a missing `maxZoom` property. Deployed the `maxGlobalZoom` integer calculation to scan the CMS array and lock the map's absolute zoom ceiling. Upgraded all `L.tileLayer` injections to utilize `maxNativeZoom`, unlocking native tile-stretching for global basemaps beneath deep historical overlays.
 
 ### ChangeLog [v6.6.3]
