@@ -77,7 +77,6 @@
         }
         .minimap-container:hover { transform: scale(1.05) !important; }
 
-        /* [FIX: UI-64] High-DPI Mobile Minimap Crunch */
         @media (max-width: 1023px) {
             .minimap-container {
                 width: 90px !important;
@@ -114,20 +113,16 @@
         /* --- [ End SubBlock: Media Carousel ] --- */
 
         /* --- [ SubBlock: Narrative Content Slider ] --- */
-        .content-scroll-area { flex: 1; overflow-y: auto; padding: 2rem 4rem; display: flex; flex-direction: column; z-index: 5; }
+        .content-scroll-area { flex: 1; overflow-y: auto; padding: 2rem 4rem; display: flex; flex-direction: column; z-index: 5; scroll-behavior: smooth; }
         .slide-container { width: 100%; max-width: 1000px; margin: 0 auto; flex: 1; box-sizing: border-box; }
-        .slide-header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.8rem; }
-        .slide-date { color: #007acc; font-size: 1.1rem; letter-spacing: 0.5px; }
-        .slide-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; max-width: 80%; }
-        .tag-badge, .slide-place-badge { background: #e0e0e0; color: #444; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; border: 1px solid #ccc; }
-        .tag-badge { white-space: nowrap; }
-        .slide-place-badge { display: inline-flex; align-items: center; gap: 4px; white-space: normal; text-align: right; text-wrap: balance; line-height: 1.3; max-width: 100%; }
-        .tags-container { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-        .slide-title { margin: 0 0 1.5rem 0; font-size: 2.5rem; color: #111; line-height: 1.1; }
         .slide-desc { line-height: 1.6; font-size: 1.15rem; color: #333; width: 100%; }
         .click-zone { position: absolute; top: 0; bottom: 40px; width: 15%; z-index: 10; cursor: pointer; }
         .click-zone-left { left: 0; }
         .click-zone-right { right: 0; }
+        
+        /* [FIX: UI-65] Micro-Scroll Ribbon CSS */
+        .metadata-ribbon { display: flex; gap: 8px; align-items: center; overflow-x: auto; scrollbar-width: none; white-space: nowrap; -ms-overflow-style: none; }
+        .metadata-ribbon::-webkit-scrollbar { display: none; }
         /* --- [ End SubBlock: Narrative Content Slider ] --- */
 
         /* --- [ SubBlock: Status Bar & Modals ] --- */
@@ -143,10 +138,17 @@
         .nav-btn-bottom:disabled { opacity: 0.3; cursor: not-allowed; }
         .semantic-time-span { font-size: 0.75rem; color: #007acc; padding: 0 10px; border-left: 1px solid #ddd; border-right: 1px solid #ddd; margin: 0 5px; display: flex; align-items: center; height: 20px;}
         
-        #about-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 700px; max-height: 85vh; background: #fff; z-index: 9001; border-radius: 12px; padding: 30px; overflow-y: auto; display: none; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid #ccc; color: #222; font-size: 1.1rem; }
-        #about-modal.open { display: block; }
-        .about-close { position: absolute; top: 15px; right: 15px; border: none; background: none; font-size: 1.5rem; cursor: pointer; color: #999; }
-        .logo-horizontal-about { display: flex; flex-direction: column; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid #eee; padding-bottom: 20px; }
+        #about-modal, #search-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 700px; max-height: 85vh; background: #fff; z-index: 9001; border-radius: 12px; padding: 30px; overflow-y: auto; display: none; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid #ccc; color: #222; font-size: 1.1rem; }
+        #about-modal.open, #search-modal.open { display: block; }
+        .modal-close { position: absolute; top: 15px; right: 15px; border: none; background: none; font-size: 1.5rem; cursor: pointer; color: #999; }
+        
+        /* [FIX: UI-66] Omni-Search UI Elements */
+        .search-input { width: 100%; padding: 12px 15px; font-size: 1.1rem; border: 2px solid #ccc; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; outline: none; transition: border-color 0.2s; }
+        .search-input:focus { border-color: #007acc; }
+        .search-result-item { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s; }
+        .search-result-item:hover { background: #f4f8fb; }
+        .search-result-title { font-weight: bold; font-size: 1rem; color: #222; }
+        .search-result-meta { font-size: 0.8rem; color: #666; margin-top: 4px; }
         /* --- [ End SubBlock: Status Bar & Modals ] --- */
 
         /* --- [ SubBlock: Timeline UI & Leaflet Controls ] --- */
@@ -173,16 +175,7 @@
         .timeline-leaflet-btn:hover { background: #f4f4f4; }
         .timeline-leaflet-text { font-size: 0.65rem; line-height: 1; display: flex; align-items: center; justify-content: center; height: 24px; border-bottom: 1px solid #ccc; background: #fff; color: #333; }
         /* --- [ End SubBlock: Timeline UI & Leaflet Controls ] --- */
-
-        /* --- [ SubBlock: Vibe Monitor UI ] --- */
-        #vibe-monitor { position: absolute; bottom: 50px; left: 10px; width: 400px; height: 300px; background: rgba(10, 10, 15, 0.95); border: 1px solid #444; border-radius: 8px; display: flex; flex-direction: column; z-index: 9999; color: #eee; box-shadow: 0 8px 32px rgba(0,0,0,0.9); resize: both; overflow: hidden; font-family: monospace; }
-        #vibe-header { background: #222; padding: 8px; cursor: move; border-bottom: 1px solid #444; display: flex; justify-content: space-between; align-items: center; user-select: none; }
-        .vibe-close-btn { background: #ff5555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; padding: 2px 6px; }
-        #vibe-logs { flex: 1; overflow-y: auto; padding: 10px; font-size: 12px; line-height: 1.4; word-wrap: break-word; }
-        .log-info { color: #8be9fd; } .log-success { color: #50fa7b; } .log-warn { color: #ffb86c; } .log-error { color: #ff5555; }
-        /* --- [ End SubBlock: Vibe Monitor UI ] --- */
     </style>
-    ```
 </head>
 <body>
     <div id="root"></div>
@@ -194,7 +187,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.4.28';
+        const APP_VERSION = 'v6.6.8';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -269,8 +262,8 @@
         };
         // === [ END MAJOR BLOCK: VibeMonitor v2.0.0 ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v3.19.0 ] ===
-        const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, mapBasemap, maxAutoZoom, minimapOffset }) => {
+        // === [ MAJOR BLOCK: MapViewer v3.28.0 ] ===
+        const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, basemapsRegistry, maxAutoZoom, minimapOffset, showButtonText }) => {
             const mapDomRef = useRef(null);
             const miniMapDomRef = useRef(null);
             
@@ -280,25 +273,54 @@
             
             const markerLayer = useRef(null); 
             const clusterLayer = useRef(null); 
-            const tileLayerRef = useRef(null);
-            const miniMapTileLayerRef = useRef(null);
             const gridLayerRef = useRef(null);
             const markersRef = useRef({}); 
             
             const hasFitBounds = useRef(false);
             const [mapZoom, setMapZoom] = useState(2);
             const [showGrid, setShowGrid] = useState(false);
+            const [showLayersMenu, setShowLayersMenu] = useState(false);
+
+            const [activeBasemap, setActiveBasemap] = useState(null);
+            const [activeOverlays, setActiveOverlays] = useState([]); 
+            // [FIX: CMS-07] Local state for overlay opacities
+            const [overlayOpacities, setOverlayOpacities] = useState({});
+            const initialLoadRef = useRef(false);
+
+            const baseLayerRef = useRef(null);
+            const miniBaseLayerRef = useRef(null);
+            const overlayLayersRef = useRef({});
+            const miniOverlayLayersRef = useRef({});
 
             const minimapOffsetRef = useRef(minimapOffset || -4);
 
-            // [FIX: MAP-11] The Basemap Core Registry
-            const BASEMAPS = {
-                'carto-light': { url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', opts: { maxZoom: 19, attribution: '© OpenStreetMap, © CartoDB' } },
-                'esri-street': { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19, attribution: 'Tiles © Esri' } },
-                'esri-sat': { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19, attribution: 'Tiles © Esri' } },
-                'osm': { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { maxZoom: 19, attribution: '© OpenStreetMap' } },
-                'topo': { url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', opts: { maxZoom: 17, attribution: '© OpenTopoMap, OSM' } }
+            const formatPlaces = (str) => {
+                if (!str) return '';
+                return str.split(/[|\-·;]/).map(s => s.split(',')[0].trim()).filter(Boolean).join(' | ');
             };
+
+            const maxGlobalZoom = basemapsRegistry && basemapsRegistry.length > 0 
+                ? Math.max(...basemapsRegistry.map(b => b.maxZoom || 19)) 
+                : 22;
+
+            useEffect(() => {
+                if (basemapsRegistry && basemapsRegistry.length > 0 && !initialLoadRef.current) {
+                    const defaultBase = basemapsRegistry.find(b => b.type === 'base' && b.active) || basemapsRegistry.find(b => b.type === 'base');
+                    if (defaultBase) setActiveBasemap(defaultBase.id);
+                    
+                    const defaultOverlays = basemapsRegistry.filter(b => b.type === 'overlay' && b.active).map(b => b.id);
+                    setActiveOverlays(defaultOverlays);
+
+                    // Initialize opacities from CMS schema
+                    const initOpac = {};
+                    basemapsRegistry.filter(b => b.type === 'overlay').forEach(o => {
+                        initOpac[o.id] = o.defaultOpacity ?? 1.0;
+                    });
+                    setOverlayOpacities(initOpac);
+                    
+                    initialLoadRef.current = true;
+                }
+            }, [basemapsRegistry]);
 
             useEffect(() => {
                 minimapOffsetRef.current = minimapOffset;
@@ -371,20 +393,16 @@
             };
 
             useEffect(() => {
-                if (mapDomRef.current && miniMapDomRef.current && !mapInstance.current && window.L) {
+                if (mapDomRef.current && miniMapDomRef.current && !mapInstance.current && window.L && basemapsRegistry) {
                     const urlParams = new URLSearchParams(window.location.search);
                     const initialZoom = urlParams.get('mapzoom') ? parseInt(urlParams.get('mapzoom')) : 2;
                     setMapZoom(initialZoom);
                     
-                    const map = L.map(mapDomRef.current, { zoomControl: false }).setView([20, 0], initialZoom);
-                    L.control.zoom({ position: 'topright' }).addTo(map);
+                    const map = L.map(mapDomRef.current, { zoomControl: false, maxZoom: maxGlobalZoom }).setView([20, 0], initialZoom);
                     L.control.scale({ position: 'bottomleft', imperial: true, metric: true }).addTo(map);
                     
                     map.on('zoomend', () => setMapZoom(map.getZoom()));
 
-                    const baseConfig = BASEMAPS[mapBasemap] || BASEMAPS['carto-light'];
-                    tileLayerRef.current = L.tileLayer(baseConfig.url, baseConfig.opts).addTo(map);
-                    
                     markerLayer.current = L.featureGroup().addTo(map);
                     clusterLayer.current = L.markerClusterGroup({ maxClusterRadius: 40, spiderfyOnMaxZoom: true }).addTo(map);
                     gridLayerRef.current = L.layerGroup().addTo(map);
@@ -398,8 +416,7 @@
                     });
                     clusterLayer.current.on('clustermouseout', (c) => c.layer.unbindTooltip());
 
-                    const miniMap = L.map(miniMapDomRef.current, { zoomControl: false, attributionControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false }).setView([20, 0], 0);
-                    miniMapTileLayerRef.current = L.tileLayer(baseConfig.url, baseConfig.opts).addTo(miniMap);
+                    const miniMap = L.map(miniMapDomRef.current, { zoomControl: false, attributionControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false, maxZoom: maxGlobalZoom }).setView([20, 0], 0);
                     
                     const boundsRect = L.rectangle(map.getBounds(), { color: '#007acc', weight: 2, fillOpacity: 0.15 }).addTo(miniMap);
                     rectBoundsRef.current = boundsRect;
@@ -444,7 +461,7 @@
                         ro.observe(mapDomRef.current.parentElement);
                     }
                 }
-            }, []);
+            }, [basemapsRegistry]);
 
             useEffect(() => {
                 const map = mapInstance.current;
@@ -485,31 +502,71 @@
                 return () => map.off('moveend', updateGrid);
             }, [showGrid]);
 
-            // [FIX: MAP-11] The Real-Time Tile Un-mounting Loop
             useEffect(() => {
                 const map = mapInstance.current;
                 const miniMap = miniMapInstance.current;
-                if (!map || !miniMap) return;
+                if (!map || !miniMap || !basemapsRegistry || !activeBasemap) return;
 
-                const config = BASEMAPS[mapBasemap] || BASEMAPS['carto-light'];
+                const config = basemapsRegistry.find(b => b.id === activeBasemap) || basemapsRegistry[0];
                 
-                if (tileLayerRef.current) map.removeLayer(tileLayerRef.current);
-                tileLayerRef.current = L.tileLayer(config.url, config.opts).addTo(map);
+                if (baseLayerRef.current) map.removeLayer(baseLayerRef.current);
+                baseLayerRef.current = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: 0 }).addTo(map);
                 
-                if (miniMapTileLayerRef.current) miniMap.removeLayer(miniMapTileLayerRef.current);
-                miniMapTileLayerRef.current = L.tileLayer(config.url, config.opts).addTo(miniMap);
+                if (miniBaseLayerRef.current) miniMap.removeLayer(miniBaseLayerRef.current);
+                miniBaseLayerRef.current = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: 0 }).addTo(miniMap);
                 
-            }, [mapBasemap]);
+            }, [activeBasemap, basemapsRegistry, maxGlobalZoom]);
 
+            // [FIX: CMS-07] Apply opacities during tile generation
             useEffect(() => {
                 const map = mapInstance.current;
                 const miniMap = miniMapInstance.current;
+                if (!map || !miniMap || !basemapsRegistry) return;
+
+                Object.keys(overlayLayersRef.current).forEach(id => {
+                    if (!activeOverlays.includes(id)) {
+                        map.removeLayer(overlayLayersRef.current[id]);
+                        miniMap.removeLayer(miniOverlayLayersRef.current[id]);
+                        delete overlayLayersRef.current[id];
+                        delete miniOverlayLayersRef.current[id];
+                    }
+                });
+
+                activeOverlays.forEach((id, idx) => {
+                    if (!overlayLayersRef.current[id]) {
+                        const config = basemapsRegistry.find(b => b.id === id);
+                        if (config) {
+                            const z = idx + 10; 
+                            const dynamicOpacity = overlayOpacities[id] !== undefined ? overlayOpacities[id] : (config.defaultOpacity ?? 1.0);
+                            overlayLayersRef.current[id] = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, opacity: dynamicOpacity, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z, transparent: true }).addTo(map);
+                            miniOverlayLayersRef.current[id] = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, opacity: dynamicOpacity, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z, transparent: true }).addTo(miniMap);
+                        }
+                    }
+                });
+            }, [activeOverlays, basemapsRegistry, maxGlobalZoom, overlayOpacities]); // Re-eval if opacity state changes
+
+            // [FIX: CMS-07] Real-time opacity slider sync loop
+            useEffect(() => {
+                Object.keys(overlayOpacities).forEach(id => {
+                    if (overlayLayersRef.current[id]) overlayLayersRef.current[id].setOpacity(overlayOpacities[id]);
+                    if (miniOverlayLayersRef.current[id]) miniOverlayLayersRef.current[id].setOpacity(overlayOpacities[id]);
+                });
+            }, [overlayOpacities]);
+
+            useEffect(() => {
+                const map = mapInstance.current;
                 if (!map || data.length === 0) return;
                 
                 markerLayer.current.clearLayers();
                 clusterLayer.current.clearLayers();
                 markersRef.current = {};
                 let validMarkers = 0;
+
+                const stripHTML = (html) => {
+                    const tmp = document.createElement("DIV");
+                    tmp.innerHTML = html;
+                    return tmp.textContent || tmp.innerText || "";
+                };
 
                 data.forEach((item, idx) => {
                     const locStr = String(item.location || '').trim();
@@ -547,7 +604,9 @@
                                 layer.isVip = isVip;
                             } 
                             
-                            let labelText = subLabels[layerIdx] ? subLabels[layerIdx] : (item.place ? stripHTML(item.place) : stripHTML(item.title));
+                            let rawLabel = subLabels[layerIdx] ? subLabels[layerIdx] : (item.place ? formatPlaces(item.place) : item.title);
+                            let labelText = stripHTML(rawLabel);
+                            
                             layer.bindTooltip(labelText, { direction: 'top', offset: [0, -48], className: 'centered-tooltip' });
                             layer.on('click', () => setActiveIndex(idx));
 
@@ -619,19 +678,110 @@
                 }
             }, [activeIndex, data, maxAutoZoom]);
 
+            const btnStyle = "background: #fcfcfc; color: #444; border: none; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; padding: 0;";
+            const btnStyleActive = "background: #007acc; color: #fff; border: none; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; padding: 0;";
+            
+            const bases = basemapsRegistry.filter(b => b.type !== 'overlay');
+            const overlays = basemapsRegistry.filter(b => b.type === 'overlay');
+
             return html`
                 <div style="position: relative; width:100%; height:100%;">
+                    
+                    <style>
+                        .layer-attribution-link a { color: #888; text-decoration: underline; text-decoration-color: #ccc; transition: all 0.2s; }
+                        .layer-attribution-link a:hover { color: #007acc; text-decoration-color: #007acc; }
+                        
+                        /* Opacity Slider styling */
+                        .tm-opacity-slider { -webkit-appearance: none; width: 100px; height: 4px; background: #ddd; border-radius: 2px; outline: none; }
+                        .tm-opacity-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #007acc; cursor: pointer; }
+                        .tm-opacity-slider::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #007acc; cursor: pointer; border: none; }
+                    </style>
+
                     <div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>
-                    <div style="position: absolute; bottom: 15px; right: 15px; z-index: 1000; display: flex; gap: 8px; align-items: center;">
-                        <button onClick=${() => setShowGrid(!showGrid)} style="background: ${showGrid ? '#007acc' : '#fcfcfc'}; color: ${showGrid ? '#fff' : '#333'}; border: 1px solid #ccc; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.2); transition: all 0.2s;">Grid</button>
-                        <div style="background: rgba(255,255,255,0.9); padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; color: #333; border: 1px solid #ccc; box-shadow: 0 1px 4px rgba(0,0,0,0.2);">Zoom: ${mapZoom}</div>
+                    
+                    <div style="position: absolute; top: 15px; right: 15px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
+                        
+                        <div style="display: flex; flex-direction: column; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.25); background: #fcfcfc; border: 1px solid #ccc;">
+                            <button onClick=${() => mapInstance.current?.zoomIn()} style="${btnStyle} border-bottom: 1px solid #e0e0e0;" title="Zoom In">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            </button>
+                            
+                            <div title="Current Zoom Level" style="width: 34px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; color: #222; border-bottom: 1px solid #e0e0e0; background: #fff; font-family: monospace;">
+                                ${mapZoom}z
+                            </div>
+
+                            <button onClick=${() => mapInstance.current?.zoomOut()} style="${btnStyle}" title="Zoom Out">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            </button>
+                        </div>
+
+                        <div style="display: flex; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.25); border: 1px solid #ccc;">
+                            <button onClick=${() => setShowGrid(!showGrid)} title="Toggle Coordinates Grid" style="${showGrid ? btnStyleActive : btnStyle} ${showButtonText ? 'width: auto; padding: 0 10px; gap: 6px;' : ''}">
+                                <span style="font-size: 1.1rem; line-height: 1; filter: ${showGrid ? 'brightness(0) invert(1)' : 'none'};">🌐</span>
+                                ${showButtonText ? html`<span style="font-size: 0.85rem; font-weight: 500;">Grid</span>` : ''}
+                            </button>
+                        </div>
+
+                        <div style="display: flex; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.25); border: 1px solid #ccc;">
+                            <button onClick=${() => setShowLayersMenu(!showLayersMenu)} title="Map Layers" style="${showLayersMenu ? btnStyleActive : btnStyle} ${showButtonText ? 'width: auto; padding: 0 10px; gap: 6px;' : ''}">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                                </svg>
+                                ${showButtonText ? html`<span style="font-size: 0.85rem; font-weight: 500;">Layers</span>` : ''}
+                            </button>
+                        </div>
+
+                        ${showLayersMenu ? html`
+                            <div style="background: rgba(255,255,255,0.98); border: 1px solid #ccc; border-radius: 6px; padding: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); width: max-content; max-width: 320px; font-size: 0.85rem; color: #333;">
+                                
+                                <div style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">Basemaps</div>
+                                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
+                                    ${bases.map(b => html`
+                                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                                            <div style="display: flex; align-items: flex-start; gap: 8px; line-height: 1.3;">
+                                                <input type="radio" id="base_${b.id}" name="basemap_radio" checked=${activeBasemap === b.id} onChange=${() => setActiveBasemap(b.id)} style="margin: 2px 0 0 0; cursor: pointer; flex-shrink: 0;" />
+                                                <div style="display: inline; margin: 0;">
+                                                    <label for="base_${b.id}" style="cursor: pointer; font-weight: 500; color: #222;">${b.label}</label>
+                                                    ${b.attrText ? html`<span style="margin: 0 4px; color: #ccc;">|</span><span class="layer-attribution-link" style="font-size: 0.75rem;"><a href="${b.attrLink || '#'}" target="_blank" onClick=${(e) => { e.stopPropagation(); if(!b.attrLink) e.preventDefault(); }}>${b.attrText}</a></span>` : ''}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `)}
+                                </div>
+
+                                <div style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">Overlays</div>
+                                <div style="display: flex; flex-direction: column; gap: 8px;">
+                                    ${overlays.length > 0 ? overlays.map(o => html`
+                                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                                            <div style="display: flex; align-items: flex-start; gap: 8px; line-height: 1.3;">
+                                                <input type="checkbox" id="over_${o.id}" checked=${activeOverlays.includes(o.id)} onChange=${(e) => {
+                                                    if (e.target.checked) setActiveOverlays(prev => [...prev, o.id]);
+                                                    else setActiveOverlays(prev => prev.filter(id => id !== o.id));
+                                                }} style="margin: 2px 0 0 0; cursor: pointer; flex-shrink: 0;" />
+                                                <div style="display: inline; margin: 0;">
+                                                    <label for="over_${o.id}" style="cursor: pointer; font-weight: 500; color: #222;">${o.label}</label>
+                                                    ${o.attrText ? html`<span style="margin: 0 4px; color: #ccc;">|</span><span class="layer-attribution-link" style="font-size: 0.75rem;"><a href="${o.attrLink || '#'}" target="_blank" onClick=${(e) => { e.stopPropagation(); if(!o.attrLink) e.preventDefault(); }}>${o.attrText}</a></span>` : ''}
+                                                </div>
+                                            </div>
+                                            ${activeOverlays.includes(o.id) ? html`
+                                                <div style="margin-left: 21px; display: flex; align-items: center; gap: 8px;">
+                                                    <span style="font-size: 0.65rem; color: #888;">Opacity</span>
+                                                    <input type="range" class="tm-opacity-slider" min="0" max="1" step="0.05" value=${overlayOpacities[o.id] !== undefined ? overlayOpacities[o.id] : (o.defaultOpacity ?? 1.0)} onChange=${(e) => setOverlayOpacities(prev => ({...prev, [o.id]: parseFloat(e.target.value)}))} title="Adjust Overlay Opacity" />
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    `) : html`<div style="color: #888; font-style: italic;">No overlays available.</div>`}
+                                </div>
+                            </div>
+                        ` : ''}
+
                     </div>
                     <div class="minimap-container" ref=${miniMapDomRef}></div>
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.19.0';
-        // === [ END MAJOR BLOCK: MapViewer v3.19.0 ] ===
+        MODULE_VERSIONS['MapViewer'] = 'v3.28.0';
+        // === [ END MAJOR BLOCK: MapViewer v3.28.0 ] ===
 
         // === [ MAJOR BLOCK: MediaViewer v2.9.0 ] ===
         const MediaViewer = ({ activeSlide, addLog }) => {
@@ -790,11 +940,20 @@
         MODULE_VERSIONS['MediaViewer'] = 'v2.9.0';
         // === [ END MAJOR BLOCK: MediaViewer v2.9.0 ] ===
 
-        // === [ MAJOR BLOCK: ContentSlider v3.17.2 ] ===
-        const ContentSlider = ({ data, activeIndex, setActiveIndex, jumpToSlide, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo, visibleTimeSpan }) => {
+        // === [ MAJOR BLOCK: ContentSlider v3.19.0 ] ===
+        const ContentSlider = ({ data, activeIndex, setActiveIndex, jumpToSlide, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo, visibleTimeSpan, showButtonText }) => {
             const [isMenuOpen, setIsMenuOpen] = useState(false);
             const touchStartX = useRef(0);
             
+            const [isScrolled, setIsScrolled] = useState(false);
+            
+            const [isSearchOpen, setIsSearchOpen] = useState(false);
+            const [searchQuery, setSearchQuery] = useState('');
+            const [searchHistory, setSearchHistory] = useState(() => {
+                try { return JSON.parse(localStorage.getItem('tm_search_history')) || []; } 
+                catch(e) { return []; }
+            });
+
             const slide = data[activeIndex];
             if (!slide) return null;
 
@@ -836,6 +995,11 @@
                 return arr.map(s => String(s).trim()).filter(Boolean);
             };
 
+            const formatPlaces = (str) => {
+                if (!str) return '';
+                return str.split(/[|\-·;]/).map(s => s.split(',')[0].trim()).filter(Boolean).join(' | ');
+            };
+
             const tags = getParsedTags(slide.tags);
             const hasLocation = slide.place && String(slide.place).trim() !== '';
 
@@ -850,60 +1014,83 @@
                 if (touchEndX - touchStartX.current > 50) goPrev(); 
             };
 
+            const handleScroll = (e) => {
+                const scrollTop = e.target.scrollTop;
+                if (scrollTop > 40 && !isScrolled) setIsScrolled(true);
+                else if (scrollTop <= 40 && isScrolled) setIsScrolled(false);
+            };
+
+            const executeSearch = (query) => {
+                if (!query.trim()) return [];
+                const q = query.toLowerCase();
+                return data.filter(d => {
+                    const titleMatch = d.title && d.title.toLowerCase().includes(q);
+                    const descMatch = d.description && d.description.toLowerCase().includes(q);
+                    const placeMatch = d.place && d.place.toLowerCase().includes(q);
+                    const tagsMatch = d.tags && d.tags.some(t => t.toLowerCase().includes(q));
+                    const dateMatch = formatSmartDate(d.startDate, d.endDate).toLowerCase().includes(q);
+                    return titleMatch || descMatch || placeMatch || tagsMatch || dateMatch;
+                });
+            };
+
+            const handleResultClick = (idx, qString) => {
+                jumpToSlide(idx);
+                setIsSearchOpen(false);
+                if (qString && !searchHistory.includes(qString)) {
+                    const newHistory = [qString, ...searchHistory].slice(0, 8); 
+                    setSearchHistory(newHistory);
+                    localStorage.setItem('tm_search_history', JSON.stringify(newHistory));
+                }
+            };
+
+            const searchResults = executeSearch(searchQuery);
             const urlParams = new URLSearchParams(window.location.search);
             const paramsList = Array.from(urlParams.entries()).map(([k, v]) => `${k}=${v}`).join(' | ') || 'None';
 
             return html`
                 <div class="content-pane-wrapper" style="display: flex; flex-direction: column; height: 100%;" onClick=${handlePaneClick}>
                     
-                    <div style="position: relative; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column;" onTouchStart=${handleTouchStart} onTouchEnd=${handleTouchEnd}>
+                    <div style="position: relative; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; scroll-behavior: smooth;" onTouchStart=${handleTouchStart} onTouchEnd=${handleTouchEnd} onScroll=${handleScroll}>
                         <div class="click-zone click-zone-left" onClick=${goPrev} title="Previous"></div>
                         <div class="click-zone click-zone-right" onClick=${goNext} title="Next"></div>
 
-                        <div style="flex-shrink: 0; position: sticky; top: 0; background: var(--paneBg, #ffffff); z-index: 10; padding: 1.2rem 1.5rem 0.2rem 1.5rem; border-bottom: 1px solid rgba(128,128,128,0.2); box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; justify-content: center;">
-                            <div style="max-width: 90ch; width: 100%;">
-                                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; margin-bottom: 0.4rem;">
-                                    
-                                    <div class="slide-date" style="font-weight: 400; color: #007acc; font-size: 0.9rem; padding-top: 2px;">
+                        <div style="flex-shrink: 0; position: sticky; top: 0; background: var(--paneBg, #ffffff); z-index: 10; padding: ${isScrolled ? '0.6rem 1.5rem 0.4rem 1.5rem' : '1.2rem 1.5rem 0.2rem 1.5rem'}; border-bottom: 1px solid rgba(128,128,128,0.2); box-shadow: ${isScrolled ? '0 4px 12px rgba(0,0,0,0.06)' : '0 2px 8px rgba(0,0,0,0.04)'}; display: flex; justify-content: center; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);">
+                            <div style="max-width: 90ch; width: 100%; display: flex; flex-direction: column;">
+                                
+                                <div class="metadata-ribbon" style="margin-bottom: ${isScrolled ? '0.2rem' : '0.4rem'};">
+                                    <div class="slide-date" style="font-weight: 400; color: #007acc; font-size: 0.9rem; flex-shrink: 0;">
                                         ${formatSmartDate(slide.startDate, slide.endDate)}
                                     </div>
                                     
-                                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px; max-width: 60%;">
-                                        ${hasLocation ? html`
-                                            <span style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.06); color: var(--text-color, #444); padding: 3px 10px; border-radius: 10px; font-size: 0.75rem; border: 1px solid rgba(128,128,128,0.15); text-align: right;">
-                                                <span style="margin-right: 4px;">📍</span> ${slide.place}
-                                            </span>
-                                        ` : ''}
+                                    ${hasLocation ? html`
+                                        <span style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.06); color: var(--text-color, #444); padding: 3px 10px; border-radius: 10px; font-size: 0.75rem; border: 1px solid rgba(128,128,128,0.15); flex-shrink: 0; margin-left: auto;">
+                                            <span style="margin-right: 4px;">📍</span> ${formatPlaces(slide.place)}
+                                        </span>
+                                    ` : html`<div style="margin-left: auto;"></div>`}
 
-                                        ${tags.length > 0 ? html`
-                                            <div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px;">
-                                                ${tags.map(tag => html`
-                                                    <span style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.06); color: var(--text-color, #444); padding: 3px 10px; border-radius: 10px; font-size: 0.75rem; border: 1px solid rgba(128,128,128,0.15);">
-                                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="rgba(255, 193, 7, 0.2)" stroke="#ffc107" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;">
-                                                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                                                            <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                                                        </svg>
-                                                        <span style="white-space: nowrap;">${tag}</span>
-                                                    </span>
-                                                `)}
-                                            </div>
-                                        ` : ''}
-                                    </div>
+                                    ${tags.map(tag => html`
+                                        <span style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.06); color: var(--text-color, #444); padding: 3px 10px; border-radius: 10px; font-size: 0.75rem; border: 1px solid rgba(128,128,128,0.15); flex-shrink: 0;">
+                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="rgba(255, 193, 7, 0.2)" stroke="#ffc107" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;">
+                                                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line>
+                                            </svg>
+                                            <span>${tag}</span>
+                                        </span>
+                                    `)}
                                 </div>
 
-                                <h2 class="slide-title" style="margin: 0; font-size: 1.4rem; line-height: 1.2;" dangerouslySetInnerHTML=${{ __html: slide.title }}></h2>
+                                <h2 class="slide-title" style="margin: 0; font-size: ${isScrolled ? '1.1rem' : '1.4rem'}; line-height: 1.2; transition: font-size 0.3s ease;" dangerouslySetInnerHTML=${{ __html: slide.title }}></h2>
                             </div>
                         </div>
 
                         <div style="flex-grow: 1; padding: 0.2rem 2rem 2rem 2rem; display: flex; justify-content: center;">
-                            <div class="slide-desc" style="max-width: 75ch; width: 100%; font-size: 1.05rem; line-height: 1.6;" dangerouslySetInnerHTML=${{ __html: slide.description }}></div>
+                            <div class="slide-desc" dangerouslySetInnerHTML=${{ __html: slide.description }}></div>
                         </div>
                     </div>
 
                     <div class="unified-status-bar" style="flex-shrink: 0; z-index: 20;">
                         <div class="status-left" style="position: relative; display: flex; align-items: center; gap: 5px;">
                             
-                            <button class="status-btn" onClick=${(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen); }}>
+                            <button class="status-btn" onClick=${(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen); }} title="Menu">
                                 <span style="font-size: 1.2rem; line-height: 1;">☰</span>
                             </button>
 
@@ -918,23 +1105,71 @@
                                 </div>
                             ` : ''}
 
-                            ${aboutData ? html`<button class="status-btn" style="padding: 4px; display: flex; align-items: center;" onClick=${() => setIsAboutOpen(true)}><${CarTiMapperLogo} context="status" appVersion=${APP_VERSION} /></button>` : ''}
+                            ${aboutData ? html`<button class="status-btn" style="padding: 4px; display: flex; align-items: center;" onClick=${() => setIsAboutOpen(true)} title="About"><${CarTiMapperLogo} context="status" appVersion=${APP_VERSION} /></button>` : ''}
                         </div>
                         
                         <div class="status-center">
-                            <button class="nav-btn-bottom" onClick=${goPrev} disabled=${activeIndex === 0}>◀ Prev</button>
+                            <button class="nav-btn-bottom" style="display: flex; align-items: center; gap: 4px;" onClick=${goPrev} disabled=${activeIndex === 0} title="Previous">
+                                <span>◀</span> ${showButtonText ? html`<span>Prev</span>` : ''}
+                            </button>
+                            
                             <span class="semantic-time-span" title="Visible Time Span">${visibleTimeSpan || '...'}</span>
-                            <button class="nav-btn-bottom" onClick=${goNext} disabled=${activeIndex === data.length - 1}>Next ▶</button>
+                            
+                            <button class="nav-btn-bottom" style="display: flex; align-items: center; gap: 4px;" onClick=${goNext} disabled=${activeIndex === data.length - 1} title="Next">
+                                ${showButtonText ? html`<span>Next</span>` : ''} <span>▶</span>
+                            </button>
                         </div>
-                        <div class="status-right">
-                            ${slideHistory && slideHistory.length > 0 ? html`<button class="status-btn" onClick=${goBack}>↩ Back</button>` : ''}
-                            ${activeIndex + 1} / ${data.length}
+                        
+                        <div class="status-right" style="display: flex; gap: 10px; align-items: center;">
+                            <button class="status-btn" onClick=${() => setIsSearchOpen(true)} style="display: flex; align-items: center; gap: 4px;" title="Search">
+                                <span>🔍</span> ${showButtonText ? html`<span>Search</span>` : ''}
+                            </button>
+                            
+                            ${slideHistory && slideHistory.length > 0 ? html`
+                                <button class="status-btn" onClick=${goBack} style="display: flex; align-items: center; gap: 4px;" title="Back to Previous Slide">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
+                                    ${showButtonText ? html`<span>Back</span>` : ''}
+                                </button>
+                            ` : ''}
+                            <span>${activeIndex + 1} / ${data.length}</span>
+                        </div>
+                    </div>
+
+                    <div class="modal-backdrop ${isSearchOpen ? 'open' : ''}" onClick=${() => setIsSearchOpen(false)} style="display: ${isSearchOpen ? 'block' : 'none'};"></div>
+                    <div id="search-modal" class=${isSearchOpen ? 'open' : ''} style="display: ${isSearchOpen ? 'flex' : 'none'}; flex-direction: column;">
+                        <button class="modal-close" onClick=${() => setIsSearchOpen(false)}>×</button>
+                        <h3 style="margin-top: 0; font-size: 1.3rem; margin-bottom: 15px;">Search Dataset</h3>
+                        
+                        <input type="text" class="search-input" placeholder="Search events, places, dates..." value=${searchQuery} onInput=${e => setSearchQuery(e.target.value)} autoFocus />
+                        
+                        ${searchHistory.length > 0 && !searchQuery ? html`
+                            <div style="margin-bottom: 15px;">
+                                <div style="font-size: 0.8rem; color: #888; margin-bottom: 8px;">Recent Searches:</div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                    ${searchHistory.map(hist => html`
+                                        <button style="background: #f0f0f0; border: 1px solid #ddd; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; cursor: pointer; color: #444;" onClick=${() => setSearchQuery(hist)}>${hist}</button>
+                                    `)}
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        <div style="flex-grow: 1; overflow-y: auto; border-top: 1px solid #eee;">
+                            ${searchQuery && searchResults.length === 0 ? html`
+                                <div style="padding: 20px; text-align: center; color: #888;">No events found for "${searchQuery}"</div>
+                            ` : ''}
+                            
+                            ${searchResults.map(res => html`
+                                <div class="search-result-item" onClick=${() => handleResultClick(res.id, searchQuery)}>
+                                    <div class="search-result-title">${res.title}</div>
+                                    <div class="search-result-meta">${formatSmartDate(res.startDate, res.endDate)} ${res.place ? ` • ${formatPlaces(res.place)}` : ''}</div>
+                                </div>
+                            `)}
                         </div>
                     </div>
 
                     <div class="modal-backdrop ${isAboutOpen ? 'open' : ''}" onClick=${() => setIsAboutOpen(false)} style="display: ${isAboutOpen ? 'block' : 'none'}; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9000;"></div>
                     <div id="about-modal" class=${isAboutOpen ? 'open' : ''} style="display: ${isAboutOpen ? 'block' : 'none'}; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 700px; max-height: 85vh; background: #fff; z-index: 9001; border-radius: 12px; padding: 30px; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid #ccc; color: #222;">
-                        <button class="about-close" onClick=${() => setIsAboutOpen(false)} style="position: absolute; top: 15px; right: 15px; border: none; background: none; font-size: 1.5rem; cursor: pointer; color: #999;">×</button>
+                        <button class="modal-close" onClick=${() => setIsAboutOpen(false)}>×</button>
                         <${CarTiMapperLogo} context="about" appVersion=${APP_VERSION} />
                         
                         <div dangerouslySetInnerHTML=${{__html: aboutData ? aboutData.description : ''}}></div>
@@ -959,10 +1194,10 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['ContentSlider'] = 'v3.17.2';
-        // === [ END MAJOR BLOCK: ContentSlider v3.17.2 ] ===
+        MODULE_VERSIONS['ContentSlider'] = 'v3.19.0';
+        // === [ END MAJOR BLOCK: ContentSlider v3.19.0 ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v23.17.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -982,7 +1217,6 @@
                 return () => window.removeEventListener('resize', measure);
             }, []);
 
-            // [FIX: TL-17] Omni-Splitter Tag Matrix: Intercepts and flattens newlines into discrete arrays
             const getParsedTags = (rawTagsArray) => {
                 if (!rawTagsArray || rawTagsArray.length === 0) return ['Untagged'];
                 const splitRegex = /[\r\n]+|\\n/;
@@ -999,7 +1233,6 @@
             const tagPairs = [];
             data.forEach(d => {
                 if(!d.startDate || isNaN(d.startDate.getTime())) return;
-                // [FIX: TL-17] Applied Omni-Splitter to lane generation
                 const t = getParsedTags(d.tags);
                 t.forEach(tag => tagsMap.add(tag));
                 for(let i=0; i<t.length-1; i++) tagPairs.push([t[i], t[i+1]]);
@@ -1075,6 +1308,7 @@
                 return { lines, pxWidth: Math.max(60, finalMaxW + 35) };
             };
 
+            // [FIX: UI-69] Compressed Timeline Telemetry String
             useEffect(() => {
                 const visibleMs = renderTimeRange / zoomLevel;
                 const secs = visibleMs / 1000; const mins = secs / 60; const hrs = mins / 60;
@@ -1086,7 +1320,7 @@
                 else if (days >= 1) str = `${Math.round(days)} Days`;
                 else if (hrs >= 1) str = `${Math.round(hrs)} Hours`;
                 
-                setVisibleTimeSpan(`Viewing: ${str}`);
+                setVisibleTimeSpan(`Span: ${str}`);
             }, [zoomLevel, renderTimeRange, setVisibleTimeSpan]);
 
             useEffect(() => {
@@ -1364,11 +1598,9 @@
                 
                 const isActive = globalIndex === activeIndex;
 
-                // [FIX: TL-17] Applied Omni-Splitter to marker span calculations
                 const activeTags = getParsedTags(item.tags);
                 const tagIndices = activeTags.map(t => orderedTags.indexOf(t)).filter(idx => idx !== -1);
                 
-                // Fallback geometry if tags array is entirely mismatched
                 const minIdx = tagIndices.length > 0 ? Math.min(...tagIndices) : 0;
                 const maxIdx = tagIndices.length > 0 ? Math.max(...tagIndices) : 0;
                 
@@ -1406,14 +1638,20 @@
 
             const timelineX = Math.round(zoomLevel) + 'x';
 
+            // [FIX: UI-68] Custom SVG padlocks
             return html`
                 <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;">
                     <div class="timeline-leaflet-controls">
                         <div class="timeline-leaflet-btn" onClick=${() => doManualZoom('in')} title="Zoom In">+</div>
                         <div class="timeline-leaflet-text" title="1x fits all data to screen">${timelineX}</div>
-                        <div class="timeline-leaflet-btn" style="font-size: 1rem; color: ${zoomLock === 'hard' ? '#d32f2f' : '#666'};" onClick=${toggleHardLock} title="Toggle Auto-Zoom Lock">
-                            ${zoomLock === 'hard' ? '🔒' : '🔓'}
+                        
+                        <div class="timeline-leaflet-btn" style="display: flex; align-items: center; justify-content: center;" onClick=${toggleHardLock} title="Toggle Auto-Zoom Lock">
+                            ${zoomLock === 'hard' 
+                                ? html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d32f2f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`
+                                : html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>`
+                            }
                         </div>
+                        
                         <div class="timeline-leaflet-btn" onClick=${() => doManualZoom('out')} title="Zoom Out">-</div>
                     </div>
 
@@ -1433,10 +1671,10 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v23.16.0';
-        // === [ END MAJOR BLOCK: TimelineScrubber v23.16.0 ] ===
+        MODULE_VERSIONS['TimelineScrubber'] = 'v23.17.0';
+        // === [ END MAJOR BLOCK: TimelineScrubber v23.17.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.42.0 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.48.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [rawCsvRows, setRawCsvRows] = useState([]);
@@ -1450,13 +1688,23 @@
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
             const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
             
-            // [FIX: MAP-11] The Basemap Architecture State
-            const [mapBasemap, setMapBasemap] = useState('carto-light');
+            // [FIX: CMS-07] Added DefaultOpacity to Schema
+            const DEFAULT_BASEMAPS = [
+                { id: 'carto-light', label: 'CartoDB Light', type: 'base', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', maxZoom: 19, active: true, attrText: '© CartoDB', attrLink: 'https://carto.com/attributions', defaultOpacity: 1.0 },
+                { id: 'esri-street', label: 'Esri World Street', type: 'base', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', maxZoom: 19, active: false, attrText: 'Tiles © Esri', attrLink: 'https://www.esri.com/', defaultOpacity: 1.0 },
+                { id: 'esri-sat', label: 'Esri Satellite', type: 'base', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', maxZoom: 19, active: false, attrText: 'Tiles © Esri', attrLink: 'https://www.esri.com/', defaultOpacity: 1.0 },
+                { id: 'osm', label: 'OpenStreetMap', type: 'base', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', maxZoom: 19, active: false, attrText: '© OpenStreetMap', attrLink: 'https://openstreetmap.org/copyright', defaultOpacity: 1.0 },
+                { id: 'topo', label: 'OpenTopoMap', type: 'base', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', maxZoom: 17, active: false, attrText: '© OpenTopoMap', attrLink: 'https://opentopomap.org', defaultOpacity: 1.0 },
+                { id: 'athens-1944', label: 'Athens 1944 (GSGS)', type: 'overlay', url: 'https://allmaps.xyz/images/59dc92d35e7d424b/{z}/{x}/{y}@2x.png', maxZoom: 21, active: true, attrText: '© GSGS, Princeton Univ.', attrLink: 'https://maps.princeton.edu/catalog/princeton-gt54kq43t', defaultOpacity: 0.8 }
+            ];
+            const [basemapsRegistry, setBasemapsRegistry] = useState(DEFAULT_BASEMAPS);
             
             const [maxAutoZoom, setMaxAutoZoom] = useState(15);
             const [minimapOffset, setMinimapOffset] = useState(-4); 
             const [zoomLock, setZoomLock] = useState('auto'); 
             const [visibleTimeSpan, setVisibleTimeSpan] = useState('');
+            const [showButtonText, setShowButtonText] = useState(false);
+
             const hasInitializedRef = useRef(false);
             const appRef = useRef(null);
 
@@ -1593,12 +1841,52 @@
 
             useEffect(() => {
                 const gid = getOmniParam('gid') || '0'; 
+                const bgid = getOmniParam('bgid'); 
                 const source = getOmniParam('source') || '1kdgGiHNDsIZrn8Z1aqWXrEEYKMGxLAqFiwATx3aqbJI';
-                const fetchUrl = `https://docs.google.com/spreadsheets/d/${source}/gviz/tq?tqx=out:csv&gid=${gid}`;
+                
+                setStatus({ text: 'Fetching CMS Manifests...', progress: 30, isFading: false, active: false });
 
-                setStatus({ text: 'Fetching Data...', progress: 40, isFading: false, active: false });
-                fetch(fetchUrl).then(res => res.text()).then(csvText => {
-                    Papa.parse(csvText, { header: true, skipEmptyLines: true, complete: (results) => { 
+                const fetchUrlPrimary = `https://docs.google.com/spreadsheets/d/${source}/gviz/tq?tqx=out:csv&gid=${gid}`;
+                const primaryFetch = fetch(fetchUrlPrimary).then(res => res.text());
+                
+                let basemapsFetch = Promise.resolve(null);
+                if (bgid) {
+                    const fetchUrlBasemaps = `https://docs.google.com/spreadsheets/d/${source}/gviz/tq?tqx=out:csv&gid=${bgid}`;
+                    basemapsFetch = fetch(fetchUrlBasemaps).then(res => res.text()).catch(e => { console.warn("Basemaps CMS Fetch Failed", e); return null; });
+                }
+
+                Promise.all([primaryFetch, basemapsFetch]).then(([csvPrimary, csvBasemaps]) => {
+                    setStatus({ text: 'Parsing Data...', progress: 60, isFading: false, active: false });
+                    
+                    if (csvBasemaps) {
+                        Papa.parse(csvBasemaps, { header: true, skipEmptyLines: true, complete: (res) => {
+                            const parsedBMs = res.data.map(row => {
+                                const norm = {}; for (let k in row) norm[k.toLowerCase().trim()] = row[k];
+                                const isActive = /^(true|yes)$/i.test(String(norm.active || '').trim());
+                                // [FIX: CMS-07] Parsing the float
+                                const rawOpac = parseFloat(norm.defaultopacity);
+                                return {
+                                    id: norm.id || '', label: norm.label || '', type: norm.type?.toLowerCase() === 'overlay' ? 'overlay' : 'base', 
+                                    url: norm.url || '', maxZoom: parseInt(norm.maxzoom, 10) || 19, 
+                                    active: isActive, attrText: norm.attrtext || '', attrLink: norm.attrlink || '',
+                                    defaultOpacity: isNaN(rawOpac) ? 1.0 : rawOpac
+                                };
+                            }).filter(b => b.id && b.url);
+
+                            if (parsedBMs.length > 0) {
+                                setBasemapsRegistry(prev => {
+                                    const merged = [...prev];
+                                    parsedBMs.forEach(bm => {
+                                        const existIdx = merged.findIndex(m => m.id === bm.id);
+                                        if (existIdx >= 0) merged[existIdx] = bm; else merged.push(bm);
+                                    });
+                                    return merged;
+                                });
+                            }
+                        }});
+                    }
+
+                    Papa.parse(csvPrimary, { header: true, skipEmptyLines: true, complete: (results) => { 
                         const firstRowNorm = {};
                         if (results.data[0]) {
                             for (let k in results.data[0]) firstRowNorm[k.toLowerCase().trim()] = results.data[0][k];
@@ -1610,7 +1898,10 @@
                             rawSource: source === '1kdgGiHNDsIZrn8Z1aqWXrEEYKMGxLAqFiwATx3aqbJI' ? 'Default Master DB' : source
                         });
                         setRawCsvRows(results.data); 
-                    } });
+                    }});
+                }).catch(err => {
+                    console.error("Fatal CMS Error", err);
+                    setStatus({ text: 'Error Loading Data', progress: 100, isFading: false, active: false });
                 });
             }, []);
 
@@ -1754,7 +2045,7 @@
 
                     ${!status.active ? html`
                         <div class="loading-screen ${status.isFading ? 'fade-out' : ''}">
-                            <${CarTiMapperLogo} context="splash" appVersion=${APP_VERSION || 'v6.4.28'} />
+                            <${CarTiMapperLogo} context="splash" appVersion=${APP_VERSION || 'v6.6.8'} />
                             <div class="loading-bar-container"><div class="loading-bar-fill" style="width: ${status.progress}%;"></div></div>
                         </div>
                     ` : ''}
@@ -1765,8 +2056,8 @@
                             <div class="core-viewports">
                                 <div class="visual-pane ${hasMedia ? '' : 'no-media'}">
                                     <div class="map-pane">
-                                        <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} maxAutoZoom=${maxAutoZoom} minimapOffset=${minimapOffset} mapBasemap=${mapBasemap} />
-                                        <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} appVersion=${APP_VERSION || 'v6.4.28'} moduleVersions=${{Globals: 'v1.0.52', Styles: 'v4.12.1'}} />
+                                        <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} maxAutoZoom=${maxAutoZoom} minimapOffset=${minimapOffset} basemapsRegistry=${basemapsRegistry} showButtonText=${showButtonText} />
+                                        <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} appVersion=${APP_VERSION || 'v6.6.8'} moduleVersions=${{Globals: 'v1.0.52', Styles: 'v4.13.0'}} />
                                     </div>
                                     <div class="resizer-dyn-secondary" onMouseDown=${startSecondaryResize} onTouchStart=${startSecondaryResize}></div>
                                     <div class="media-pane">
@@ -1790,7 +2081,8 @@
                                         isSettingsOpen=${isSettingsOpen}
                                         setIsSettingsOpen=${setIsSettingsOpen}
                                         CarTiMapperLogo=${CarTiMapperLogo} 
-                                        visibleTimeSpan=${visibleTimeSpan} 
+                                        visibleTimeSpan=${visibleTimeSpan}
+                                        showButtonText=${showButtonText}
                                     />
                                 </div>
                             </div>
@@ -1818,18 +2110,6 @@
                             </div>
 
                             <div style="margin-top: 20px;">
-                                <label style="display: block; margin-bottom: 8px; color: #555; font-size: 0.95rem;">Basemap</label>
-                                <select style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; background: #fcfcfc; cursor: pointer; color: #333;" 
-                                        value=${mapBasemap} onChange=${(e) => setMapBasemap(e.target.value)}>
-                                    <option value="carto-light">CartoDB Light (Minimalist & Clean)</option>
-                                    <option value="esri-street">Esri World Street (Traditional Detail)</option>
-                                    <option value="esri-sat">Esri World Imagery (Satellite High-Res)</option>
-                                    <option value="osm">OpenStreetMap (Native Local Languages)</option>
-                                    <option value="topo">OpenTopoMap (Terrain & Elevation)</option>
-                                </select>
-                            </div>
-
-                            <div style="margin-top: 20px;">
                                 <label style="display: block; margin-bottom: 8px; color: #555; font-size: 0.95rem;">Auto-Zoom Depth</label>
                                 <select style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; background: #fcfcfc; cursor: pointer; color: #333;" 
                                         value=${maxAutoZoom} onChange=${(e) => setMaxAutoZoom(parseInt(e.target.value, 10))}>
@@ -1837,6 +2117,7 @@
                                     <option value="15">Level 15 (Standard City)</option>
                                     <option value="16">Level 16 (Street Level)</option>
                                     <option value="17">Level 17 (Building Level)</option>
+                                    <option value="18">Level 18 (Campus Level)</option>
                                 </select>
                             </div>
 
@@ -1850,14 +2131,19 @@
                                 </select>
                             </div>
 
+                            <div style="margin-top: 20px; display: flex; align-items: center; justify-content: space-between; padding: 12px; border-radius: 6px; border: 1px solid #ccc; background: #fcfcfc;">
+                                <label style="color: #555; font-size: 0.95rem; cursor: pointer;" for="btnTextToggle">Show text labels on buttons</label>
+                                <input type="checkbox" id="btnTextToggle" style="width: 20px; height: 20px; cursor: pointer;" checked=${showButtonText} onChange=${(e) => setShowButtonText(e.target.checked)} />
+                            </div>
+
                         </div>
                     ` : ''}
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.42.0';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.42.0 ] ===
-
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.48.0';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.48.0 ] ===
+        
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
         // === [ END MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
