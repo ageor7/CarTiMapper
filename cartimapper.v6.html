@@ -1755,6 +1755,399 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.18.0';
         // === [ END MAJOR BLOCK: TimelineScrubber v23.18.0 ] ===
 
+        // === [ MAJOR BLOCK: AppOrchestrator v1.49.0 ] ===
+        const App = () => {
+            const [logs, setLogs] = useState([]);
+            const [rawCsvRows, setRawCsvRows] = useState([]);
+            const [data, setData] = useState([]);
+            const [aboutData, setAboutData] = useState(null); 
+            const [status, setStatus] = useState({ text: 'Initializing Engine...', progress: 10, isFading: false, active: false });
+            const [activeIndex, setActiveIndex] = useState(0); 
+            const [slideHistory, setSlideHistory] = useState([]);
+            const [isMonitorOpen, setIsMonitorOpen] = useState(false); 
+            const [isAboutOpen, setIsAboutOpen] = useState(false);
+            const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+            const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
+            
+            // [FIX: UI-72] Global Maximization States
+            const [maxPane, setMaxPane] = useState(null); 
+            const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
+            const [expandedTimelineHeight, setExpandedTimelineHeight] = useState('50%'); 
+
+            const DEFAULT_BASEMAPS = [
+                { id: 'carto-light', label: 'CartoDB Light', type: 'base', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', maxZoom: 19, active: true, attrText: '© CartoDB', attrLink: 'https://carto.com/attributions', defaultOpacity: 1.0 },
+                { id: 'esri-street', label: 'Esri World Street', type: 'base', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', maxZoom: 19, active: false, attrText: 'Tiles © Esri', attrLink: 'https://www.esri.com/', defaultOpacity: 1.0 },
+                { id: 'esri-sat', label: 'Esri Satellite', type: 'base', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', maxZoom: 19, active: false, attrText: 'Tiles © Esri', attrLink: 'https://www.esri.com/', defaultOpacity: 1.0 },
+                { id: 'osm', label: 'OpenStreetMap', type: 'base', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', maxZoom: 19, active: false, attrText: '© OpenStreetMap', attrLink: 'https://openstreetmap.org/copyright', defaultOpacity: 1.0 },
+                { id: 'topo', label: 'OpenTopoMap', type: 'base', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', maxZoom: 17, active: false, attrText: '© OpenTopoMap', attrLink: 'https://opentopomap.org', defaultOpacity: 1.0 },
+                { id: 'athens-1944', label: 'Athens 1944 (GSGS)', type: 'overlay', url: 'https://allmaps.xyz/images/59dc92d35e7d424b/{z}/{x}/{y}@2x.png', maxZoom: 21, active: true, attrText: '© GSGS, Princeton Univ.', attrLink: 'https://maps.princeton.edu/catalog/princeton-gt54kq43t', defaultOpacity: 0.8 }
+            ];
+            const [basemapsRegistry, setBasemapsRegistry] = useState(DEFAULT_BASEMAPS);
+            
+            const [maxAutoZoom, setMaxAutoZoom] = useState(15);
+            const [minimapOffset, setMinimapOffset] = useState(-4); 
+            const [zoomLock, setZoomLock] = useState('auto'); 
+            const [visibleTimeSpan, setVisibleTimeSpan] = useState('');
+            const [showButtonText, setShowButtonText] = useState(false);
+
+            const hasInitializedRef = useRef(false);
+            const appRef = useRef(null);
+
+            const addLog = (msg, type = 'info') => setLogs(p => [...p, { time: new Date().toLocaleTimeString('en-US', { hour12: false }), msg, type }]);
+
+            const getOmniParam = (key) => {
+                const searchParams = new URLSearchParams(window.location.search);
+                let val = searchParams.get(key) || searchParams.get(`amp;${key}`);
+                if (val) return val;
+                
+                const hash = window.location.hash.replace(/^#\/?\??/, '');
+                const hashParams = new URLSearchParams(hash);
+                return hashParams.get(key) || hashParams.get(`amp;${key}`);
+            };
+
+            const jumpToSlide = (newIdx, isSequential = false) => {
+                if (newIdx !== activeIndex && newIdx >= 0 && newIdx < data.length) {
+                    if (!isSequential) setSlideHistory(prev => [...prev, activeIndex]);
+                    setActiveIndex(newIdx);
+                }
+            };
+
+            const goBack = () => {
+                if (slideHistory.length > 0) {
+                    const prev = slideHistory[slideHistory.length - 1];
+                    setSlideHistory(h => h.slice(0, -1));
+                    setActiveIndex(prev);
+                }
+            };
+
+            useEffect(() => {
+                const handleKeyDown = (e) => {
+                    if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+                    if (e.key === 'ArrowRight') jumpToSlide(activeIndex + 1);
+                    else if (e.key === 'ArrowLeft') jumpToSlide(activeIndex - 1);
+                };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [activeIndex, data.length]);
+
+            useEffect(() => {
+                const updateAppHeight = () => {
+                    document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+                };
+                updateAppHeight(); 
+
+                let wasDesktop = window.innerWidth >= 1024;
+                const handleResize = () => {
+                    updateAppHeight(); 
+                    const isDesktop = window.innerWidth >= 1024;
+                    if (isDesktop !== wasDesktop) {
+                        if (appRef.current) {
+                            appRef.current.style.setProperty('--primary-split', '50%');
+                            appRef.current.style.setProperty('--secondary-split', '50%');
+                            window.dispatchEvent(new Event('resize')); 
+                        }
+                        wasDesktop = isDesktop;
+                    }
+                };
+                window.addEventListener('resize', handleResize);
+                return () => window.removeEventListener('resize', handleResize);
+            }, []);
+
+            const startPrimaryResize = (e) => {
+                if (maxPane) return; 
+                const startX = e.touches ? e.touches[0].clientX : e.clientX;
+                const startY = e.touches ? e.touches[0].clientY : e.clientY;
+                const isDesktop = window.innerWidth >= 1024;
+                const containerNode = appRef.current.querySelector('.core-viewports');
+                const startVal = isDesktop ? appRef.current.querySelector('.content-slider-pane').offsetWidth : appRef.current.querySelector('.visual-pane').offsetHeight;
+                const containerSize = isDesktop ? containerNode.offsetWidth : containerNode.offsetHeight;
+
+                const onMove = (e2) => {
+                    const currentX = e2.touches ? e2.touches[0].clientX : e2.clientX;
+                    const currentY = e2.touches ? e2.touches[0].clientY : e2.clientY;
+                    const delta = isDesktop ? (currentX - startX) : (currentY - startY);
+                    let pct = ((startVal + delta) / containerSize) * 100;
+                    if (pct < 15) pct = 15; if (pct > 85) pct = 85;
+                    appRef.current.style.setProperty('--primary-split', `${pct}%`);
+                };
+                const onUp = () => { 
+                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
+                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp);
+                    window.dispatchEvent(new Event('resize')); 
+                };
+                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+                document.addEventListener('touchmove', onMove, { passive: false }); document.addEventListener('touchend', onUp);
+            };
+
+            const startSecondaryResize = (e) => {
+                if (maxPane) return; 
+                const startX = e.touches ? e.touches[0].clientX : e.clientX;
+                const startY = e.touches ? e.touches[0].clientY : e.clientY;
+                const isDesktop = window.innerWidth >= 1024;
+                const containerNode = appRef.current.querySelector('.visual-pane');
+                const startVal = isDesktop ? appRef.current.querySelector('.map-pane').offsetHeight : appRef.current.querySelector('.map-pane').offsetWidth;
+                const containerSize = isDesktop ? containerNode.offsetHeight : containerNode.offsetWidth;
+
+                const onMove = (e2) => {
+                    const currentX = e2.touches ? e2.touches[0].clientX : e2.clientX;
+                    const currentY = e2.touches ? e2.touches[0].clientY : e2.clientY;
+                    const delta = isDesktop ? (currentY - startY) : (currentX - startX);
+                    let pct = ((startVal + delta) / containerSize) * 100;
+                    if (pct < 10) pct = 10; if (pct > 90) pct = 90;
+                    appRef.current.style.setProperty('--secondary-split', `${pct}%`);
+                };
+                const onUp = () => { 
+                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
+                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp);
+                    window.dispatchEvent(new Event('resize')); 
+                };
+                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+                document.addEventListener('touchmove', onMove, { passive: false }); document.addEventListener('touchend', onUp);
+            };
+
+            const startTimelineResize = (e) => {
+                if (isTimelineExpanded) return;
+                const startY = e.touches ? e.touches[0].clientY : e.clientY;
+                const startHeight = appRef.current.querySelector('.timeline-pane').offsetHeight;
+                const containerHeight = appRef.current.offsetHeight;
+
+                const onMove = (e2) => {
+                    const currentY = e2.touches ? e2.touches[0].clientY : e2.clientY;
+                    const delta = currentY - startY; 
+                    let pct = ((startHeight - delta) / containerHeight) * 100;
+                    if (pct < 10) pct = 10; if (pct > 60) pct = 60;
+                    appRef.current.style.setProperty('--timeline-height', `${pct}%`);
+                };
+                const onUp = () => { 
+                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
+                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp);
+                    window.dispatchEvent(new Event('resize')); 
+                };
+                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+                document.addEventListener('touchmove', onMove, { passive: false }); document.addEventListener('touchend', onUp);
+            };
+
+            useEffect(() => {
+                const gid = getOmniParam('gid') || '0'; 
+                const bgid = getOmniParam('bgid'); 
+                const source = getOmniParam('source') || '1kdgGiHNDsIZrn8Z1aqWXrEEYKMGxLAqFiwATx3aqbJI';
+                
+                setStatus({ text: 'Fetching CMS Manifests...', progress: 30, isFading: false, active: false });
+
+                const fetchUrlPrimary = `https://docs.google.com/spreadsheets/d/${source}/gviz/tq?tqx=out:csv&gid=${gid}`;
+                const primaryFetch = fetch(fetchUrlPrimary).then(res => res.text());
+                
+                let basemapsFetch = Promise.resolve(null);
+                if (bgid) {
+                    const fetchUrlBasemaps = `https://docs.google.com/spreadsheets/d/${source}/gviz/tq?tqx=out:csv&gid=${bgid}`;
+                    basemapsFetch = fetch(fetchUrlBasemaps).then(res => res.text()).catch(e => { console.warn("Basemaps CMS Fetch Failed", e); return null; });
+                }
+
+                Promise.all([primaryFetch, basemapsFetch]).then(([csvPrimary, csvBasemaps]) => {
+                    setStatus({ text: 'Parsing Data...', progress: 60, isFading: false, active: false });
+                    
+                    if (csvBasemaps) {
+                        Papa.parse(csvBasemaps, { header: true, skipEmptyLines: true, complete: (res) => {
+                            const parsedBMs = res.data.map(row => {
+                                const norm = {}; for (let k in row) norm[k.toLowerCase().trim()] = row[k];
+                                const isActive = /^(true|yes)$/i.test(String(norm.active || '').trim());
+                                const rawOpac = parseFloat(norm.defaultopacity);
+                                return {
+                                    id: norm.id || '', label: norm.label || '', type: norm.type?.toLowerCase() === 'overlay' ? 'overlay' : 'base', 
+                                    url: norm.url || '', maxZoom: parseInt(norm.maxzoom, 10) || 19, 
+                                    active: isActive, attrText: norm.attrtext || '', attrLink: norm.attrlink || '',
+                                    defaultOpacity: isNaN(rawOpac) ? 1.0 : rawOpac
+                                };
+                            }).filter(b => b.id && b.url);
+
+                            if (parsedBMs.length > 0) {
+                                setBasemapsRegistry(prev => {
+                                    const merged = [...prev];
+                                    parsedBMs.forEach(bm => {
+                                        const existIdx = merged.findIndex(m => m.id === bm.id);
+                                        if (existIdx >= 0) merged[existIdx] = bm; else merged.push(bm);
+                                    });
+                                    return merged;
+                                });
+                            }
+                        }});
+                    }
+
+                    Papa.parse(csvPrimary, { header: true, skipEmptyLines: true, complete: (results) => { 
+                        const firstRowNorm = {};
+                        if (results.data[0]) {
+                            for (let k in results.data[0]) firstRowNorm[k.toLowerCase().trim()] = results.data[0][k];
+                        }
+                        const exactGet = (normObj, key) => { const val = normObj[key]; return val !== undefined && val !== null ? String(val).trim() : ""; };
+                        setAboutData({ 
+                            title: exactGet(firstRowNorm, 'title') || 'About', 
+                            description: exactGet(firstRowNorm, 'description') || 'No project description provided.',
+                            rawSource: source === '1kdgGiHNDsIZrn8Z1aqWXrEEYKMGxLAqFiwATx3aqbJI' ? 'Default Master DB' : source
+                        });
+                        setRawCsvRows(results.data); 
+                    }});
+                }).catch(err => {
+                    console.error("Fatal CMS Error", err);
+                    setStatus({ text: 'Error Loading Data', progress: 100, isFading: false, active: false });
+                });
+            }, []);
+
+            useEffect(() => {
+                if (rawCsvRows.length === 0) return;
+                const exactGet = (normObj, key) => { const val = normObj[key]; return val !== undefined && val !== null ? String(val).trim() : ""; };
+                const omniSplitRegex = /[\r\n]+|\\n/;
+
+                const cleaned = rawCsvRows.map((row, index) => {
+                    const norm = {}; for (let k in row) norm[k.toLowerCase().trim()] = row[k];
+                    const dynamicDateParse = (str) => {
+                        if (!str) return null;
+                        const parts = str.split(' ');
+                        if (parts.length < 1) return null;
+                        const dParts = parts[0].split(/[/\-.]/);
+                        const tParts = parts[1] ? parts[1].split(':') : [0,0,0];
+                        const secParts = String(tParts[2] || '0').split('.');
+                        
+                        const d = parseInt(dParts[0], 10); const m = parseInt(dParts[1], 10) - 1; const y = parseInt(dParts[2], 10);
+                        const h = parseInt(tParts[0], 10); const min = parseInt(tParts[1], 10); const sec = parseInt(secParts[0], 10); const ms = parseInt(secParts[1] || '0', 10);
+
+                        const dateObj = new Date(y, m, d, h, min, sec, ms);
+                        return isNaN(dateObj.getTime()) ? null : dateObj;
+                    };
+
+                    return {
+                        id: index, title: exactGet(norm, 'title'),
+                        startDate: dynamicDateParse(exactGet(norm, 'start')),
+                        endDate: dynamicDateParse(exactGet(norm, 'end')),
+                        description: exactGet(norm, 'description'),
+                        place: exactGet(norm, 'place'), location: exactGet(norm, 'location'), priority: exactGet(norm, 'priority'),
+                        media: exactGet(norm, 'media') ? exactGet(norm, 'media').split(omniSplitRegex).map(m => m.trim()).filter(Boolean) : [],
+                        mediaCaption: exactGet(norm, 'media caption') ? exactGet(norm, 'media caption').split(omniSplitRegex).map(c => c.trim()) : [],
+                        mediaCredit: exactGet(norm, 'media credit') ? exactGet(norm, 'media credit').split(omniSplitRegex).map(c => c.trim()) : [],
+                        tags: exactGet(norm, 'tags') ? exactGet(norm, 'tags').split(',').map(t => t.trim()).filter(Boolean) : []
+                    };
+                });
+                
+                const valid = cleaned.filter(r => r.startDate).sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+                setData(valid);
+
+                if (!hasInitializedRef.current) {
+                    const paramSlide = getOmniParam('slide');
+                    const paramDate = getOmniParam('date');
+                    let initialIdx = 0;
+
+                    if (paramSlide && !isNaN(parseInt(paramSlide))) {
+                        initialIdx = Math.max(0, Math.min(valid.length - 1, parseInt(paramSlide) - 1));
+                    } else if (paramDate) {
+                        const targetTime = new Date(paramDate).getTime();
+                        if (!isNaN(targetTime)) {
+                            let minDiff = Infinity;
+                            valid.forEach((d, i) => {
+                                if (d.startDate) {
+                                    const diff = Math.abs(d.startDate.getTime() - targetTime);
+                                    if (diff < minDiff) { minDiff = diff; initialIdx = i; }
+                                }
+                            });
+                        }
+                    }
+                    setActiveIndex(initialIdx); 
+                    hasInitializedRef.current = true;
+                }
+
+                setStatus({ text: 'Engine Ready', progress: 100, isFading: true, active: false });
+                setTimeout(() => { setStatus({ text: '', progress: 100, isFading: true, active: true }); }, 500);
+
+            }, [rawCsvRows]);
+
+            const CarTiMapperLogo = ({ context, appVersion }) => {
+                const svgIcon = html`
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="20 0 165 100" style="width: 100%; height: auto; display: block;">
+                        <defs><filter id="dot-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs>
+                        <path d="M28,38 L45,15 L180,15 L180,85 L45,85 L28,62 Z" fill="#222" stroke="#007acc" stroke-width="2.5" stroke-linejoin="round"/>
+                        <g fill="#fff" opacity="0.9">
+                            <rect x="55" y="19" width="4" height="6" rx="1" /><rect x="71" y="19" width="4" height="6" rx="1" /><rect x="87" y="19" width="4" height="6" rx="1" /><rect x="103" y="19" width="4" height="6" rx="1" />
+                            <rect x="119" y="19" width="4" height="6" rx="1" /><rect x="135" y="19" width="4" height="6" rx="1" /><rect x="151" y="19" width="4" height="6" rx="1" /><rect x="167" y="19" width="4" height="6" rx="1" />
+                            <rect x="55" y="75" width="4" height="6" rx="1" /><rect x="71" y="75" width="4" height="6" rx="1" /><rect x="87" y="75" width="4" height="6" rx="1" /><rect x="103" y="75" width="4" height="6" rx="1" />
+                            <rect x="119" y="75" width="4" height="6" rx="1" /><rect x="135" y="75" width="4" height="6" rx="1" /><rect x="151" y="75" width="4" height="6" rx="1" /><rect x="167" y="75" width="4" height="6" rx="1" />
+                        </g>
+                        <g transform="translate(112, 50)">
+                            <path d="M0,-28 L4,-6 L28,0 L4,6 L0,28 L-4,6 L-28,0 L-4,-6 Z" fill="#444" opacity="0.8"/>
+                            <g fill="#fcfcfc" font-family="Arial, sans-serif" font-size="7" font-weight="normal" text-anchor="middle"><text x="0" y="-21">N</text><text x="24" y="2.5">E</text><text x="0" y="27">S</text><text x="-24" y="2.5">W</text></g>
+                            <g fill="#8be9fd" filter="url(#dot-glow)"><circle cx="12.5" cy="-21.6" r="1.2" /><circle cx="21.6" cy="-12.5" r="1.2" /><circle cx="21.6" cy="12.5" r="1.2" /><circle cx="12.5" cy="21.6" r="1.2" /><circle cx="-12.5" cy="21.6" r="1.2" /><circle cx="-21.6" cy="12.5" r="1.2" /><circle cx="-21.6" cy="-12.5" r="1.2" /><circle cx="-12.5" cy="-21.6" r="1.2" /></g>
+                            <g transform="rotate(60)"><path d="M0,0 L-1,-16 L1,-16 Z" fill="#999" /><circle cx="0" cy="-20" r="2.8" fill="#007acc" /></g>
+                            <g transform="rotate(270)"><path d="M0,0 L-1.2,-9 L1.2,-9 Z" fill="#999" /><circle cx="0" cy="-13" r="2.8" fill="#28a745" /></g>
+                            <circle cx="0" cy="0" r="1.5" fill="#fff" />
+                        </g>
+                    </svg>
+                `;
+                if (context === 'splash') return html`<div class="logo-stack-splash"><div class="splash-icon-wrapper">${svgIcon}</div><div class="splash-text">CarTiMapper</div><div class="splash-version">${appVersion}</div></div>`;
+                if (context === 'status') return html`<div style="display: flex; align-items: center; gap: 4px;"><div style="width: 24px; height: 16px; display: flex; align-items: center;">${svgIcon}</div><span style="font-size: 0.8rem; color: #444; letter-spacing: -0.3px;">CarTiMapper</span><span style="font-size: 0.6rem; color: #888; margin-left: 4px;">${appVersion}</span></div>`;
+                return html`<div class="logo-horizontal-about" style="flex-direction: column; align-items: flex-start; gap: 10px;"><div style="width: 200px; height: auto;">${svgIcon}</div></div>`;
+            };
+
+            const activeSlide = data[activeIndex];
+            const hasMedia = activeSlide && activeSlide.media && activeSlide.media.length > 0;
+
+            return html`
+                <div id="tm-root">
+                    ${!status.active ? html`
+                        <div class="loading-screen ${status.isFading ? 'fade-out' : ''}">
+                            <${CarTiMapperLogo} context="splash" appVersion=${APP_VERSION || 'v6.7.0'} />
+                            <div class="loading-bar-container"><div class="loading-bar-fill" style="width: ${status.progress}%;"></div></div>
+                        </div>
+                    ` : ''}
+
+                    ${data.length > 0 && status.active ? html`
+                        <div id="app-layout" ref=${appRef} class="${isTimelineExpanded ? 'is-expanded-timeline' : ''}" style="display: flex; flex-direction: column; height: var(--app-height, 100vh); width: 100vw; overflow: hidden; position: relative;">
+                            
+                            <div class="core-viewports ${maxPane ? 'max-' + maxPane : ''}">
+                                <div class="visual-pane ${hasMedia ? '' : 'no-media'}">
+                                    <div class="map-pane">
+                                        <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} maxAutoZoom=${maxAutoZoom} minimapOffset=${minimapOffset} basemapsRegistry=${basemapsRegistry} showButtonText=${showButtonText} maxPane=${maxPane} setMaxPane=${setMaxPane} />
+                                        <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} appVersion=${APP_VERSION || 'v6.7.0'} moduleVersions=${{Globals: 'v1.0.53', Styles: 'v4.12.0'}} />
+                                    </div>
+                                    <div class="resizer-dyn-secondary" onMouseDown=${startSecondaryResize} onTouchStart=${startSecondaryResize}></div>
+                                    <div class="media-pane">
+                                        <${MediaViewer} activeSlide=${activeSlide} maxPane=${maxPane} setMaxPane=${setMaxPane} />
+                                    </div>
+                                </div>
+                                <div class="resizer-dyn-primary" onMouseDown=${startPrimaryResize} onTouchStart=${startPrimaryResize}></div>
+                                <div class="content-slider-pane">
+                                    <${ContentSlider} 
+                                        data=${data} 
+                                        activeIndex=${activeIndex} 
+                                        setActiveIndex=${jumpToSlide} 
+                                        jumpToSlide=${jumpToSlide}
+                                        slideHistory=${slideHistory}
+                                        goBack=${goBack}
+                                        aboutData=${aboutData}
+                                        isAboutOpen=${isAboutOpen}
+                                        setIsAboutOpen=${setIsAboutOpen}
+                                        isMonitorOpen=${isMonitorOpen}
+                                        setIsMonitorOpen=${setIsMonitorOpen}
+                                        isSettingsOpen=${isSettingsOpen}
+                                        setIsSettingsOpen=${setIsSettingsOpen}
+                                        CarTiMapperLogo=${CarTiMapperLogo} 
+                                        visibleTimeSpan=${visibleTimeSpan}
+                                        showButtonText=${showButtonText}
+                                        maxPane=${maxPane} 
+                                        setMaxPane=${setMaxPane}
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div class="resizer-dyn-timeline" onMouseDown=${startTimelineResize} onTouchStart=${startTimelineResize}></div>
+
+                            <div class="timeline-pane" style="height: ${isTimelineExpanded ? expandedTimelineHeight : 'var(--timeline-height)'}; flex-shrink: 0; transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);">
+                                <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} setVisibleTimeSpan=${setVisibleTimeSpan} zoomLock=${zoomLock} setZoomLock=${setZoomLock} isTimelineExpanded=${isTimelineExpanded} setIsTimelineExpanded=${setIsTimelineExpanded} setExpandedTimelineHeight=${setExpandedTimelineHeight} />
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        };
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.49.0';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.49.0 ] ===
+
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
         // === [ END MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
