@@ -1,6 +1,10 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+### [v6.6.8]
+* **AppOrchestrator (v1.48.0) [UI-71]:** Upgraded the CMS registry parser to ingest a `DefaultOpacity` column, defaulting to `1.0` if null or malformed.
+* **MapViewer (v3.28.0) [UI-71]:** Added the `overlayOpacities` state dictionary. Injected an isolated range slider into the active overlay HUD. Bound the Leaflet `setOpacity()` method to a `useEffect` synchronization loop, granting users physical sub-pixel control over layer transparency.
+
 ### [v6.6.7]
 * **AppOrchestrator (v1.47.0) [CMS-06]:** Expanded the Google Sheets CMS parser to ingest three new columns: `Active`, `AttrText`, and `AttrLink`. Deployed a Lazy Boolean regex evaluator to safely parse empty CMS cells into inactive layer states.
 * **MapViewer (v3.27.0) [CMS-06]:** Rewrote the initialization `useEffect` to dynamically set `activeBasemap` and `activeOverlays` strictly from the incoming CMS state flags. Restructured the Layers Menu DOM to place `AttrText` outside the interactive `<label>`, injecting `e.stopPropagation()` into the anchor tags to prevent layer-toggling event collisions.
