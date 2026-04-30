@@ -253,7 +253,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.7.0';
+        const APP_VERSION = 'v6.7.1';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.12.0', Globals: 'v1.0.53' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -592,14 +592,22 @@
                     }
                 });
 
-                activeOverlays.forEach((id, idx) => {
-                    if (!overlayLayersRef.current[id]) {
-                        const config = basemapsRegistry.find(b => b.id === id);
+                activeOverlays.forEach ((id, idx) => {
+                    if (!overlayLayersRef.current [id]) {
+                        const config = basemapsRegistry.find (b => b.id === id);
                         if (config) {
                             const z = idx + 10; 
-                            const dynamicOpacity = overlayOpacities[id] !== undefined ? overlayOpacities[id] : (config.defaultOpacity ?? 1.0);
-                            overlayLayersRef.current[id] = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, opacity: dynamicOpacity, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z, transparent: true }).addTo(map);
-                            miniOverlayLayersRef.current[id] = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, opacity: dynamicOpacity, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z, transparent: true }).addTo(miniMap);
+                            const dynamicOpacity = overlayOpacities [id] !== undefined ? overlayOpacities [id] : (config.defaultOpacity ?? 1.0);
+                            
+                            const isWms = config.format === "wms" || config.url.toLowerCase ().includes ("wms");
+                            
+                            if (isWms) {
+                                overlayLayersRef.current [id] = L.tileLayer.wms (config.url, {maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, layers: config.wmsLayer || "default", format: "image/png", transparent: true, opacity: dynamicOpacity, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z}).addTo (map);
+                                miniOverlayLayersRef.current [id] = L.tileLayer.wms (config.url, {maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, layers: config.wmsLayer || "default", format: "image/png", transparent: true, opacity: dynamicOpacity, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z}).addTo (miniMap);
+                            } else {
+                                overlayLayersRef.current [id] = L.tileLayer (config.url, {maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, opacity: dynamicOpacity, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z, transparent: true}).addTo (map);
+                                miniOverlayLayersRef.current [id] = L.tileLayer (config.url, {maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, opacity: dynamicOpacity, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z, transparent: true}).addTo (miniMap);
+                            }
                         }
                     }
                 });
@@ -1775,12 +1783,13 @@
             const [expandedTimelineHeight, setExpandedTimelineHeight] = useState('50%'); 
 
             const DEFAULT_BASEMAPS = [
-                { id: 'carto-light', label: 'CartoDB Light', type: 'base', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', maxZoom: 19, active: true, attrText: '© CartoDB', attrLink: 'https://carto.com/attributions', defaultOpacity: 1.0 },
-                { id: 'esri-street', label: 'Esri World Street', type: 'base', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', maxZoom: 19, active: false, attrText: 'Tiles © Esri', attrLink: 'https://www.esri.com/', defaultOpacity: 1.0 },
-                { id: 'esri-sat', label: 'Esri Satellite', type: 'base', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', maxZoom: 19, active: false, attrText: 'Tiles © Esri', attrLink: 'https://www.esri.com/', defaultOpacity: 1.0 },
-                { id: 'osm', label: 'OpenStreetMap', type: 'base', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', maxZoom: 19, active: false, attrText: '© OpenStreetMap', attrLink: 'https://openstreetmap.org/copyright', defaultOpacity: 1.0 },
-                { id: 'topo', label: 'OpenTopoMap', type: 'base', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', maxZoom: 17, active: false, attrText: '© OpenTopoMap', attrLink: 'https://opentopomap.org', defaultOpacity: 1.0 },
-                { id: 'athens-1944', label: 'Athens 1944 (GSGS)', type: 'overlay', url: 'https://allmaps.xyz/images/59dc92d35e7d424b/{z}/{x}/{y}@2x.png', maxZoom: 21, active: true, attrText: '© GSGS, Princeton Univ.', attrLink: 'https://maps.princeton.edu/catalog/princeton-gt54kq43t', defaultOpacity: 0.8 }
+                {id: "carto-light", label: "CartoDB Light", type: "base", url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", maxZoom: 19, active: true, attrText: "© CartoDB", attrLink: "https://carto.com/attributions", defaultOpacity: 1.0},
+                {id: "esri-street", label: "Esri World Street", type: "base", url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", maxZoom: 19, active: false, attrText: "Tiles © Esri", attrLink: "https://www.esri.com/", defaultOpacity: 1.0},
+                {id: "esri-sat", label: "Esri Satellite", type: "base", url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", maxZoom: 19, active: false, attrText: "Tiles © Esri", attrLink: "https://www.esri.com/", defaultOpacity: 1.0},
+                {id: "osm", label: "OpenStreetMap", type: "base", url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", maxZoom: 19, active: false, attrText: "© OpenStreetMap", attrLink: "https://openstreetmap.org/copyright", defaultOpacity: 1.0},
+                {id: "topo", label: "OpenTopoMap", type: "base", url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", maxZoom: 17, active: false, attrText: "© OpenTopoMap", attrLink: "https://opentopomap.org", defaultOpacity: 1.0},
+                {id: "athens-1944", label: "Athens 1944 (GSGS)", type: "overlay", url: "https://allmaps.xyz/images/59dc92d35e7d424b/{z}/{x}/{y}@2x.png", maxZoom: 21, active: true, attrText: "© GSGS, Princeton Univ.", attrLink: "https://maps.princeton.edu/catalog/princeton-gt54kq43t", defaultOpacity: 0.8},
+                {id: "attika-kaupert", label: "Karten von Attika (Kaupert)", type: "overlay", url: "https://dipylon-kartenvonattika.org/geoserver/wms", wmsLayer: "kaupert:attika_all", format: "wms", maxZoom: 21, active: true, attrText: "© Dipylon Society", attrLink: "https://dipylon-kartenvonattika.org/webgis", defaultOpacity: 0.8}
             ];
             const [basemapsRegistry, setBasemapsRegistry] = useState(DEFAULT_BASEMAPS);
             
@@ -1953,10 +1962,12 @@
                                 const isActive = /^(true|yes)$/i.test(String(norm.active || '').trim());
                                 const rawOpac = parseFloat(norm.defaultopacity);
                                 return {
-                                    id: norm.id || '', label: norm.label || '', type: norm.type?.toLowerCase() === 'overlay' ? 'overlay' : 'base', 
-                                    url: norm.url || '', maxZoom: parseInt(norm.maxzoom, 10) || 19, 
-                                    active: isActive, attrText: norm.attrtext || '', attrLink: norm.attrlink || '',
-                                    defaultOpacity: isNaN(rawOpac) ? 1.0 : rawOpac
+                                    id: norm.id || "", label: norm.label || "", type: norm.type?.toLowerCase () === "overlay" ? "overlay" : "base", 
+                                    url: norm.url || "", maxZoom: parseInt (norm.maxzoom, 10) || 19, 
+                                    active: isActive, attrText: norm.attrtext || "", attrLink: norm.attrlink || "",
+                                    defaultOpacity: isNaN (rawOpac) ? 1.0 : rawOpac,
+                                    format: norm.format || "xyz",
+                                    wmsLayer: norm.wmslayer || "default"
                                 };
                             }).filter(b => b.id && b.url);
 
