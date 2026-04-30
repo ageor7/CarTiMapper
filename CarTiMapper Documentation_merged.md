@@ -227,3 +227,8 @@
 * **[REF: CRASH-02/UI-71] Real-Time Layer Opacity Engine:** To facilitate comparative historical analysis (e.g., viewing 1944 GSGS maps overlaid on modern CartoDB streets), the engine incorporates a dynamic transparency matrix. 
     * **CMS Initialization:** The `AppOrchestrator` parses a new `DefaultOpacity` column from the Headless CMS, defining the float value (0.0 to 1.0) at which a layer mounts. 
     * **Decoupled DOM Manipulation:** When an overlay is toggled `Active`, the Layers HUD mounts an HTML `<input type="range">` slider. This slider is structurally decoupled from the `<label>` parent, allowing users to scrub the `L.tileLayer.setOpacity()` WebGL rendering in real-time without triggering an accidental map-toggle collision.
+### Add to: II. Cartographic & Spatial Physics
+
+* **[REF: MAP-80] Dynamic Web Map Service (WMS) Routing:** To support institutional academic mapping platforms (such as the Dipylon Society's 'Karten von Attika') which do not expose standard XYZ tiles, the engine features a dynamic WebGL routing bypass.
+    * **Schema Expansion:** The Google Sheet registry parses two new columns: `format` (defaults to 'xyz' but accepts 'wms') and `wmsLayer` (the specific spatial layer requested from the server, e.g., 'kaupert:attika_all').
+    * **Bounding-Box Physics:** When the `MapViewer` detects a `wms` format flag, it automatically halts the standard `/z/x/y.png` grid math. Instead, it routes the layer through `L.tileLayer.wms()`, forcing Leaflet to dynamically calculate the screen's Latitude/Longitude bounding box and request a custom, single-image render directly from the institution's enterprise GeoServer.
