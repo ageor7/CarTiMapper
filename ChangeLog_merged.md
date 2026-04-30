@@ -1,6 +1,9 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+### [v6.7.1]
+* **AppOrchestrator (v1.50.0) [MAP-80]:** Updated the `DEFAULT_BASEMAPS` schema and the `Papa.parse` block to ingest `format` and `wmsLayer` metadata. Injected the Dipylon 'Karten von Attika (Kaupert)' map configuration into the default registry.
+* **MapViewer (v3.30.0) [MAP-80]:** Refactored the `activeOverlays` rendering loop. Engineered a conditional router that intercepts WMS definitions and redirects them to the `L.tileLayer.wms` method, enabling real-time, bounding-box-driven institutional tile generation alongside standard XYZ overlays.
 
 ### [v6.7.0]
 * **AppOrchestrator (v1.49.0) [UI-72]:** Deployed `maxPane` and `expandedTimelineHeight` global states. Added a heavily scoped `<style>` block to execute state-driven CSS Flexbox overrides for maximum layout expansion, replacing the need for JS-based width calculations. Disabled pane resizers when a maximization state is active.
