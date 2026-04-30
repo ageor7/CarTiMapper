@@ -187,7 +187,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.6.6';
+        const APP_VERSION = 'v6.6.7';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -262,7 +262,7 @@
         };
         // === [ END MAJOR BLOCK: VibeMonitor v2.0.0 ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v3.26.0 ] ===
+        // === [ MAJOR BLOCK: MapViewer v3.27.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, basemapsRegistry, maxAutoZoom, minimapOffset, showButtonText }) => {
             const mapDomRef = useRef(null);
             const miniMapDomRef = useRef(null);
@@ -281,8 +281,10 @@
             const [showGrid, setShowGrid] = useState(false);
             const [showLayersMenu, setShowLayersMenu] = useState(false);
 
-            const [activeBasemap, setActiveBasemap] = useState('carto-light');
-            const [activeOverlays, setActiveOverlays] = useState(['athens-1944']); 
+            // [FIX: CMS-06] The Initial State sweeps the CMS array rather than hardcoding carto-light
+            const [activeBasemap, setActiveBasemap] = useState(null);
+            const [activeOverlays, setActiveOverlays] = useState([]); 
+            const initialLoadRef = useRef(false);
 
             const baseLayerRef = useRef(null);
             const miniBaseLayerRef = useRef(null);
@@ -299,6 +301,19 @@
             const maxGlobalZoom = basemapsRegistry && basemapsRegistry.length > 0 
                 ? Math.max(...basemapsRegistry.map(b => b.maxZoom || 19)) 
                 : 22;
+
+            // [FIX: CMS-06] Initialization Matrix
+            useEffect(() => {
+                if (basemapsRegistry && basemapsRegistry.length > 0 && !initialLoadRef.current) {
+                    const defaultBase = basemapsRegistry.find(b => b.type === 'base' && b.active) || basemapsRegistry.find(b => b.type === 'base');
+                    if (defaultBase) setActiveBasemap(defaultBase.id);
+                    
+                    const defaultOverlays = basemapsRegistry.filter(b => b.type === 'overlay' && b.active).map(b => b.id);
+                    setActiveOverlays(defaultOverlays);
+                    
+                    initialLoadRef.current = true;
+                }
+            }, [basemapsRegistry]);
 
             useEffect(() => {
                 minimapOffsetRef.current = minimapOffset;
@@ -483,15 +498,15 @@
             useEffect(() => {
                 const map = mapInstance.current;
                 const miniMap = miniMapInstance.current;
-                if (!map || !miniMap || !basemapsRegistry || basemapsRegistry.length === 0) return;
+                if (!map || !miniMap || !basemapsRegistry || !activeBasemap) return;
 
                 const config = basemapsRegistry.find(b => b.id === activeBasemap) || basemapsRegistry[0];
                 
                 if (baseLayerRef.current) map.removeLayer(baseLayerRef.current);
-                baseLayerRef.current = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, attribution: config.attribution, zIndex: 0 }).addTo(map);
+                baseLayerRef.current = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: 0 }).addTo(map);
                 
                 if (miniBaseLayerRef.current) miniMap.removeLayer(miniBaseLayerRef.current);
-                miniBaseLayerRef.current = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, attribution: config.attribution, zIndex: 0 }).addTo(miniMap);
+                miniBaseLayerRef.current = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: 0 }).addTo(miniMap);
                 
             }, [activeBasemap, basemapsRegistry, maxGlobalZoom]);
 
@@ -514,8 +529,8 @@
                         const config = basemapsRegistry.find(b => b.id === id);
                         if (config) {
                             const z = idx + 10; 
-                            overlayLayersRef.current[id] = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, attribution: config.attribution, zIndex: z, transparent: true }).addTo(map);
-                            miniOverlayLayersRef.current[id] = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, attribution: config.attribution, zIndex: z, transparent: true }).addTo(miniMap);
+                            overlayLayersRef.current[id] = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z, transparent: true }).addTo(map);
+                            miniOverlayLayersRef.current[id] = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z, transparent: true }).addTo(miniMap);
                         }
                     }
                 });
@@ -702,10 +717,10 @@
                                     ${bases.map(b => html`
                                         <div style="display: flex; align-items: flex-start; gap: 8px; line-height: 1.3;">
                                             <input type="radio" id="base_${b.id}" name="basemap_radio" checked=${activeBasemap === b.id} onChange=${() => setActiveBasemap(b.id)} style="margin: 2px 0 0 0; cursor: pointer; flex-shrink: 0;" />
-                                            <label for="base_${b.id}" style="cursor: pointer; margin: 0; display: inline;">
-                                                <span style="font-weight: 500; color: #222;">${b.label}</span>
-                                                ${b.attribution ? html`<span style="margin: 0 4px; color: #ccc;">|</span><span class="layer-attribution-link" style="font-size: 0.75rem;" dangerouslySetInnerHTML=${{ __html: b.attribution }}></span>` : ''}
-                                            </label>
+                                            <div style="display: inline; margin: 0;">
+                                                <label for="base_${b.id}" style="cursor: pointer; font-weight: 500; color: #222;">${b.label}</label>
+                                                ${b.attrText ? html`<span style="margin: 0 4px; color: #ccc;">|</span><span class="layer-attribution-link" style="font-size: 0.75rem;"><a href="${b.attrLink || '#'}" target="_blank" onClick=${(e) => { e.stopPropagation(); if(!b.attrLink) e.preventDefault(); }}>${b.attrText}</a></span>` : ''}
+                                            </div>
                                         </div>
                                     `)}
                                 </div>
@@ -718,10 +733,10 @@
                                                 if (e.target.checked) setActiveOverlays(prev => [...prev, o.id]);
                                                 else setActiveOverlays(prev => prev.filter(id => id !== o.id));
                                             }} style="margin: 2px 0 0 0; cursor: pointer; flex-shrink: 0;" />
-                                            <label for="over_${o.id}" style="cursor: pointer; margin: 0; display: inline;">
-                                                <span style="font-weight: 500; color: #222;">${o.label}</span>
-                                                ${o.attribution ? html`<span style="margin: 0 4px; color: #ccc;">|</span><span class="layer-attribution-link" style="font-size: 0.75rem;" dangerouslySetInnerHTML=${{ __html: o.attribution }}></span>` : ''}
-                                            </label>
+                                            <div style="display: inline; margin: 0;">
+                                                <label for="over_${o.id}" style="cursor: pointer; font-weight: 500; color: #222;">${o.label}</label>
+                                                ${o.attrText ? html`<span style="margin: 0 4px; color: #ccc;">|</span><span class="layer-attribution-link" style="font-size: 0.75rem;"><a href="${o.attrLink || '#'}" target="_blank" onClick=${(e) => { e.stopPropagation(); if(!o.attrLink) e.preventDefault(); }}>${o.attrText}</a></span>` : ''}
+                                            </div>
                                         </div>
                                     `) : html`<div style="color: #888; font-style: italic;">No overlays available.</div>`}
                                 </div>
@@ -733,8 +748,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.26.0';
-        // === [ END MAJOR BLOCK: MapViewer v3.26.0 ] ===
+        MODULE_VERSIONS['MapViewer'] = 'v3.27.0';
+        // === [ END MAJOR BLOCK: MapViewer v3.27.0 ] ===
 
         // === [ MAJOR BLOCK: MediaViewer v2.9.0 ] ===
         const MediaViewer = ({ activeSlide, addLog }) => {
@@ -1627,7 +1642,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.17.0';
         // === [ END MAJOR BLOCK: TimelineScrubber v23.17.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.44.0 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.47.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [rawCsvRows, setRawCsvRows] = useState([]);
@@ -1641,17 +1656,16 @@
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
             const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
             
-            // [FIX: CMS-01] Dynamic Basemap State & Default Hardcoded Array
+            // [FIX: CMS-06] The Split Attribution & Active Field Schema
             const DEFAULT_BASEMAPS = [
-                { id: 'carto-light', label: 'CartoDB Light (Minimalist & Clean)', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', maxZoom: 19, attribution: '© OpenStreetMap, © CartoDB' },
-                { id: 'esri-street', label: 'Esri World Street (Traditional Detail)', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', maxZoom: 19, attribution: 'Tiles © Esri' },
-                { id: 'esri-sat', label: 'Esri World Imagery (Satellite High-Res)', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', maxZoom: 19, attribution: 'Tiles © Esri' },
-                { id: 'osm', label: 'OpenStreetMap (Native Local Languages)', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', maxZoom: 19, attribution: '© OpenStreetMap' },
-                { id: 'topo', label: 'OpenTopoMap (Terrain & Elevation)', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', maxZoom: 17, attribution: '© OpenTopoMap, OSM' },
-                { id: 'athens-1944', label: 'Athens 1944 (GSGS 4457)', url: 'https://allmaps.xyz/images/59dc92d35e7d424b/{z}/{x}/{y}@2x.png', maxZoom: 21, attribution: '© GSGS, Princeton Univ.' }
+                { id: 'carto-light', label: 'CartoDB Light', type: 'base', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', maxZoom: 19, active: true, attrText: '© CartoDB', attrLink: 'https://carto.com/attributions' },
+                { id: 'esri-street', label: 'Esri World Street', type: 'base', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', maxZoom: 19, active: false, attrText: 'Tiles © Esri', attrLink: 'https://www.esri.com/' },
+                { id: 'esri-sat', label: 'Esri Satellite', type: 'base', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', maxZoom: 19, active: false, attrText: 'Tiles © Esri', attrLink: 'https://www.esri.com/' },
+                { id: 'osm', label: 'OpenStreetMap', type: 'base', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', maxZoom: 19, active: false, attrText: '© OpenStreetMap', attrLink: 'https://openstreetmap.org/copyright' },
+                { id: 'topo', label: 'OpenTopoMap', type: 'base', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', maxZoom: 17, active: false, attrText: '© OpenTopoMap', attrLink: 'https://opentopomap.org' },
+                { id: 'athens-1944', label: 'Athens 1944 (GSGS)', type: 'overlay', url: 'https://allmaps.xyz/images/59dc92d35e7d424b/{z}/{x}/{y}@2x.png', maxZoom: 21, active: true, attrText: '© GSGS, Princeton Univ.', attrLink: 'https://maps.princeton.edu/catalog/princeton-gt54kq43t' }
             ];
             const [basemapsRegistry, setBasemapsRegistry] = useState(DEFAULT_BASEMAPS);
-            const [mapBasemap, setMapBasemap] = useState('carto-light');
             
             const [maxAutoZoom, setMaxAutoZoom] = useState(15);
             const [minimapOffset, setMinimapOffset] = useState(-4); 
@@ -1793,7 +1807,6 @@
                 document.addEventListener('touchmove', onMove, { passive: false }); document.addEventListener('touchend', onUp);
             };
 
-            // [FIX: CMS-01] Headless CMS Dual-Fetch Architecture
             useEffect(() => {
                 const gid = getOmniParam('gid') || '0'; 
                 const bgid = getOmniParam('bgid'); 
@@ -1817,12 +1830,25 @@
                         Papa.parse(csvBasemaps, { header: true, skipEmptyLines: true, complete: (res) => {
                             const parsedBMs = res.data.map(row => {
                                 const norm = {}; for (let k in row) norm[k.toLowerCase().trim()] = row[k];
+                                // [FIX: CMS-06] The Lazy Boolean Matrix evaluates True/Yes and defaults everything else to false
+                                const isActive = /^(true|yes)$/i.test(String(norm.active || '').trim());
                                 return {
-                                    id: norm.id || '', label: norm.label || '', url: norm.url || '',
-                                    maxZoom: parseInt(norm.maxzoom, 10) || 19, attribution: norm.attribution || ''
+                                    id: norm.id || '', label: norm.label || '', type: norm.type?.toLowerCase() === 'overlay' ? 'overlay' : 'base', 
+                                    url: norm.url || '', maxZoom: parseInt(norm.maxzoom, 10) || 19, 
+                                    active: isActive, attrText: norm.attrtext || '', attrLink: norm.attrlink || ''
                                 };
                             }).filter(b => b.id && b.url);
-                            if (parsedBMs.length > 0) setBasemapsRegistry(parsedBMs);
+
+                            if (parsedBMs.length > 0) {
+                                setBasemapsRegistry(prev => {
+                                    const merged = [...prev];
+                                    parsedBMs.forEach(bm => {
+                                        const existIdx = merged.findIndex(m => m.id === bm.id);
+                                        if (existIdx >= 0) merged[existIdx] = bm; else merged.push(bm);
+                                    });
+                                    return merged;
+                                });
+                            }
                         }});
                     }
 
@@ -1985,7 +2011,7 @@
 
                     ${!status.active ? html`
                         <div class="loading-screen ${status.isFading ? 'fade-out' : ''}">
-                            <${CarTiMapperLogo} context="splash" appVersion=${APP_VERSION || 'v6.6.0'} />
+                            <${CarTiMapperLogo} context="splash" appVersion=${APP_VERSION || 'v6.6.7'} />
                             <div class="loading-bar-container"><div class="loading-bar-fill" style="width: ${status.progress}%;"></div></div>
                         </div>
                     ` : ''}
@@ -1996,8 +2022,8 @@
                             <div class="core-viewports">
                                 <div class="visual-pane ${hasMedia ? '' : 'no-media'}">
                                     <div class="map-pane">
-                                        <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} maxAutoZoom=${maxAutoZoom} minimapOffset=${minimapOffset} mapBasemap=${mapBasemap} basemapsRegistry=${basemapsRegistry} showButtonText=${showButtonText} />
-                                        <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} appVersion=${APP_VERSION || 'v6.6.0'} moduleVersions=${{Globals: 'v1.0.52', Styles: 'v4.13.0'}} />
+                                        <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} maxAutoZoom=${maxAutoZoom} minimapOffset=${minimapOffset} basemapsRegistry=${basemapsRegistry} showButtonText=${showButtonText} />
+                                        <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} appVersion=${APP_VERSION || 'v6.6.7'} moduleVersions=${{Globals: 'v1.0.52', Styles: 'v4.13.0'}} />
                                     </div>
                                     <div class="resizer-dyn-secondary" onMouseDown=${startSecondaryResize} onTouchStart=${startSecondaryResize}></div>
                                     <div class="media-pane">
@@ -2050,16 +2076,6 @@
                             </div>
 
                             <div style="margin-top: 20px;">
-                                <label style="display: block; margin-bottom: 8px; color: #555; font-size: 0.95rem;">Map υπόβαθρο (Basemap)</label>
-                                <select style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; background: #fcfcfc; cursor: pointer; color: #333;" 
-                                        value=${mapBasemap} onChange=${(e) => setMapBasemap(e.target.value)}>
-                                    ${basemapsRegistry.map(bm => html`
-                                        <option value=${bm.id}>${bm.label}</option>
-                                    `)}
-                                </select>
-                            </div>
-
-                            <div style="margin-top: 20px;">
                                 <label style="display: block; margin-bottom: 8px; color: #555; font-size: 0.95rem;">Auto-Zoom Depth</label>
                                 <select style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; background: #fcfcfc; cursor: pointer; color: #333;" 
                                         value=${maxAutoZoom} onChange=${(e) => setMaxAutoZoom(parseInt(e.target.value, 10))}>
@@ -2091,8 +2107,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.44.0';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.44.0 ] ===
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.47.0';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.47.0 ] ===
         
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
