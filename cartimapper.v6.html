@@ -46,6 +46,66 @@
         .media-pane { flex: 1; position: relative; overflow: hidden; background: #111; display: flex; flex-direction: column; }
         .content-pane-wrapper { flex: 1; position: relative; display: flex; flex-direction: column; background: var(--paneBg); overflow: hidden; }
         .timeline-pane { flex: 0 0 var(--timeline-height); height: var(--timeline-height); background: #ececec; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+        
+        /* [FIX: UI-72] CSS DOM Geometry Overrides */
+        :root { --primary-split: 50%; --secondary-split: 50%; --timeline-height: 20%; }
+        
+        .core-viewports { display: flex; flex-grow: 1; height: calc(100% - var(--timeline-height) - 4px); width: 100%; overflow: hidden; }
+        .visual-pane { display: flex; overflow: hidden; }
+        .visual-pane.no-media .map-pane { height: 100% !important; width: 100% !important; }
+        .visual-pane.no-media .resizer-dyn-secondary { display: none !important; }
+        .visual-pane.no-media .media-pane { display: none !important; }
+        
+        /* Maximize Panes Matrix */
+        .core-viewports.max-text .visual-pane { display: none !important; }
+        .core-viewports.max-text .content-slider-pane { width: 100% !important; height: 100% !important; flex: 1 !important; max-width: none !important; }
+        .core-viewports.max-text .resizer-dyn-primary { display: none !important; }
+
+        .core-viewports.max-map .content-slider-pane { display: none !important; }
+        .core-viewports.max-map .media-pane { display: none !important; }
+        .core-viewports.max-map .visual-pane { width: 100% !important; height: 100% !important; flex-direction: row !important; flex: 1 !important; }
+        .core-viewports.max-map .map-pane { width: 100% !important; height: 100% !important; }
+        .core-viewports.max-map .resizer-dyn-primary, .core-viewports.max-map .resizer-dyn-secondary { display: none !important; }
+
+        .core-viewports.max-media .content-slider-pane { display: none !important; }
+        .core-viewports.max-media .map-pane { display: none !important; }
+        .core-viewports.max-media .visual-pane { width: 100% !important; height: 100% !important; flex-direction: row !important; flex: 1 !important; }
+        .core-viewports.max-media .media-pane { width: 100% !important; height: 100% !important; display: block !important; }
+        .core-viewports.max-media .resizer-dyn-primary, .core-viewports.max-media .resizer-dyn-secondary { display: none !important; }
+
+        .is-expanded-timeline .resizer-dyn-timeline { display: none !important; }
+
+        .resizer-dyn-primary, .resizer-dyn-secondary, .resizer-dyn-timeline { 
+            background: #eee; transition: background 0.2s; z-index: 10; flex-shrink: 0; position: relative; 
+            touch-action: none; 
+        }
+        .resizer-dyn-primary::after, .resizer-dyn-secondary::after, .resizer-dyn-timeline::after {
+            content: ''; position: absolute; top: -18px; bottom: -18px; left: -18px; right: -18px; z-index: 11;
+        }
+        
+        .resizer-dyn-primary:hover, .resizer-dyn-secondary:hover, .resizer-dyn-timeline:hover { background: #007acc; }
+        .resizer-dyn-timeline { height: 4px; width: 100%; cursor: row-resize; }
+        .content-slider-pane { background: var(--paneBg); overflow: hidden; }
+
+        @media (max-width: 1023px) {
+            .core-viewports { flex-direction: column; }
+            .visual-pane { width: 100%; height: var(--primary-split); flex-direction: row; order: 1; }
+            .content-slider-pane { width: 100%; height: calc(100% - var(--primary-split) - 4px); order: 3; }
+            .resizer-dyn-primary { width: 100%; height: 4px; cursor: row-resize; order: 2; }
+            .map-pane { width: var(--secondary-split); height: 100%; position: relative; }
+            .resizer-dyn-secondary { width: 4px; height: 100%; cursor: col-resize; }
+            .media-pane { width: calc(100% - var(--secondary-split) - 4px); height: 100%; background: #000; }
+        }
+
+        @media (min-width: 1024px) {
+            .core-viewports { flex-direction: row; }
+            .content-slider-pane { height: 100%; width: var(--primary-split); order: 1; }
+            .resizer-dyn-primary { height: 100%; width: 4px; cursor: col-resize; order: 2; }
+            .visual-pane { height: 100%; width: calc(100% - var(--primary-split) - 4px); flex-direction: column; order: 3; }
+            .map-pane { height: var(--secondary-split); width: 100%; position: relative; }
+            .resizer-dyn-secondary { width: 100%; height: 4px; cursor: row-resize; }
+            .media-pane { height: calc(100% - var(--secondary-split) - 4px); width: 100%; background: #000; }
+        }
         /* --- [ End SubBlock: Layout & Resizers ] --- */
 
         /* --- [ SubBlock: Leaflet Map & Spatial HUD ] --- */
@@ -55,6 +115,14 @@
         .pin-stem { width: 2px; height: 20px; background: #333; position: absolute; bottom: 0; }
         .custom-div-icon { background: transparent !important; border: none !important; }
         .centered-tooltip { text-align: center; }
+        
+        .layer-attribution-link a { color: #888; text-decoration: underline; text-decoration-color: #ccc; transition: all 0.2s; }
+        .layer-attribution-link a:hover { color: #007acc; text-decoration-color: #007acc; }
+        
+        /* Opacity Slider styling */
+        .tm-opacity-slider { -webkit-appearance: none; width: 100px; height: 4px; background: #ddd; border-radius: 2px; outline: none; }
+        .tm-opacity-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #007acc; cursor: pointer; }
+        .tm-opacity-slider::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #007acc; cursor: pointer; border: none; }
         
         .map-zoom-indicator { position: absolute; bottom: 15px; right: 15px; z-index: 1000; background: rgba(255,255,255,0.9); padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; color: #333; pointer-events: none; border: 1px solid #ccc; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
         
@@ -120,7 +188,6 @@
         .click-zone-left { left: 0; }
         .click-zone-right { right: 0; }
         
-        /* [FIX: UI-65] Micro-Scroll Ribbon CSS */
         .metadata-ribbon { display: flex; gap: 8px; align-items: center; overflow-x: auto; scrollbar-width: none; white-space: nowrap; -ms-overflow-style: none; }
         .metadata-ribbon::-webkit-scrollbar { display: none; }
         /* --- [ End SubBlock: Narrative Content Slider ] --- */
@@ -142,7 +209,6 @@
         #about-modal.open, #search-modal.open { display: block; }
         .modal-close { position: absolute; top: 15px; right: 15px; border: none; background: none; font-size: 1.5rem; cursor: pointer; color: #999; }
         
-        /* [FIX: UI-66] Omni-Search UI Elements */
         .search-input { width: 100%; padding: 12px 15px; font-size: 1.1rem; border: 2px solid #ccc; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; outline: none; transition: border-color 0.2s; }
         .search-input:focus { border-color: #007acc; }
         .search-result-item { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s; }
@@ -180,18 +246,18 @@
 <body>
     <div id="root"></div>
     <script type="module">
-        // === [ MAJOR BLOCK: Imports & Globals v1.0.52 ] ===
+        // === [ MAJOR BLOCK: Imports & Globals v1.0.53 ] ===
         import { h, render, Component } from 'https://esm.sh/preact';
         import { useState, useEffect, useLayoutEffect, useRef } from 'https://esm.sh/preact/hooks';
         import htm from 'https://esm.sh/htm';
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.6.7';
+        const APP_VERSION = 'v6.7.0';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v4.11.0', Globals: 'v1.0.52' }; 
+        const MODULE_VERSIONS = { Styles: 'v4.12.0', Globals: 'v1.0.53' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
-        // === [ END MAJOR BLOCK: Imports & Globals v1.0.52 ] ===
+        // === [ END MAJOR BLOCK: Imports & Globals v1.0.53 ] ===
 
         // === [ MAJOR BLOCK: Utilities v1.0.0 ] ===
         const stripHTML = (htmlStr) => {
@@ -214,7 +280,6 @@
         // === [ END MAJOR BLOCK: ErrorBoundary v1.0.0 ] ===
 
         // === [ MAJOR BLOCK: VibeMonitor v2.0.0 ] ===
-        // [FIX: DIAG-01] Added Active Sensor Telemetry block
         const VibeMonitor = ({ logs, status, isOpen, setIsOpen, activeSlide, appVersion, moduleVersions }) => {
             const logsEndRef = useRef(null);
             const monitorRef = useRef(null);
@@ -262,8 +327,8 @@
         };
         // === [ END MAJOR BLOCK: VibeMonitor v2.0.0 ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v3.28.0 ] ===
-        const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, basemapsRegistry, maxAutoZoom, minimapOffset, showButtonText }) => {
+        // === [ MAJOR BLOCK: MapViewer v3.29.0 ] ===
+        const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, basemapsRegistry, maxAutoZoom, minimapOffset, showButtonText, maxPane, setMaxPane }) => {
             const mapDomRef = useRef(null);
             const miniMapDomRef = useRef(null);
             
@@ -283,7 +348,6 @@
 
             const [activeBasemap, setActiveBasemap] = useState(null);
             const [activeOverlays, setActiveOverlays] = useState([]); 
-            // [FIX: CMS-07] Local state for overlay opacities
             const [overlayOpacities, setOverlayOpacities] = useState({});
             const initialLoadRef = useRef(false);
 
@@ -311,11 +375,8 @@
                     const defaultOverlays = basemapsRegistry.filter(b => b.type === 'overlay' && b.active).map(b => b.id);
                     setActiveOverlays(defaultOverlays);
 
-                    // Initialize opacities from CMS schema
                     const initOpac = {};
-                    basemapsRegistry.filter(b => b.type === 'overlay').forEach(o => {
-                        initOpac[o.id] = o.defaultOpacity ?? 1.0;
-                    });
+                    basemapsRegistry.filter(b => b.type === 'overlay').forEach(o => { initOpac[o.id] = o.defaultOpacity ?? 1.0; });
                     setOverlayOpacities(initOpac);
                     
                     initialLoadRef.current = true;
@@ -517,7 +578,6 @@
                 
             }, [activeBasemap, basemapsRegistry, maxGlobalZoom]);
 
-            // [FIX: CMS-07] Apply opacities during tile generation
             useEffect(() => {
                 const map = mapInstance.current;
                 const miniMap = miniMapInstance.current;
@@ -543,9 +603,8 @@
                         }
                     }
                 });
-            }, [activeOverlays, basemapsRegistry, maxGlobalZoom, overlayOpacities]); // Re-eval if opacity state changes
+            }, [activeOverlays, basemapsRegistry, maxGlobalZoom, overlayOpacities]);
 
-            // [FIX: CMS-07] Real-time opacity slider sync loop
             useEffect(() => {
                 Object.keys(overlayOpacities).forEach(id => {
                     if (overlayLayersRef.current[id]) overlayLayersRef.current[id].setOpacity(overlayOpacities[id]);
@@ -592,7 +651,7 @@
 
                         featureLayers.forEach((layer, layerIdx) => {
                             if (layer instanceof L.Polygon) {
-                                layer.setStyle({ stroke: false, fillColor: '#007acc', fillOpacity: 0.4 });
+                                layer.setStyle({ stroke: true, color: '#007acc', weight: 2, fillColor: '#007acc', fillOpacity: 0.4 });
                             } else if (layer instanceof L.Polyline) {
                                 layer.setStyle({ color: '#007acc', weight: 2, dashArray: '5, 5' });
                             } else if (layer.setStyle) {
@@ -643,7 +702,7 @@
                     const isTarget = parseInt(idxStr, 10) === activeIndex;
                     markers[idxStr].forEach(l => {
                         if (l instanceof L.Polygon) {
-                            l.setStyle({ stroke: false, fillColor: isTarget ? '#28a745' : '#007acc', fillOpacity: isTarget ? 0.6 : 0.4 });
+                            l.setStyle({ stroke: true, color: isTarget ? '#28a745' : '#007acc', weight: isTarget ? 3 : 2, fillColor: isTarget ? '#28a745' : '#007acc', fillOpacity: isTarget ? 0.6 : 0.4 });
                             if (isTarget && l.bringToFront) l.bringToFront();
                         } else if (l instanceof L.Polyline) {
                             l.setStyle({ color: isTarget ? '#28a745' : '#007acc', weight: isTarget ? 3 : 2, dashArray: '5, 5' });
@@ -686,21 +745,20 @@
 
             return html`
                 <div style="position: relative; width:100%; height:100%;">
-                    
-                    <style>
-                        .layer-attribution-link a { color: #888; text-decoration: underline; text-decoration-color: #ccc; transition: all 0.2s; }
-                        .layer-attribution-link a:hover { color: #007acc; text-decoration-color: #007acc; }
-                        
-                        /* Opacity Slider styling */
-                        .tm-opacity-slider { -webkit-appearance: none; width: 100px; height: 4px; background: #ddd; border-radius: 2px; outline: none; }
-                        .tm-opacity-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #007acc; cursor: pointer; }
-                        .tm-opacity-slider::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #007acc; cursor: pointer; border: none; }
-                    </style>
-
                     <div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>
                     
                     <div style="position: absolute; top: 15px; right: 15px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
                         
+                        <div style="display: flex; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.25); border: 1px solid #ccc;">
+                            <button onClick=${() => setMaxPane(maxPane === 'map' ? null : 'map')} title=${maxPane === 'map' ? "Restore Layout" : "Maximize Map"} style="${maxPane === 'map' ? btnStyleActive : btnStyle} ${showButtonText ? 'width: auto; padding: 0 10px; gap: 6px;' : ''}">
+                                ${maxPane === 'map' 
+                                    ? html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>`
+                                    : html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>`
+                                }
+                                ${showButtonText ? html`<span style="font-size: 0.85rem; font-weight: 500;">${maxPane === 'map' ? 'Restore' : 'Maximize'}</span>` : ''}
+                            </button>
+                        </div>
+
                         <div style="display: flex; flex-direction: column; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.25); background: #fcfcfc; border: 1px solid #ccc;">
                             <button onClick=${() => mapInstance.current?.zoomIn()} style="${btnStyle} border-bottom: 1px solid #e0e0e0;" title="Zoom In">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -780,13 +838,12 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.28.0';
-        // === [ END MAJOR BLOCK: MapViewer v3.28.0 ] ===
+        MODULE_VERSIONS['MapViewer'] = 'v3.29.0';
+        // === [ END MAJOR BLOCK: MapViewer v3.29.0 ] ===
 
-        // === [ MAJOR BLOCK: MediaViewer v2.9.0 ] ===
-        const MediaViewer = ({ activeSlide, addLog }) => {
+        // === [ MAJOR BLOCK: MediaViewer v2.10.0 ] ===
+        const MediaViewer = ({ activeSlide, addLog, maxPane, setMaxPane }) => {
             const carouselRef = useRef(null);
-            // Used to prevent clicks firing if the user is swiping natively
             const isSwiping = useRef(false);
             const touchStartX = useRef(0);
 
@@ -852,7 +909,6 @@
             };
 
             const handleTouchMove = (e) => {
-                // If they drag finger more than 10px, flag it as a swipe to block the click
                 if (Math.abs(e.touches[0].clientX - touchStartX.current) > 10) {
                     isSwiping.current = true;
                 }
@@ -860,13 +916,10 @@
 
             const handleWrapperClick = (e) => {
                 if (!carouselRef.current || mediaItems.length <= 1) return;
-                
-                // Block click logic if the user was actively swiping natively
                 if (isSwiping.current) {
                     isSwiping.current = false;
                     return;
                 }
-
                 const rect = e.currentTarget.getBoundingClientRect(); 
                 const clickX = e.clientX - rect.left;
                 const direction = clickX < rect.width / 2 ? -1 : 1;
@@ -889,7 +942,6 @@
                      return html`<div style="flex-grow: 1; width: 100%; min-height: 0; display: flex;"><iframe src="${url}" style="width:100%; height:100%; border:none;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>`;
                 }
 
-                // [FIX: MED-25] Embedded Touch Collision Prevention math
                 return html`
                     <div 
                         onClick=${isMulti ? handleWrapperClick : null}
@@ -904,6 +956,14 @@
 
             return html`
                 <div style="position: relative; height: 100%; width: 100%;">
+                    
+                    <div onClick=${(e) => { e.stopPropagation(); setMaxPane(maxPane === 'media' ? null : 'media'); }} title=${maxPane === 'media' ? "Restore Layout" : "Maximize Media"} style="position: absolute; top: 15px; left: 15px; z-index: 1000; background: rgba(0,0,0,0.6); color: #fff; padding: 6px; border-radius: 4px; cursor: pointer; backdrop-filter: blur(4px); box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: all 0.2s; pointer-events: auto; display: flex; align-items: center; justify-content: center;">
+                        ${maxPane === 'media' 
+                            ? html`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>`
+                            : html`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>`
+                        }
+                    </div>
+
                     <style>
                         .media-carousel::-webkit-scrollbar { display: none !important; }
                     </style>
@@ -937,11 +997,11 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MediaViewer'] = 'v2.9.0';
-        // === [ END MAJOR BLOCK: MediaViewer v2.9.0 ] ===
+        MODULE_VERSIONS['MediaViewer'] = 'v2.10.0';
+        // === [ END MAJOR BLOCK: MediaViewer v2.10.0 ] ===
 
-        // === [ MAJOR BLOCK: ContentSlider v3.19.0 ] ===
-        const ContentSlider = ({ data, activeIndex, setActiveIndex, jumpToSlide, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo, visibleTimeSpan, showButtonText }) => {
+        // === [ MAJOR BLOCK: ContentSlider v3.20.0 ] ===
+        const ContentSlider = ({ data, activeIndex, setActiveIndex, jumpToSlide, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo, visibleTimeSpan, showButtonText, maxPane, setMaxPane }) => {
             const [isMenuOpen, setIsMenuOpen] = useState(false);
             const touchStartX = useRef(0);
             
@@ -1090,6 +1150,13 @@
                     <div class="unified-status-bar" style="flex-shrink: 0; z-index: 20;">
                         <div class="status-left" style="position: relative; display: flex; align-items: center; gap: 5px;">
                             
+                            <button class="status-btn" onClick=${() => setMaxPane(maxPane === 'text' ? null : 'text')} title=${maxPane === 'text' ? "Restore Layout" : "Maximize Text"} style="padding: 4px; display: flex; align-items: center; justify-content: center; color: ${maxPane === 'text' ? '#007acc' : '#555'};">
+                                ${maxPane === 'text' 
+                                    ? html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>`
+                                    : html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>`
+                                }
+                            </button>
+
                             <button class="status-btn" onClick=${(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen); }} title="Menu">
                                 <span style="font-size: 1.2rem; line-height: 1;">☰</span>
                             </button>
@@ -1194,11 +1261,11 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['ContentSlider'] = 'v3.19.0';
-        // === [ END MAJOR BLOCK: ContentSlider v3.19.0 ] ===
+        MODULE_VERSIONS['ContentSlider'] = 'v3.20.0';
+        // === [ END MAJOR BLOCK: ContentSlider v3.20.0 ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v23.17.0 ] ===
-        const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan }) => {
+        // === [ MAJOR BLOCK: TimelineScrubber v23.18.0 ] ===
+        const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan, isTimelineExpanded, setIsTimelineExpanded, setExpandedTimelineHeight }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
             const dragRef = useRef({ isDragging: false, startX: 0, scrollLeft: 0 });
@@ -1257,6 +1324,14 @@
             const availableLanesHeight = Math.max(containerHeight - 38, 50); 
             const laneHeight = Math.max(24, availableLanesHeight / (orderedTags.length || 1));
 
+            // [FIX: UI-72] Timeline math calculation for expansion
+            useEffect(() => {
+                if (isTimelineExpanded) {
+                    const totalHeightNeeded = (orderedTags.length * 24) + 40; 
+                    setExpandedTimelineHeight(`${totalHeightNeeded}px`);
+                }
+            }, [isTimelineExpanded, orderedTags.length, setExpandedTimelineHeight]);
+
             const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
             const minTimeRaw = validData.length > 0 ? validData[0].startDate.getTime() : new Date().getTime();
             let maxTimeRaw = minTimeRaw;
@@ -1308,7 +1383,6 @@
                 return { lines, pxWidth: Math.max(60, finalMaxW + 35) };
             };
 
-            // [FIX: UI-69] Compressed Timeline Telemetry String
             useEffect(() => {
                 const visibleMs = renderTimeRange / zoomLevel;
                 const secs = visibleMs / 1000; const mins = secs / 60; const hrs = mins / 60;
@@ -1638,7 +1712,6 @@
 
             const timelineX = Math.round(zoomLevel) + 'x';
 
-            // [FIX: UI-68] Custom SVG padlocks
             return html`
                 <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;">
                     <div class="timeline-leaflet-controls">
@@ -1649,6 +1722,14 @@
                             ${zoomLock === 'hard' 
                                 ? html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d32f2f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`
                                 : html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>`
+                            }
+                        </div>
+
+                        <!-- [FIX: UI-72] Timeline Expand Toggle UI -->
+                        <div class="timeline-leaflet-btn" style="display: flex; align-items: center; justify-content: center;" onClick=${() => setIsTimelineExpanded(!isTimelineExpanded)} title=${isTimelineExpanded ? "Collapse Timeline" : "Expand All Swimlanes"}>
+                            ${isTimelineExpanded 
+                                ? html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>`
+                                : html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>`
                             }
                         </div>
                         
@@ -1671,479 +1752,9 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v23.17.0';
-        // === [ END MAJOR BLOCK: TimelineScrubber v23.17.0 ] ===
+        MODULE_VERSIONS['TimelineScrubber'] = 'v23.18.0';
+        // === [ END MAJOR BLOCK: TimelineScrubber v23.18.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.48.0 ] ===
-        const App = () => {
-            const [logs, setLogs] = useState([]);
-            const [rawCsvRows, setRawCsvRows] = useState([]);
-            const [data, setData] = useState([]);
-            const [aboutData, setAboutData] = useState(null); 
-            const [status, setStatus] = useState({ text: 'Initializing Engine...', progress: 10, isFading: false, active: false });
-            const [activeIndex, setActiveIndex] = useState(0); 
-            const [slideHistory, setSlideHistory] = useState([]);
-            const [isMonitorOpen, setIsMonitorOpen] = useState(false); 
-            const [isAboutOpen, setIsAboutOpen] = useState(false);
-            const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-            const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
-            
-            // [FIX: CMS-07] Added DefaultOpacity to Schema
-            const DEFAULT_BASEMAPS = [
-                { id: 'carto-light', label: 'CartoDB Light', type: 'base', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', maxZoom: 19, active: true, attrText: '© CartoDB', attrLink: 'https://carto.com/attributions', defaultOpacity: 1.0 },
-                { id: 'esri-street', label: 'Esri World Street', type: 'base', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', maxZoom: 19, active: false, attrText: 'Tiles © Esri', attrLink: 'https://www.esri.com/', defaultOpacity: 1.0 },
-                { id: 'esri-sat', label: 'Esri Satellite', type: 'base', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', maxZoom: 19, active: false, attrText: 'Tiles © Esri', attrLink: 'https://www.esri.com/', defaultOpacity: 1.0 },
-                { id: 'osm', label: 'OpenStreetMap', type: 'base', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', maxZoom: 19, active: false, attrText: '© OpenStreetMap', attrLink: 'https://openstreetmap.org/copyright', defaultOpacity: 1.0 },
-                { id: 'topo', label: 'OpenTopoMap', type: 'base', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', maxZoom: 17, active: false, attrText: '© OpenTopoMap', attrLink: 'https://opentopomap.org', defaultOpacity: 1.0 },
-                { id: 'athens-1944', label: 'Athens 1944 (GSGS)', type: 'overlay', url: 'https://allmaps.xyz/images/59dc92d35e7d424b/{z}/{x}/{y}@2x.png', maxZoom: 21, active: true, attrText: '© GSGS, Princeton Univ.', attrLink: 'https://maps.princeton.edu/catalog/princeton-gt54kq43t', defaultOpacity: 0.8 }
-            ];
-            const [basemapsRegistry, setBasemapsRegistry] = useState(DEFAULT_BASEMAPS);
-            
-            const [maxAutoZoom, setMaxAutoZoom] = useState(15);
-            const [minimapOffset, setMinimapOffset] = useState(-4); 
-            const [zoomLock, setZoomLock] = useState('auto'); 
-            const [visibleTimeSpan, setVisibleTimeSpan] = useState('');
-            const [showButtonText, setShowButtonText] = useState(false);
-
-            const hasInitializedRef = useRef(false);
-            const appRef = useRef(null);
-
-            const addLog = (msg, type = 'info') => setLogs(p => [...p, { time: new Date().toLocaleTimeString('en-US', { hour12: false }), msg, type }]);
-
-            const getOmniParam = (key) => {
-                const searchParams = new URLSearchParams(window.location.search);
-                let val = searchParams.get(key) || searchParams.get(`amp;${key}`);
-                if (val) return val;
-                
-                const hash = window.location.hash.replace(/^#\/?\??/, '');
-                const hashParams = new URLSearchParams(hash);
-                return hashParams.get(key) || hashParams.get(`amp;${key}`);
-            };
-
-            const jumpToSlide = (newIdx, isSequential = false) => {
-                if (newIdx !== activeIndex && newIdx >= 0 && newIdx < data.length) {
-                    if (!isSequential) setSlideHistory(prev => [...prev, activeIndex]);
-                    setActiveIndex(newIdx);
-                }
-            };
-
-            const goBack = () => {
-                if (slideHistory.length > 0) {
-                    const prev = slideHistory[slideHistory.length - 1];
-                    setSlideHistory(h => h.slice(0, -1));
-                    setActiveIndex(prev);
-                }
-            };
-
-            useEffect(() => {
-                const handleKeyDown = (e) => {
-                    if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
-                    if (e.key === 'ArrowRight') jumpToSlide(activeIndex + 1);
-                    else if (e.key === 'ArrowLeft') jumpToSlide(activeIndex - 1);
-                };
-                window.addEventListener('keydown', handleKeyDown);
-                return () => window.removeEventListener('keydown', handleKeyDown);
-            }, [activeIndex, data.length]);
-
-            useEffect(() => {
-                const updateAppHeight = () => {
-                    document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
-                };
-                updateAppHeight(); 
-
-                let wasDesktop = window.innerWidth >= 1024;
-                const handleResize = () => {
-                    updateAppHeight(); 
-                    const isDesktop = window.innerWidth >= 1024;
-                    if (isDesktop !== wasDesktop) {
-                        if (appRef.current) {
-                            appRef.current.style.setProperty('--primary-split', '50%');
-                            appRef.current.style.setProperty('--secondary-split', '50%');
-                            window.dispatchEvent(new Event('resize')); 
-                        }
-                        wasDesktop = isDesktop;
-                    }
-                };
-                window.addEventListener('resize', handleResize);
-                return () => window.removeEventListener('resize', handleResize);
-            }, []);
-
-            const startPrimaryResize = (e) => {
-                const startX = e.touches ? e.touches[0].clientX : e.clientX;
-                const startY = e.touches ? e.touches[0].clientY : e.clientY;
-                const isDesktop = window.innerWidth >= 1024;
-                const containerNode = appRef.current.querySelector('.core-viewports');
-                const startVal = isDesktop ? appRef.current.querySelector('.content-slider-pane').offsetWidth : appRef.current.querySelector('.visual-pane').offsetHeight;
-                const containerSize = isDesktop ? containerNode.offsetWidth : containerNode.offsetHeight;
-
-                const onMove = (e2) => {
-                    const currentX = e2.touches ? e2.touches[0].clientX : e2.clientX;
-                    const currentY = e2.touches ? e2.touches[0].clientY : e2.clientY;
-                    const delta = isDesktop ? (currentX - startX) : (currentY - startY);
-                    let pct = ((startVal + delta) / containerSize) * 100;
-                    if (pct < 15) pct = 15; if (pct > 85) pct = 85;
-                    appRef.current.style.setProperty('--primary-split', `${pct}%`);
-                };
-                const onUp = () => { 
-                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
-                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp);
-                    window.dispatchEvent(new Event('resize')); 
-                };
-                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
-                document.addEventListener('touchmove', onMove, { passive: false }); document.addEventListener('touchend', onUp);
-            };
-
-            const startSecondaryResize = (e) => {
-                const startX = e.touches ? e.touches[0].clientX : e.clientX;
-                const startY = e.touches ? e.touches[0].clientY : e.clientY;
-                const isDesktop = window.innerWidth >= 1024;
-                const containerNode = appRef.current.querySelector('.visual-pane');
-                const startVal = isDesktop ? appRef.current.querySelector('.map-pane').offsetHeight : appRef.current.querySelector('.map-pane').offsetWidth;
-                const containerSize = isDesktop ? containerNode.offsetHeight : containerNode.offsetWidth;
-
-                const onMove = (e2) => {
-                    const currentX = e2.touches ? e2.touches[0].clientX : e2.clientX;
-                    const currentY = e2.touches ? e2.touches[0].clientY : e2.clientY;
-                    const delta = isDesktop ? (currentY - startY) : (currentX - startX);
-                    let pct = ((startVal + delta) / containerSize) * 100;
-                    if (pct < 10) pct = 10; if (pct > 90) pct = 90;
-                    appRef.current.style.setProperty('--secondary-split', `${pct}%`);
-                };
-                const onUp = () => { 
-                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
-                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp);
-                    window.dispatchEvent(new Event('resize')); 
-                };
-                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
-                document.addEventListener('touchmove', onMove, { passive: false }); document.addEventListener('touchend', onUp);
-            };
-
-            const startTimelineResize = (e) => {
-                const startY = e.touches ? e.touches[0].clientY : e.clientY;
-                const startHeight = appRef.current.querySelector('.timeline-pane').offsetHeight;
-                const containerHeight = appRef.current.offsetHeight;
-
-                const onMove = (e2) => {
-                    const currentY = e2.touches ? e2.touches[0].clientY : e2.clientY;
-                    const delta = currentY - startY; 
-                    let pct = ((startHeight - delta) / containerHeight) * 100;
-                    if (pct < 10) pct = 10; if (pct > 60) pct = 60;
-                    appRef.current.style.setProperty('--timeline-height', `${pct}%`);
-                };
-                const onUp = () => { 
-                    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); 
-                    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp);
-                    window.dispatchEvent(new Event('resize')); 
-                };
-                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
-                document.addEventListener('touchmove', onMove, { passive: false }); document.addEventListener('touchend', onUp);
-            };
-
-            useEffect(() => {
-                const gid = getOmniParam('gid') || '0'; 
-                const bgid = getOmniParam('bgid'); 
-                const source = getOmniParam('source') || '1kdgGiHNDsIZrn8Z1aqWXrEEYKMGxLAqFiwATx3aqbJI';
-                
-                setStatus({ text: 'Fetching CMS Manifests...', progress: 30, isFading: false, active: false });
-
-                const fetchUrlPrimary = `https://docs.google.com/spreadsheets/d/${source}/gviz/tq?tqx=out:csv&gid=${gid}`;
-                const primaryFetch = fetch(fetchUrlPrimary).then(res => res.text());
-                
-                let basemapsFetch = Promise.resolve(null);
-                if (bgid) {
-                    const fetchUrlBasemaps = `https://docs.google.com/spreadsheets/d/${source}/gviz/tq?tqx=out:csv&gid=${bgid}`;
-                    basemapsFetch = fetch(fetchUrlBasemaps).then(res => res.text()).catch(e => { console.warn("Basemaps CMS Fetch Failed", e); return null; });
-                }
-
-                Promise.all([primaryFetch, basemapsFetch]).then(([csvPrimary, csvBasemaps]) => {
-                    setStatus({ text: 'Parsing Data...', progress: 60, isFading: false, active: false });
-                    
-                    if (csvBasemaps) {
-                        Papa.parse(csvBasemaps, { header: true, skipEmptyLines: true, complete: (res) => {
-                            const parsedBMs = res.data.map(row => {
-                                const norm = {}; for (let k in row) norm[k.toLowerCase().trim()] = row[k];
-                                const isActive = /^(true|yes)$/i.test(String(norm.active || '').trim());
-                                // [FIX: CMS-07] Parsing the float
-                                const rawOpac = parseFloat(norm.defaultopacity);
-                                return {
-                                    id: norm.id || '', label: norm.label || '', type: norm.type?.toLowerCase() === 'overlay' ? 'overlay' : 'base', 
-                                    url: norm.url || '', maxZoom: parseInt(norm.maxzoom, 10) || 19, 
-                                    active: isActive, attrText: norm.attrtext || '', attrLink: norm.attrlink || '',
-                                    defaultOpacity: isNaN(rawOpac) ? 1.0 : rawOpac
-                                };
-                            }).filter(b => b.id && b.url);
-
-                            if (parsedBMs.length > 0) {
-                                setBasemapsRegistry(prev => {
-                                    const merged = [...prev];
-                                    parsedBMs.forEach(bm => {
-                                        const existIdx = merged.findIndex(m => m.id === bm.id);
-                                        if (existIdx >= 0) merged[existIdx] = bm; else merged.push(bm);
-                                    });
-                                    return merged;
-                                });
-                            }
-                        }});
-                    }
-
-                    Papa.parse(csvPrimary, { header: true, skipEmptyLines: true, complete: (results) => { 
-                        const firstRowNorm = {};
-                        if (results.data[0]) {
-                            for (let k in results.data[0]) firstRowNorm[k.toLowerCase().trim()] = results.data[0][k];
-                        }
-                        const exactGet = (normObj, key) => { const val = normObj[key]; return val !== undefined && val !== null ? String(val).trim() : ""; };
-                        setAboutData({ 
-                            title: exactGet(firstRowNorm, 'title') || 'About', 
-                            description: exactGet(firstRowNorm, 'description') || 'No project description provided.',
-                            rawSource: source === '1kdgGiHNDsIZrn8Z1aqWXrEEYKMGxLAqFiwATx3aqbJI' ? 'Default Master DB' : source
-                        });
-                        setRawCsvRows(results.data); 
-                    }});
-                }).catch(err => {
-                    console.error("Fatal CMS Error", err);
-                    setStatus({ text: 'Error Loading Data', progress: 100, isFading: false, active: false });
-                });
-            }, []);
-
-            useEffect(() => {
-                if (rawCsvRows.length === 0) return;
-                const exactGet = (normObj, key) => { const val = normObj[key]; return val !== undefined && val !== null ? String(val).trim() : ""; };
-                const omniSplitRegex = /[\r\n]+|\\n/;
-
-                const cleaned = rawCsvRows.map((row, index) => {
-                    const norm = {}; for (let k in row) norm[k.toLowerCase().trim()] = row[k];
-                    const dynamicDateParse = (str) => {
-                        if (!str) return null;
-                        const parts = str.split(' ');
-                        if (parts.length < 1) return null;
-                        const dParts = parts[0].split(/[/\-.]/);
-                        const tParts = parts[1] ? parts[1].split(':') : [0,0,0];
-                        const secParts = String(tParts[2] || '0').split('.');
-                        
-                        const d = parseInt(dParts[0], 10); const m = parseInt(dParts[1], 10) - 1; const y = parseInt(dParts[2], 10);
-                        const h = parseInt(tParts[0], 10); const min = parseInt(tParts[1], 10); const sec = parseInt(secParts[0], 10); const ms = parseInt(secParts[1] || '0', 10);
-
-                        const dateObj = new Date(y, m, d, h, min, sec, ms);
-                        return isNaN(dateObj.getTime()) ? null : dateObj;
-                    };
-
-                    return {
-                        id: index, title: exactGet(norm, 'title'),
-                        startDate: dynamicDateParse(exactGet(norm, 'start')),
-                        endDate: dynamicDateParse(exactGet(norm, 'end')),
-                        description: exactGet(norm, 'description'),
-                        place: exactGet(norm, 'place'), location: exactGet(norm, 'location'), priority: exactGet(norm, 'priority'),
-                        media: exactGet(norm, 'media') ? exactGet(norm, 'media').split(omniSplitRegex).map(m => m.trim()).filter(Boolean) : [],
-                        mediaCaption: exactGet(norm, 'media caption') ? exactGet(norm, 'media caption').split(omniSplitRegex).map(c => c.trim()) : [],
-                        mediaCredit: exactGet(norm, 'media credit') ? exactGet(norm, 'media credit').split(omniSplitRegex).map(c => c.trim()) : [],
-                        tags: exactGet(norm, 'tags') ? exactGet(norm, 'tags').split(',').map(t => t.trim()).filter(Boolean) : []
-                    };
-                });
-                
-                const valid = cleaned.filter(r => r.startDate).sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
-                setData(valid);
-
-                if (!hasInitializedRef.current) {
-                    const paramSlide = getOmniParam('slide');
-                    const paramDate = getOmniParam('date');
-                    let initialIdx = 0;
-
-                    if (paramSlide && !isNaN(parseInt(paramSlide))) {
-                        initialIdx = Math.max(0, Math.min(valid.length - 1, parseInt(paramSlide) - 1));
-                    } else if (paramDate) {
-                        const targetTime = new Date(paramDate).getTime();
-                        if (!isNaN(targetTime)) {
-                            let minDiff = Infinity;
-                            valid.forEach((d, i) => {
-                                if (d.startDate) {
-                                    const diff = Math.abs(d.startDate.getTime() - targetTime);
-                                    if (diff < minDiff) { minDiff = diff; initialIdx = i; }
-                                }
-                            });
-                        }
-                    }
-                    setActiveIndex(initialIdx); 
-                    hasInitializedRef.current = true;
-                }
-
-                setStatus({ text: 'Engine Ready', progress: 100, isFading: true, active: false });
-                setTimeout(() => { setStatus({ text: '', progress: 100, isFading: true, active: true }); }, 500);
-
-            }, [rawCsvRows]);
-
-            const CarTiMapperLogo = ({ context, appVersion }) => {
-                const svgIcon = html`
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="20 0 165 100" style="width: 100%; height: auto; display: block;">
-                        <defs><filter id="dot-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs>
-                        <path d="M28,38 L45,15 L180,15 L180,85 L45,85 L28,62 Z" fill="#222" stroke="#007acc" stroke-width="2.5" stroke-linejoin="round"/>
-                        <g fill="#fff" opacity="0.9">
-                            <rect x="55" y="19" width="4" height="6" rx="1" /><rect x="71" y="19" width="4" height="6" rx="1" /><rect x="87" y="19" width="4" height="6" rx="1" /><rect x="103" y="19" width="4" height="6" rx="1" />
-                            <rect x="119" y="19" width="4" height="6" rx="1" /><rect x="135" y="19" width="4" height="6" rx="1" /><rect x="151" y="19" width="4" height="6" rx="1" /><rect x="167" y="19" width="4" height="6" rx="1" />
-                            <rect x="55" y="75" width="4" height="6" rx="1" /><rect x="71" y="75" width="4" height="6" rx="1" /><rect x="87" y="75" width="4" height="6" rx="1" /><rect x="103" y="75" width="4" height="6" rx="1" />
-                            <rect x="119" y="75" width="4" height="6" rx="1" /><rect x="135" y="75" width="4" height="6" rx="1" /><rect x="151" y="75" width="4" height="6" rx="1" /><rect x="167" y="75" width="4" height="6" rx="1" />
-                        </g>
-                        <g transform="translate(112, 50)">
-                            <path d="M0,-28 L4,-6 L28,0 L4,6 L0,28 L-4,6 L-28,0 L-4,-6 Z" fill="#444" opacity="0.8"/>
-                            <g fill="#fcfcfc" font-family="Arial, sans-serif" font-size="7" font-weight="normal" text-anchor="middle"><text x="0" y="-21">N</text><text x="24" y="2.5">E</text><text x="0" y="27">S</text><text x="-24" y="2.5">W</text></g>
-                            <g fill="#8be9fd" filter="url(#dot-glow)"><circle cx="12.5" cy="-21.6" r="1.2" /><circle cx="21.6" cy="-12.5" r="1.2" /><circle cx="21.6" cy="12.5" r="1.2" /><circle cx="12.5" cy="21.6" r="1.2" /><circle cx="-12.5" cy="21.6" r="1.2" /><circle cx="-21.6" cy="12.5" r="1.2" /><circle cx="-21.6" cy="-12.5" r="1.2" /><circle cx="-12.5" cy="-21.6" r="1.2" /></g>
-                            <g transform="rotate(60)"><path d="M0,0 L-1,-16 L1,-16 Z" fill="#999" /><circle cx="0" cy="-20" r="2.8" fill="#007acc" /></g>
-                            <g transform="rotate(270)"><path d="M0,0 L-1.2,-9 L1.2,-9 Z" fill="#999" /><circle cx="0" cy="-13" r="2.8" fill="#28a745" /></g>
-                            <circle cx="0" cy="0" r="1.5" fill="#fff" />
-                        </g>
-                    </svg>
-                `;
-                if (context === 'splash') return html`<div class="logo-stack-splash"><div class="splash-icon-wrapper">${svgIcon}</div><div class="splash-text">CarTiMapper</div><div class="splash-version">${appVersion}</div></div>`;
-                if (context === 'status') return html`<div style="display: flex; align-items: center; gap: 4px;"><div style="width: 24px; height: 16px; display: flex; align-items: center;">${svgIcon}</div><span style="font-size: 0.8rem; color: #444; letter-spacing: -0.3px;">CarTiMapper</span><span style="font-size: 0.6rem; color: #888; margin-left: 4px;">${appVersion}</span></div>`;
-                return html`<div class="logo-horizontal-about" style="flex-direction: column; align-items: flex-start; gap: 10px;"><div style="width: 200px; height: auto;">${svgIcon}</div></div>`;
-            };
-
-            const activeSlide = data[activeIndex];
-            const hasMedia = activeSlide && activeSlide.media && activeSlide.media.length > 0;
-
-            return html`
-                <div id="tm-root">
-                    <style>
-                        :root { --primary-split: 50%; --secondary-split: 50%; --timeline-height: 20%; }
-                        .core-viewports { display: flex; flex-grow: 1; height: calc(100% - var(--timeline-height) - 4px); width: 100%; overflow: hidden; }
-                        .visual-pane { display: flex; overflow: hidden; }
-                        .visual-pane.no-media .map-pane { height: 100% !important; width: 100% !important; }
-                        .visual-pane.no-media .resizer-dyn-secondary { display: none !important; }
-                        .visual-pane.no-media .media-pane { display: none !important; }
-                        
-                        .resizer-dyn-primary, .resizer-dyn-secondary, .resizer-dyn-timeline { 
-                            background: #eee; transition: background 0.2s; z-index: 10; flex-shrink: 0; position: relative; 
-                            touch-action: none; 
-                        }
-                        .resizer-dyn-primary::after, .resizer-dyn-secondary::after, .resizer-dyn-timeline::after {
-                            content: ''; position: absolute; top: -18px; bottom: -18px; left: -18px; right: -18px; z-index: 11;
-                        }
-                        
-                        .resizer-dyn-primary:hover, .resizer-dyn-secondary:hover, .resizer-dyn-timeline:hover { background: #007acc; }
-                        .resizer-dyn-timeline { height: 4px; width: 100%; cursor: row-resize; }
-                        .content-slider-pane { background: var(--paneBg); overflow: hidden; }
-
-                        @media (max-width: 1023px) {
-                            .core-viewports { flex-direction: column; }
-                            .visual-pane { width: 100%; height: var(--primary-split); flex-direction: row; order: 1; }
-                            .content-slider-pane { width: 100%; height: calc(100% - var(--primary-split) - 4px); order: 3; }
-                            .resizer-dyn-primary { width: 100%; height: 4px; cursor: row-resize; order: 2; }
-                            .map-pane { width: var(--secondary-split); height: 100%; position: relative; }
-                            .resizer-dyn-secondary { width: 4px; height: 100%; cursor: col-resize; }
-                            .media-pane { width: calc(100% - var(--secondary-split) - 4px); height: 100%; background: #000; }
-                        }
-
-                        @media (min-width: 1024px) {
-                            .core-viewports { flex-direction: row; }
-                            .content-slider-pane { height: 100%; width: var(--primary-split); order: 1; }
-                            .resizer-dyn-primary { height: 100%; width: 4px; cursor: col-resize; order: 2; }
-                            .visual-pane { height: 100%; width: calc(100% - var(--primary-split) - 4px); flex-direction: column; order: 3; }
-                            .map-pane { height: var(--secondary-split); width: 100%; position: relative; }
-                            .resizer-dyn-secondary { width: 100%; height: 4px; cursor: row-resize; }
-                            .media-pane { height: calc(100% - var(--secondary-split) - 4px); width: 100%; background: #000; }
-                        }
-                    </style>
-
-                    ${!status.active ? html`
-                        <div class="loading-screen ${status.isFading ? 'fade-out' : ''}">
-                            <${CarTiMapperLogo} context="splash" appVersion=${APP_VERSION || 'v6.6.8'} />
-                            <div class="loading-bar-container"><div class="loading-bar-fill" style="width: ${status.progress}%;"></div></div>
-                        </div>
-                    ` : ''}
-
-                    ${data.length > 0 && status.active ? html`
-                        <div id="app-layout" ref=${appRef} style="display: flex; flex-direction: column; height: var(--app-height, 100vh); width: 100vw; overflow: hidden; position: relative;">
-                            
-                            <div class="core-viewports">
-                                <div class="visual-pane ${hasMedia ? '' : 'no-media'}">
-                                    <div class="map-pane">
-                                        <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} maxAutoZoom=${maxAutoZoom} minimapOffset=${minimapOffset} basemapsRegistry=${basemapsRegistry} showButtonText=${showButtonText} />
-                                        <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} appVersion=${APP_VERSION || 'v6.6.8'} moduleVersions=${{Globals: 'v1.0.52', Styles: 'v4.13.0'}} />
-                                    </div>
-                                    <div class="resizer-dyn-secondary" onMouseDown=${startSecondaryResize} onTouchStart=${startSecondaryResize}></div>
-                                    <div class="media-pane">
-                                        <${MediaViewer} activeSlide=${activeSlide} />
-                                    </div>
-                                </div>
-                                <div class="resizer-dyn-primary" onMouseDown=${startPrimaryResize} onTouchStart=${startPrimaryResize}></div>
-                                <div class="content-slider-pane">
-                                    <${ContentSlider} 
-                                        data=${data} 
-                                        activeIndex=${activeIndex} 
-                                        setActiveIndex=${jumpToSlide} 
-                                        jumpToSlide=${jumpToSlide}
-                                        slideHistory=${slideHistory}
-                                        goBack=${goBack}
-                                        aboutData=${aboutData}
-                                        isAboutOpen=${isAboutOpen}
-                                        setIsAboutOpen=${setIsAboutOpen}
-                                        isMonitorOpen=${isMonitorOpen}
-                                        setIsMonitorOpen=${setIsMonitorOpen}
-                                        isSettingsOpen=${isSettingsOpen}
-                                        setIsSettingsOpen=${setIsSettingsOpen}
-                                        CarTiMapperLogo=${CarTiMapperLogo} 
-                                        visibleTimeSpan=${visibleTimeSpan}
-                                        showButtonText=${showButtonText}
-                                    />
-                                </div>
-                            </div>
-                            
-                            <div class="resizer-dyn-timeline" onMouseDown=${startTimelineResize} onTouchStart=${startTimelineResize}></div>
-
-                            <div class="timeline-pane" style="height: var(--timeline-height); flex-shrink: 0;">
-                                <${TimelineScrubber} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} setVisibleTimeSpan=${setVisibleTimeSpan} zoomLock=${zoomLock} setZoomLock=${setZoomLock} />
-                            </div>
-                        </div>
-
-                        <div class="modal-backdrop ${isSettingsOpen ? 'open' : ''}" onClick=${() => setIsSettingsOpen(false)}></div>
-                        <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 450px; background: #fff; z-index: 9002; border-radius: 12px; padding: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); color: #222; display: ${isSettingsOpen ? 'block' : 'none'};">
-                            <button class="about-close" onClick=${() => setIsSettingsOpen(false)}>×</button>
-                            <h3 style="margin-top: 0; color: #333; font-size: 1.5rem; border-bottom: 1px solid #eee; padding-bottom: 10px; font-weight: 400;">Engine Settings</h3>
-                            
-                            <div style="margin-top: 20px;">
-                                <label style="display: block; margin-bottom: 8px; color: #555; font-size: 0.95rem;">Data Locale Format</label>
-                                <select style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; background: #fcfcfc; cursor: pointer; color: #333;" 
-                                        value=${dateFormat} onChange=${(e) => setDateFormat(e.target.value)}>
-                                    <option value="DD/MM/YYYY">European / Global (DD/MM/YYYY)</option>
-                                    <option value="MM/DD/YYYY">United States (MM/DD/YYYY)</option>
-                                    <option value="YYYY/MM/DD">Scientific / ISO (YYYY/MM/DD)</option>
-                                </select>
-                            </div>
-
-                            <div style="margin-top: 20px;">
-                                <label style="display: block; margin-bottom: 8px; color: #555; font-size: 0.95rem;">Auto-Zoom Depth</label>
-                                <select style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; background: #fcfcfc; cursor: pointer; color: #333;" 
-                                        value=${maxAutoZoom} onChange=${(e) => setMaxAutoZoom(parseInt(e.target.value, 10))}>
-                                    <option value="14">Level 14 (Wider Area)</option>
-                                    <option value="15">Level 15 (Standard City)</option>
-                                    <option value="16">Level 16 (Street Level)</option>
-                                    <option value="17">Level 17 (Building Level)</option>
-                                    <option value="18">Level 18 (Campus Level)</option>
-                                </select>
-                            </div>
-
-                            <div style="margin-top: 20px;">
-                                <label style="display: block; margin-bottom: 8px; color: #555; font-size: 0.95rem;">Radar Minimap Offset</label>
-                                <select style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; background: #fcfcfc; cursor: pointer; color: #333;" 
-                                        value=${minimapOffset} onChange=${(e) => setMinimapOffset(parseInt(e.target.value, 10))}>
-                                    ${[-2, -3, -4, -5, -6, -7, -8].map(lvl => html`
-                                        <option value=${lvl}>${lvl} Levels Out</option>
-                                    `)}
-                                </select>
-                            </div>
-
-                            <div style="margin-top: 20px; display: flex; align-items: center; justify-content: space-between; padding: 12px; border-radius: 6px; border: 1px solid #ccc; background: #fcfcfc;">
-                                <label style="color: #555; font-size: 0.95rem; cursor: pointer;" for="btnTextToggle">Show text labels on buttons</label>
-                                <input type="checkbox" id="btnTextToggle" style="width: 20px; height: 20px; cursor: pointer;" checked=${showButtonText} onChange=${(e) => setShowButtonText(e.target.checked)} />
-                            </div>
-
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-        };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.48.0';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.48.0 ] ===
-        
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
         // === [ END MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
