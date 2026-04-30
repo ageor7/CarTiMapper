@@ -1,6 +1,14 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+
+### [v6.7.0]
+* **AppOrchestrator (v1.49.0) [UI-72]:** Deployed `maxPane` and `expandedTimelineHeight` global states. Added a heavily scoped `<style>` block to execute state-driven CSS Flexbox overrides for maximum layout expansion, replacing the need for JS-based width calculations. Disabled pane resizers when a maximization state is active.
+* **MapViewer (v3.29.0) [UI-72]:** Injected the `[⛶]` expansion SVG into the Unified HUD, mapping directly to the `setMaxPane` toggle.
+* **MediaViewer (v2.10.0) [UI-72]:** Added the expansion SVG to the absolute-positioned top-right floating array.
+* **ContentSlider (v3.20.0) [UI-72]:** Added the expansion SVG to the top-left status bar next to the Settings toggle.
+* **TimelineScrubber (v23.18.0) [UI-72]:** Injected the `isTimelineExpanded` boolean toggle into the bottom-left map controls. Deployed the dynamic `useEffect` math calculation to multiply active lanes by lane-height, pushing the result to the Orchestrator's `expandedTimelineHeight` state.
+
 ### [v6.6.8]
 * **AppOrchestrator (v1.48.0) [UI-71]:** Upgraded the CMS registry parser to ingest a `DefaultOpacity` column, defaulting to `1.0` if null or malformed.
 * **MapViewer (v3.28.0) [UI-71]:** Added the `overlayOpacities` state dictionary. Injected an isolated range slider into the active overlay HUD. Bound the Leaflet `setOpacity()` method to a `useEffect` synchronization loop, granting users physical sub-pixel control over layer transparency.
