@@ -262,7 +262,7 @@
         };
         // === [ END MAJOR BLOCK: VibeMonitor v2.0.0 ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v3.27.0 ] ===
+        // === [ MAJOR BLOCK: MapViewer v3.28.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, basemapsRegistry, maxAutoZoom, minimapOffset, showButtonText }) => {
             const mapDomRef = useRef(null);
             const miniMapDomRef = useRef(null);
@@ -281,9 +281,10 @@
             const [showGrid, setShowGrid] = useState(false);
             const [showLayersMenu, setShowLayersMenu] = useState(false);
 
-            // [FIX: CMS-06] The Initial State sweeps the CMS array rather than hardcoding carto-light
             const [activeBasemap, setActiveBasemap] = useState(null);
             const [activeOverlays, setActiveOverlays] = useState([]); 
+            // [FIX: CMS-07] Local state for overlay opacities
+            const [overlayOpacities, setOverlayOpacities] = useState({});
             const initialLoadRef = useRef(false);
 
             const baseLayerRef = useRef(null);
@@ -302,7 +303,6 @@
                 ? Math.max(...basemapsRegistry.map(b => b.maxZoom || 19)) 
                 : 22;
 
-            // [FIX: CMS-06] Initialization Matrix
             useEffect(() => {
                 if (basemapsRegistry && basemapsRegistry.length > 0 && !initialLoadRef.current) {
                     const defaultBase = basemapsRegistry.find(b => b.type === 'base' && b.active) || basemapsRegistry.find(b => b.type === 'base');
@@ -310,6 +310,13 @@
                     
                     const defaultOverlays = basemapsRegistry.filter(b => b.type === 'overlay' && b.active).map(b => b.id);
                     setActiveOverlays(defaultOverlays);
+
+                    // Initialize opacities from CMS schema
+                    const initOpac = {};
+                    basemapsRegistry.filter(b => b.type === 'overlay').forEach(o => {
+                        initOpac[o.id] = o.defaultOpacity ?? 1.0;
+                    });
+                    setOverlayOpacities(initOpac);
                     
                     initialLoadRef.current = true;
                 }
@@ -510,6 +517,7 @@
                 
             }, [activeBasemap, basemapsRegistry, maxGlobalZoom]);
 
+            // [FIX: CMS-07] Apply opacities during tile generation
             useEffect(() => {
                 const map = mapInstance.current;
                 const miniMap = miniMapInstance.current;
@@ -529,12 +537,21 @@
                         const config = basemapsRegistry.find(b => b.id === id);
                         if (config) {
                             const z = idx + 10; 
-                            overlayLayersRef.current[id] = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z, transparent: true }).addTo(map);
-                            miniOverlayLayersRef.current[id] = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z, transparent: true }).addTo(miniMap);
+                            const dynamicOpacity = overlayOpacities[id] !== undefined ? overlayOpacities[id] : (config.defaultOpacity ?? 1.0);
+                            overlayLayersRef.current[id] = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, opacity: dynamicOpacity, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z, transparent: true }).addTo(map);
+                            miniOverlayLayersRef.current[id] = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, opacity: dynamicOpacity, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z, transparent: true }).addTo(miniMap);
                         }
                     }
                 });
-            }, [activeOverlays, basemapsRegistry, maxGlobalZoom]);
+            }, [activeOverlays, basemapsRegistry, maxGlobalZoom, overlayOpacities]); // Re-eval if opacity state changes
+
+            // [FIX: CMS-07] Real-time opacity slider sync loop
+            useEffect(() => {
+                Object.keys(overlayOpacities).forEach(id => {
+                    if (overlayLayersRef.current[id]) overlayLayersRef.current[id].setOpacity(overlayOpacities[id]);
+                    if (miniOverlayLayersRef.current[id]) miniOverlayLayersRef.current[id].setOpacity(overlayOpacities[id]);
+                });
+            }, [overlayOpacities]);
 
             useEffect(() => {
                 const map = mapInstance.current;
@@ -673,6 +690,11 @@
                     <style>
                         .layer-attribution-link a { color: #888; text-decoration: underline; text-decoration-color: #ccc; transition: all 0.2s; }
                         .layer-attribution-link a:hover { color: #007acc; text-decoration-color: #007acc; }
+                        
+                        /* Opacity Slider styling */
+                        .tm-opacity-slider { -webkit-appearance: none; width: 100px; height: 4px; background: #ddd; border-radius: 2px; outline: none; }
+                        .tm-opacity-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #007acc; cursor: pointer; }
+                        .tm-opacity-slider::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #007acc; cursor: pointer; border: none; }
                     </style>
 
                     <div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>
@@ -715,11 +737,13 @@
                                 <div style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">Basemaps</div>
                                 <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
                                     ${bases.map(b => html`
-                                        <div style="display: flex; align-items: flex-start; gap: 8px; line-height: 1.3;">
-                                            <input type="radio" id="base_${b.id}" name="basemap_radio" checked=${activeBasemap === b.id} onChange=${() => setActiveBasemap(b.id)} style="margin: 2px 0 0 0; cursor: pointer; flex-shrink: 0;" />
-                                            <div style="display: inline; margin: 0;">
-                                                <label for="base_${b.id}" style="cursor: pointer; font-weight: 500; color: #222;">${b.label}</label>
-                                                ${b.attrText ? html`<span style="margin: 0 4px; color: #ccc;">|</span><span class="layer-attribution-link" style="font-size: 0.75rem;"><a href="${b.attrLink || '#'}" target="_blank" onClick=${(e) => { e.stopPropagation(); if(!b.attrLink) e.preventDefault(); }}>${b.attrText}</a></span>` : ''}
+                                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                                            <div style="display: flex; align-items: flex-start; gap: 8px; line-height: 1.3;">
+                                                <input type="radio" id="base_${b.id}" name="basemap_radio" checked=${activeBasemap === b.id} onChange=${() => setActiveBasemap(b.id)} style="margin: 2px 0 0 0; cursor: pointer; flex-shrink: 0;" />
+                                                <div style="display: inline; margin: 0;">
+                                                    <label for="base_${b.id}" style="cursor: pointer; font-weight: 500; color: #222;">${b.label}</label>
+                                                    ${b.attrText ? html`<span style="margin: 0 4px; color: #ccc;">|</span><span class="layer-attribution-link" style="font-size: 0.75rem;"><a href="${b.attrLink || '#'}" target="_blank" onClick=${(e) => { e.stopPropagation(); if(!b.attrLink) e.preventDefault(); }}>${b.attrText}</a></span>` : ''}
+                                                </div>
                                             </div>
                                         </div>
                                     `)}
@@ -728,15 +752,23 @@
                                 <div style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">Overlays</div>
                                 <div style="display: flex; flex-direction: column; gap: 8px;">
                                     ${overlays.length > 0 ? overlays.map(o => html`
-                                        <div style="display: flex; align-items: flex-start; gap: 8px; line-height: 1.3;">
-                                            <input type="checkbox" id="over_${o.id}" checked=${activeOverlays.includes(o.id)} onChange=${(e) => {
-                                                if (e.target.checked) setActiveOverlays(prev => [...prev, o.id]);
-                                                else setActiveOverlays(prev => prev.filter(id => id !== o.id));
-                                            }} style="margin: 2px 0 0 0; cursor: pointer; flex-shrink: 0;" />
-                                            <div style="display: inline; margin: 0;">
-                                                <label for="over_${o.id}" style="cursor: pointer; font-weight: 500; color: #222;">${o.label}</label>
-                                                ${o.attrText ? html`<span style="margin: 0 4px; color: #ccc;">|</span><span class="layer-attribution-link" style="font-size: 0.75rem;"><a href="${o.attrLink || '#'}" target="_blank" onClick=${(e) => { e.stopPropagation(); if(!o.attrLink) e.preventDefault(); }}>${o.attrText}</a></span>` : ''}
+                                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                                            <div style="display: flex; align-items: flex-start; gap: 8px; line-height: 1.3;">
+                                                <input type="checkbox" id="over_${o.id}" checked=${activeOverlays.includes(o.id)} onChange=${(e) => {
+                                                    if (e.target.checked) setActiveOverlays(prev => [...prev, o.id]);
+                                                    else setActiveOverlays(prev => prev.filter(id => id !== o.id));
+                                                }} style="margin: 2px 0 0 0; cursor: pointer; flex-shrink: 0;" />
+                                                <div style="display: inline; margin: 0;">
+                                                    <label for="over_${o.id}" style="cursor: pointer; font-weight: 500; color: #222;">${o.label}</label>
+                                                    ${o.attrText ? html`<span style="margin: 0 4px; color: #ccc;">|</span><span class="layer-attribution-link" style="font-size: 0.75rem;"><a href="${o.attrLink || '#'}" target="_blank" onClick=${(e) => { e.stopPropagation(); if(!o.attrLink) e.preventDefault(); }}>${o.attrText}</a></span>` : ''}
+                                                </div>
                                             </div>
+                                            ${activeOverlays.includes(o.id) ? html`
+                                                <div style="margin-left: 21px; display: flex; align-items: center; gap: 8px;">
+                                                    <span style="font-size: 0.65rem; color: #888;">Opacity</span>
+                                                    <input type="range" class="tm-opacity-slider" min="0" max="1" step="0.05" value=${overlayOpacities[o.id] !== undefined ? overlayOpacities[o.id] : (o.defaultOpacity ?? 1.0)} onChange=${(e) => setOverlayOpacities(prev => ({...prev, [o.id]: parseFloat(e.target.value)}))} title="Adjust Overlay Opacity" />
+                                                </div>
+                                            ` : ''}
                                         </div>
                                     `) : html`<div style="color: #888; font-style: italic;">No overlays available.</div>`}
                                 </div>
@@ -748,8 +780,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v3.27.0';
-        // === [ END MAJOR BLOCK: MapViewer v3.27.0 ] ===
+        MODULE_VERSIONS['MapViewer'] = 'v3.28.0';
+        // === [ END MAJOR BLOCK: MapViewer v3.28.0 ] ===
 
         // === [ MAJOR BLOCK: MediaViewer v2.9.0 ] ===
         const MediaViewer = ({ activeSlide, addLog }) => {
@@ -1642,7 +1674,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v23.17.0';
         // === [ END MAJOR BLOCK: TimelineScrubber v23.17.0 ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.47.0 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.48.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
             const [rawCsvRows, setRawCsvRows] = useState([]);
@@ -1656,14 +1688,14 @@
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
             const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
             
-            // [FIX: CMS-06] The Split Attribution & Active Field Schema
+            // [FIX: CMS-07] Added DefaultOpacity to Schema
             const DEFAULT_BASEMAPS = [
-                { id: 'carto-light', label: 'CartoDB Light', type: 'base', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', maxZoom: 19, active: true, attrText: '© CartoDB', attrLink: 'https://carto.com/attributions' },
-                { id: 'esri-street', label: 'Esri World Street', type: 'base', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', maxZoom: 19, active: false, attrText: 'Tiles © Esri', attrLink: 'https://www.esri.com/' },
-                { id: 'esri-sat', label: 'Esri Satellite', type: 'base', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', maxZoom: 19, active: false, attrText: 'Tiles © Esri', attrLink: 'https://www.esri.com/' },
-                { id: 'osm', label: 'OpenStreetMap', type: 'base', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', maxZoom: 19, active: false, attrText: '© OpenStreetMap', attrLink: 'https://openstreetmap.org/copyright' },
-                { id: 'topo', label: 'OpenTopoMap', type: 'base', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', maxZoom: 17, active: false, attrText: '© OpenTopoMap', attrLink: 'https://opentopomap.org' },
-                { id: 'athens-1944', label: 'Athens 1944 (GSGS)', type: 'overlay', url: 'https://allmaps.xyz/images/59dc92d35e7d424b/{z}/{x}/{y}@2x.png', maxZoom: 21, active: true, attrText: '© GSGS, Princeton Univ.', attrLink: 'https://maps.princeton.edu/catalog/princeton-gt54kq43t' }
+                { id: 'carto-light', label: 'CartoDB Light', type: 'base', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', maxZoom: 19, active: true, attrText: '© CartoDB', attrLink: 'https://carto.com/attributions', defaultOpacity: 1.0 },
+                { id: 'esri-street', label: 'Esri World Street', type: 'base', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', maxZoom: 19, active: false, attrText: 'Tiles © Esri', attrLink: 'https://www.esri.com/', defaultOpacity: 1.0 },
+                { id: 'esri-sat', label: 'Esri Satellite', type: 'base', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', maxZoom: 19, active: false, attrText: 'Tiles © Esri', attrLink: 'https://www.esri.com/', defaultOpacity: 1.0 },
+                { id: 'osm', label: 'OpenStreetMap', type: 'base', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', maxZoom: 19, active: false, attrText: '© OpenStreetMap', attrLink: 'https://openstreetmap.org/copyright', defaultOpacity: 1.0 },
+                { id: 'topo', label: 'OpenTopoMap', type: 'base', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', maxZoom: 17, active: false, attrText: '© OpenTopoMap', attrLink: 'https://opentopomap.org', defaultOpacity: 1.0 },
+                { id: 'athens-1944', label: 'Athens 1944 (GSGS)', type: 'overlay', url: 'https://allmaps.xyz/images/59dc92d35e7d424b/{z}/{x}/{y}@2x.png', maxZoom: 21, active: true, attrText: '© GSGS, Princeton Univ.', attrLink: 'https://maps.princeton.edu/catalog/princeton-gt54kq43t', defaultOpacity: 0.8 }
             ];
             const [basemapsRegistry, setBasemapsRegistry] = useState(DEFAULT_BASEMAPS);
             
@@ -1830,12 +1862,14 @@
                         Papa.parse(csvBasemaps, { header: true, skipEmptyLines: true, complete: (res) => {
                             const parsedBMs = res.data.map(row => {
                                 const norm = {}; for (let k in row) norm[k.toLowerCase().trim()] = row[k];
-                                // [FIX: CMS-06] The Lazy Boolean Matrix evaluates True/Yes and defaults everything else to false
                                 const isActive = /^(true|yes)$/i.test(String(norm.active || '').trim());
+                                // [FIX: CMS-07] Parsing the float
+                                const rawOpac = parseFloat(norm.defaultopacity);
                                 return {
                                     id: norm.id || '', label: norm.label || '', type: norm.type?.toLowerCase() === 'overlay' ? 'overlay' : 'base', 
                                     url: norm.url || '', maxZoom: parseInt(norm.maxzoom, 10) || 19, 
-                                    active: isActive, attrText: norm.attrtext || '', attrLink: norm.attrlink || ''
+                                    active: isActive, attrText: norm.attrtext || '', attrLink: norm.attrlink || '',
+                                    defaultOpacity: isNaN(rawOpac) ? 1.0 : rawOpac
                                 };
                             }).filter(b => b.id && b.url);
 
@@ -2011,7 +2045,7 @@
 
                     ${!status.active ? html`
                         <div class="loading-screen ${status.isFading ? 'fade-out' : ''}">
-                            <${CarTiMapperLogo} context="splash" appVersion=${APP_VERSION || 'v6.6.7'} />
+                            <${CarTiMapperLogo} context="splash" appVersion=${APP_VERSION || 'v6.6.8'} />
                             <div class="loading-bar-container"><div class="loading-bar-fill" style="width: ${status.progress}%;"></div></div>
                         </div>
                     ` : ''}
@@ -2023,7 +2057,7 @@
                                 <div class="visual-pane ${hasMedia ? '' : 'no-media'}">
                                     <div class="map-pane">
                                         <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} maxAutoZoom=${maxAutoZoom} minimapOffset=${minimapOffset} basemapsRegistry=${basemapsRegistry} showButtonText=${showButtonText} />
-                                        <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} appVersion=${APP_VERSION || 'v6.6.7'} moduleVersions=${{Globals: 'v1.0.52', Styles: 'v4.13.0'}} />
+                                        <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} appVersion=${APP_VERSION || 'v6.6.8'} moduleVersions=${{Globals: 'v1.0.52', Styles: 'v4.13.0'}} />
                                     </div>
                                     <div class="resizer-dyn-secondary" onMouseDown=${startSecondaryResize} onTouchStart=${startSecondaryResize}></div>
                                     <div class="media-pane">
@@ -2107,8 +2141,8 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.47.0';
-        // === [ END MAJOR BLOCK: AppOrchestrator v1.47.0 ] ===
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.48.0';
+        // === [ END MAJOR BLOCK: AppOrchestrator v1.48.0 ] ===
         
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
