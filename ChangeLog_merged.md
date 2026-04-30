@@ -1,6 +1,10 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+### [v6.6.7]
+* **AppOrchestrator (v1.47.0) [CMS-06]:** Expanded the Google Sheets CMS parser to ingest three new columns: `Active`, `AttrText`, and `AttrLink`. Deployed a Lazy Boolean regex evaluator to safely parse empty CMS cells into inactive layer states.
+* **MapViewer (v3.27.0) [CMS-06]:** Rewrote the initialization `useEffect` to dynamically set `activeBasemap` and `activeOverlays` strictly from the incoming CMS state flags. Restructured the Layers Menu DOM to place `AttrText` outside the interactive `<label>`, injecting `e.stopPropagation()` into the anchor tags to prevent layer-toggling event collisions.
+
 ### ChangeLog [v6.6.6]
 * **MapViewer (v3.26.0) [CMS-05]:** Deprecated the vertically stacked attribution UI layout. Deployed an inline DOM structure, combining Map Labels and Attribution Hyperlinks onto a unified horizontal axis to reduce the Map HUD's overall vertical pixel consumption by ~40%.
 
