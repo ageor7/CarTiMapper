@@ -2,6 +2,25 @@
 All notable changes to this project will be documented in this file.
 
 
+### [v6.8.2] - Core Physics & UI Refinement Patch
+
+**TimelineScrubber (v24.2.0):**
+* **[UI-99]** Bound the `.timeline-axis` strictly to `position: sticky; bottom: 0;`. This magnetically anchors the time-ruler to the viewport glass, permanently preventing it from scrolling out of bounds on desktop.
+* **[UI-100]** Implemented horizontal responsive hiding for minor ticks. If internal gap math evaluates to `< 28px` between minor ticks on Android/Mobile, the text nodes are natively stripped, preventing overlapping typographical illegibility while preserving the graphical ticks.
+* **[UI-101]** Applied `display: flex; flex-grow: 1` to the track wrapper, forcing the swimlanes to claim 100% of available height on boot, eliminating the "top-stacking" collapse bug.
+* **[UI-102]** Extracted the SVG Media indicator (`hasMedia`) and mathematically repositioned it *before* the narrative string, injecting a localized `6px` right-breather to improve cognitive scanning velocity.
+
+**AppOrchestrator (v1.52.0) & MapViewer (v4.1.1):**
+* **[UI-103]** Reconstructed the decoupled Settings Modal (`#settings-modal`).
+* **[MAP-91]** Engineered global `polygonOpacity` React state. Bound the slider directly into the `MapViewer` ingestion loop to allow dynamic transparency scrubbing (`0.1` to `1.0`) on spatial layers, optimizing visual analysis.
+* **[UI-104]** Overhauled VibeMonitor trajectory bounds. Hard-coded `useEffect` to spawn monitor strictly at `window.innerWidth - 340` by `window.innerHeight - 300` on boot, safely forcing it to the bottom-right corner without disrupting the `top/left` absolute drag vectors.
+
+**ContentSlider (v4.2.0):**
+* **[UI-105]** Compressed `.unified-status-bar` vertical height from `40px` to `32px`. Shrunk interactive `.status-btn` parameters to `28x28px`.
+* **[UI-106]** Architecturally partitioned the About Modal into semantic modules (Dataset Overview, Core Engine Telemetry, Usage & Parameters). Injected `dangerouslySetInnerHTML` for the `aboutData.title`.
+* **[UI-107]** Reconstructed the Logo-Lockup Typography. Utilized `align-items: baseline` to perfectly lock the `CarTiMapper` logotype and version integer. Stripped native bold tags from global UI.
+* **[UI-108]** Rewrote the Back/Rewind (`↺`) SVG vector path to shorten the radial arc, preventing optical confusion.
+
 ### [v6.8.1] - DOM Collision & UI Standardization Patch
 
 **TimelineScrubber (v24.1.0):**
