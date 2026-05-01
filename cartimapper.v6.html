@@ -1297,7 +1297,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v24.2.3';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.54.0 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.54.1 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]); const [rawCsvRows, setRawCsvRows] = useState([]); const [data, setData] = useState([]);
             const [aboutData, setAboutData] = useState(null); const [status, setStatus] = useState({ text: 'Initializing Engine...', progress: 10, isFading: false, active: false });
@@ -1330,7 +1330,7 @@
             const hasInitializedRef = useRef(false); const appRef = useRef(null);
             const addLog = (msg, type = 'info') => setLogs(p => [...p, { time: new Date().toLocaleTimeString('en-US', { hour12: false }), msg, type }]);
 
-            const getOmniParam = (key) => { const sp = new URLSearchParams(window.location.search); let val = sp.get(key) || sp.get(`amp;${key}`); if (val) return val; const hp = newSearchParams(window.location.hash.replace(/^#\/?\??/, '')); return hp.get(key) || hp.get(`amp;${key}`); };
+            const getOmniParam = (key) => { const sp = new URLSearchParams(window.location.search); let val = sp.get(key) || sp.get(`amp;${key}`); if (val) return val; const hp = new URLSearchParams(window.location.hash.replace(/^#\/?\??/, '')); return hp.get(key) || hp.get(`amp;${key}`); };
             const jumpToSlide = (newIdx, isSequential = false) => { if (newIdx !== activeIndex && newIdx >= 0 && newIdx < data.length) { if (!isSequential) setSlideHistory(prev => [...prev, activeIndex]); setActiveIndex(newIdx); } };
             const goBack = () => { if (slideHistory.length > 0) { const prev = slideHistory[slideHistory.length - 1]; setSlideHistory(h => h.slice(0, -1)); setActiveIndex(prev); } };
 
@@ -1527,7 +1527,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.54.0';
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.54.1';
         // === [ END MAJOR BLOCK ] ===
 
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
