@@ -2,6 +2,9 @@
 All notable changes to this project will be documented in this file.
 
 
+### [v6.8.6] - Hotfix: Omni-Parser Crash
+* **[CRASH-05]** **ReferenceError Eradicated:** Corrected a fatal syntax typo (`newSearchParams` to `new URLSearchParams`) inside the `getOmniParam` function in `AppOrchestrator`, preventing the engine from crashing during the deep-link initialization sequence.
+
 ### [v6.8.5] - Timeline Fluidity Restoration & Telemetry Polish
 
 **TimelineScrubber (v24.2.3):**
