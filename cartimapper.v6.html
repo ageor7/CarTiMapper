@@ -253,7 +253,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.7.2';
+        const APP_VERSION = 'v6.7.5';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.12.0', Globals: 'v1.0.53' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -363,6 +363,26 @@
                 return str.split(/[|\-·;]/).map(s => s.split(',')[0].trim()).filter(Boolean).join(' | ');
             };
 
+            // [FIX: MAP-85] Dynamic Library Loader for Vector Tiles
+            const loadScript = (src) => {
+                return new Promise((resolve, reject) => {
+                    if (document.querySelector(`script[src="${src}"]`)) return resolve();
+                    const script = document.createElement('script');
+                    script.src = src;
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+            };
+            
+            const loadStyle = (href) => {
+                if (document.querySelector(`link[href="${href}"]`)) return;
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = href;
+                document.head.appendChild(link);
+            };
+            
             const maxGlobalZoom = basemapsRegistry && basemapsRegistry.length > 0 
                 ? Math.max(...basemapsRegistry.map(b => b.maxZoom || 19)) 
                 : 22;
@@ -563,6 +583,7 @@
                 return () => map.off('moveend', updateGrid);
             }, [showGrid]);
 
+            // [FIX: MAP-85] Vector Tile & WebGL Base Layer Engine
             useEffect(() => {
                 const map = mapInstance.current;
                 const miniMap = miniMapInstance.current;
@@ -570,11 +591,37 @@
 
                 const config = basemapsRegistry.find(b => b.id === activeBasemap) || basemapsRegistry[0];
                 
-                if (baseLayerRef.current) map.removeLayer(baseLayerRef.current);
-                baseLayerRef.current = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: 0 }).addTo(map);
-                
-                if (miniBaseLayerRef.current) miniMap.removeLayer(miniBaseLayerRef.current);
-                miniBaseLayerRef.current = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: 0 }).addTo(miniMap);
+                const renderBasemap = () => {
+                    if (baseLayerRef.current) map.removeLayer(baseLayerRef.current);
+                    if (miniBaseLayerRef.current) miniMap.removeLayer(miniBaseLayerRef.current);
+
+                    const isVector = config.format === "pbf" || config.format === "mvt";
+
+                    if (isVector && window.L.maplibreGL) {
+                        // WebGL Route: Force relative path resolving to the app's base directory
+                        const localStylePath = './style.json';
+                        
+                        baseLayerRef.current = L.maplibreGL({ style: localStylePath, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: 0 }).addTo(map);
+                        miniBaseLayerRef.current = L.maplibreGL({ style: localStylePath, attribution: false, zIndex: 0 }).addTo(miniMap);
+                    } else {
+                        // Standard Raster Route
+                        baseLayerRef.current = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: 0 }).addTo(map);
+                        miniBaseLayerRef.current = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, attribution: false, zIndex: 0 }).addTo(miniMap);
+                    }
+                };
+
+                if ((config.format === "pbf" || config.format === "mvt") && !window.L.maplibreGL) {
+                    loadStyle('https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css');
+                    Promise.all([
+                        loadScript('https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js')
+                    ]).then(() => {
+                        return loadScript('https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.20/leaflet-maplibre-gl.js');
+                    }).then(() => {
+                        renderBasemap();
+                    }).catch(e => console.error("Vector Tile Library Load Failed", e));
+                } else {
+                    renderBasemap();
+                }
                 
             }, [activeBasemap, basemapsRegistry, maxGlobalZoom]);
 
