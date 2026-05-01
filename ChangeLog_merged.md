@@ -2,6 +2,20 @@
 All notable changes to this project will be documented in this file.
 
 
+### [v6.8.10] - Architectural Reversion & Native Geometric Locks
+
+**AppOrchestrator (v1.54.6):**
+* **[UI-153]** **Absolute Pane Defaults:** Deprecated the volatile window-measure JS hooks that were hijacking the `.core-viewports` initial flex rendering. Hard-locked the `:root` equivalent CSS variables back to standard baseline parameters (`--primary-split: 55%; --secondary-split: 50%; --timeline-height: 10%`), guaranteeing a pristine boot sequence. The `Reset Layout` command successfully snaps back to these exact metrics.
+
+**TimelineScrubber (v24.2.8):**
+* **[PERF-22]** **Hexagon Mathematics Reversion:** Fully purged the `v6.8.9` `clip-path` hack. Reinstated the original, flawless geometric formula: `clip-path: polygon( 0 calc(50% - (var(--lane-h) / 2) + 0.5px), var(--diag-w) 0, 100% 0, 100% 100%, var(--diag-w) 100%, 0 calc(50% + (var(--lane-h) / 2) - 0.5px) );`. 
+* **[PERF-23]** **Static Swimlane Anchorage:** Abolished the liquid `laneHeight` divisor. Re-locked the primary constant to `const laneHeight = 24;`. Swimlanes no longer stretch arbitrarily, preserving pure physical scale inside the drawer.
+* **[UI-154]** **Exact Maximize Framing:** Refactored the `Maximize Timeline` button logic. It no longer attempts to hijack the timeline pane to an arbitrary `100%` height. The core engine dynamically calculates `requiredTimelineHeight = (laneCount * 24) + 40` during data digestion. Expanding the drawer now perfectly snaps the height parameter to this exact pixel value, framing the active swimlanes flawlessly without triggering internal flexbox collapse.
+* **[UI-155]** Lifted the `.hasMedia` SVG icon out of the flex-stack entirely. Assigned it absolute coordinates (`left: 2px; top: 50%`) to let it optically sink perfectly into the negative geometric triangle left by the left-facing hexagon point.
+
+**ContentSlider (v4.2.8):**
+* **[UI-156]** Restored the `CarTiMapperLogo` typographical hierarchy. Re-locked the parent wrapper strictly to `<div style="height: 22px;">` in the `context="status"` return block, forcing `align-items: baseline` to perfectly match the ascender and descender boundaries of the adjacent textual string.
+
 ### [v6.8.9] - Liquid Height Restoration & Layout Reset Protocol
 
 **AppOrchestrator (v1.54.4):**
