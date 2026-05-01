@@ -2,6 +2,11 @@
 All notable changes to this project will be documented in this file.
 
 
+### [v6.8.13] - X-Axis Hardware Anchorage (Block Patch)
+
+**TimelineScrubber (v24.2.11):**
+* **[PERF-27]** **Absolute Axis Hardware Anchoring:** Stripped the volatile JavaScript `ResizeObserver` math calculating the `top` position of the X-Axis (`top: ${containerHeight - 28}px`). Replaced it with pure CSS structural anchoring (`position: absolute; bottom: 0; left: 0; right: 0;`) inside the `.timeline-track-container`. This permanently bypasses the DOM rendering race condition, guaranteeing the timeline ruler flawlessly anchors to the hardware floor of the scrolling pane across all browser engines, regardless of initial boot latency.
+
 ### [v6.8.11-2] - Stable Geometry Reversion & Intelligent Maximize
 
 **TimelineScrubber (v24.2.10):**
