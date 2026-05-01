@@ -1,0 +1,159 @@
+{
+  "version": 8,
+  "metadata": {
+    "cartimapper:engine": "v6.7.5",
+    "cartimapper:module": "Protomaps Vector Engine",
+    "cartimapper:description": "Minimalist historical basemap styling featuring dynamic layer casing for roads.",
+    "cartimapper:last_updated": "2026-05-01"
+  },
+  "glyphs": "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf",
+  "sources": {
+    "protomaps": {
+      "type": "vector",
+      "tiles": [
+        "https://api.protomaps.com/tiles/v3/{z}/{x}/{y}.mvt?key=417d95f442312754"
+      ],
+      "maxzoom": 15,
+      "attribution": "<a href='https://protomaps.com' target='_blank'>© Protomaps</a> <a href='https://openstreetmap.org' target='_blank'>© OpenStreetMap</a>"
+    }
+  },
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "metadata": {
+        "doc:purpose": "Establishes the base canvas color. Set to a warm, map-like off-white (#e8e6e1) to prevent eye strain and make historical overlays pop."
+      },
+      "paint": { "background-color": "#e8e6e1" }
+    },
+    {
+      "id": "water",
+      "type": "fill",
+      "source": "protomaps",
+      "source-layer": "water",
+      "metadata": {
+        "doc:purpose": "Paints all ocean, lake, and river polygons with a muted, vintage blue."
+      },
+      "paint": { "fill-color": "#b5d0d0" }
+    },
+    {
+      "id": "boundaries",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "boundaries",
+      "metadata": {
+        "doc:purpose": "Renders national and regional borders using a subtle dashed line."
+      },
+      "paint": { 
+        "line-color": "#a0a0a0", 
+        "line-width": 1, 
+        "line-dasharray": [3, 3] 
+      }
+    },
+    
+    {
+      "id": "roads_minor_casing",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "filter": ["in", "pmap:kind", "minor_road", "street"],
+      "metadata": {
+        "doc:purpose": "CASING LAYER (BOTTOM): Draws the dark outer borders of minor streets.",
+        "doc:math": "The 'stops' array maps zoom levels to pixel widths. At zoom 15, the casing is 6px wide."
+      },
+      "paint": { 
+        "line-color": "#cccccc", 
+        "line-width": {"base": 1.2, "stops": [[12, 1], [15, 6], [18, 14]]} 
+      }
+    },
+    {
+      "id": "roads_minor_fill",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "filter": ["in", "pmap:kind", "minor_road", "street"],
+      "metadata": {
+        "doc:purpose": "FILL LAYER (TOP): Draws the white inner surface of minor streets, stacked perfectly on top of the casing.",
+        "doc:math": "At zoom 15, the fill is 4px wide. Placed over a 6px casing, this leaves a 1px border on each side."
+      },
+      "paint": { 
+        "line-color": "#ffffff", 
+        "line-width": {"base": 1.2, "stops": [[12, 0], [15, 4], [18, 12]]} 
+      }
+    },
+
+    {
+      "id": "roads_major_casing",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "filter": ["in", "pmap:kind", "highway", "major_road"],
+      "metadata": {
+        "doc:purpose": "CASING LAYER (BOTTOM): Draws the dark outer borders of major highways.",
+        "doc:math": "Highways scale up much faster than minor streets. At zoom 18, they expand to 22px."
+      },
+      "paint": { 
+        "line-color": "#b3b3b3", 
+        "line-width": {"base": 1.2, "stops": [[8, 1.5], [12, 4], [15, 10], [18, 22]]} 
+      }
+    },
+    {
+      "id": "roads_major_fill",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "filter": ["in", "pmap:kind", "highway", "major_road"],
+      "metadata": {
+        "doc:purpose": "FILL LAYER (TOP): Draws the white inner surface of major highways.",
+        "doc:math": "Maintains a proportional pixel gap over the casing to ensure the border remains sharp at all zoom levels."
+      },
+      "paint": { 
+        "line-color": "#ffffff", 
+        "line-width": {"base": 1.2, "stops": [[8, 0.5], [12, 2], [15, 7], [18, 18]]} 
+      }
+    },
+
+    {
+      "id": "places_country",
+      "type": "symbol",
+      "source": "protomaps",
+      "source-layer": "places",
+      "filter": ["==", "pmap:kind", "country"],
+      "metadata": {
+        "doc:purpose": "Renders macro-level country labels. Uses text-halo to ensure legibility over complex geometries."
+      },
+      "layout": {
+        "text-field": "{name:latin}",
+        "text-font": ["Noto Sans Regular"],
+        "text-size": {"stops": [[2, 10], [6, 18]]},
+        "text-transform": "uppercase"
+      },
+      "paint": {
+        "text-color": "#666666",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 2
+      }
+    },
+    {
+      "id": "places_city",
+      "type": "symbol",
+      "source": "protomaps",
+      "source-layer": "places",
+      "filter": ["==", "pmap:kind", "locality"],
+      "minzoom": 5,
+      "metadata": {
+        "doc:purpose": "Renders micro-level city labels. The 'minzoom' parameter ensures these labels do not render and clutter the screen when zoomed out past level 5."
+      },
+      "layout": {
+        "text-field": "{name:latin}",
+        "text-font": ["Noto Sans Regular"],
+        "text-size": {"stops": [[5, 10], [10, 16]]}
+      },
+      "paint": {
+        "text-color": "#444444",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 1.5
+      }
+    }
+  ]
+}
