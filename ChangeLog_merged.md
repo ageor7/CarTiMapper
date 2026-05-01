@@ -2,6 +2,11 @@
 All notable changes to this project will be documented in this file.
 
 
+### [v6.8.4] - Hotfix: Timeline Physics Rescue
+
+**TimelineScrubber (v24.2.2):**
+* **[CRASH-04]** **ReferenceError Eradicated:** The `v6.8.3` structural reversion accidentally orphaned the `onScroll` event definition while leaving the listener attached to the `.timeline-scroll-wrapper` DOM node, triggering a fatal ReferenceError on initialization. The `onScroll` math function has been re-injected, restoring passive view-edge coordinate tracking without crashing the application boot sequence.
+
 ### [v6.8.3] - State Resurrection & Timeline Rollback Patch
 
 **AppOrchestrator (v1.53.0):**
