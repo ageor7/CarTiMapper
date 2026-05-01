@@ -1,6 +1,11 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+### [v6.7.5]
+* **Style Engine (style.json v1.0.0) [MAP-86]:** Engineered and deployed a custom MapLibre-compatible stylesheet for Protomaps vector data. 
+* **Cartographic Upgrade:** Implemented Layer Casing for minor roads and major highways, allowing for dynamic pixel-width scaling across zoom levels 8 through 18.
+* **Safety & Versioning:** Embedded a `metadata` object block at the root and layer levels to provide in-line documentation and version tracking without violating strict JSON syntax rules.
+
 ### [v6.7.2]
 * **AppOrchestrator (v1.50.1) [MAP-81]:** Deployed a native URI decoding mechanism (`decodeURIComponent`) within the `Papa.parse` Web Map Service (WMS) extraction matrix. This intercepts and cleans double-encoded URL characters (e.g., converting `%3A` back to `:`) originating from user-sniffed Network payloads. This sanitization prevents literal string collisions within the Leaflet `L.tileLayer.wms()` WebGL rendering engine.
 
