@@ -253,7 +253,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.7.1';
+        const APP_VERSION = 'v6.7.2';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.12.0', Globals: 'v1.0.53' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -1967,7 +1967,7 @@
                                     active: isActive, attrText: norm.attrtext || "", attrLink: norm.attrlink || "",
                                     defaultOpacity: isNaN (rawOpac) ? 1.0 : rawOpac,
                                     format: norm.format || "xyz",
-                                    wmsLayer: norm.wmslayer || "default"
+                                    wmsLayer: norm.wmslayer ? decodeURIComponent(norm.wmslayer.trim()) : "default"
                                 };
                             }).filter(b => b.id && b.url);
 
