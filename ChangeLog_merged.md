@@ -2,6 +2,27 @@
 All notable changes to this project will be documented in this file.
 
 
+### [v6.8.3] - State Resurrection & Timeline Rollback Patch
+
+**AppOrchestrator (v1.53.0):**
+* **[UI-109]** Resurrected the decoupled Settings Modal (`#settings-modal`).
+* **[UI-110]** Re-injected the `showButtonText` state variable (Icon-Only Minimalist Mode), binding it to `localStorage` and a new checkbox within the Settings Modal. Ensures text toggles seamlessly across the global navigation bar and Map HUD.
+* **[MAP-91]** Engineered global `polygonOpacity` React state. Bound the slider directly into the Settings Modal and piped it into the `MapViewer` ingestion loop to allow dynamic transparency scrubbing (`0.1` to `1.0`) on spatial layers.
+* **[UI-111]** Architecturally split the About Modal into semantic modules (Dataset Overview, Core Engine Identity, Usage Parameters). Injected `dangerouslySetInnerHTML` for the Dataset Title.
+* **[UI-112]** Re-colored the SVG Logo `viewBox`. Abandoned `#222` absolute black for `#2c3e50` (Slate Blue) and `#546e7a` (Compass Muted Blue) to achieve professional contrast depth. Massively scaled up the 'About' logo block width to `180px` and applied a subtle drop-shadow.
+* **[UI-113]** Stripped the "Core Engine" string from the CarTiMapper logo lockup to establish a cleaner typographical hierarchy. Bound the Status Bar logo width exactly to `18px` to guarantee physical alignment with the adjacent `.status-btn-text` font height.
+
+**TimelineScrubber (v24.2.1):**
+* **[PERF-14]** **Structural Reversion:** Reverted internal DOM calculating physics to the stable `v6.7.5` architecture (`.timeline-track-container` `min-width: 100%`, `height: 100%`) to eliminate the rendering collapse bug, while explicitly preserving the modernized `v6.8.2` UI window control clusters and SVG vectors.
+* **[UI-114]** SVGs within control clusters are forced to `display: flex`, `align-items: center`, `padding: 0` to banish typographical baselines and guarantee absolute centering within the `.status-btn` bounds.
+* **[UI-115]** Abstracted the SVG Media indicator (`hasMedia`) and mathematically repositioned it *before* the narrative string, injecting a `6px` right-margin breather to improve visual scanning.
+
+**VibeMonitor (v2.1.3):**
+* **[UI-116]** Decoupled the Telemetry Window spawn point from absolute window bounds. Injected a physical geometry check (`window.innerWidth * 0.5` on desktop) inside the `useEffect` boot sequence, causing the monitor to spawn safely over the lower right quadrant of the *Text Pane* rather than the Map/Media viewports, without disrupting the top/left drag mechanics.
+
+**MediaViewer (v2.11.3):**
+* **[UI-117]** Upgraded the aesthetic of the "Empty State" photo pane. The `#111` flat black void is replaced with a `#1e1e1e` soft slate utilizing a CSS `radial-gradient(#333 1px, transparent 1px)` dot-matrix pattern. The `<img>` node wrapper applies a subtle `radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%)` spotlight, preventing high-aspect-ratio portraits from floating in absolute darkness.
+
 ### [v6.8.2] - Core Physics & UI Refinement Patch
 
 **TimelineScrubber (v24.2.0):**
