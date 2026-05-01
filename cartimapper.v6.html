@@ -32,7 +32,7 @@
             cursor: pointer; position: relative; transition: all 0.2s; box-sizing: border-box;
             flex-shrink: 0; outline: none; line-height: 0;
         }
-        .status-btn svg { margin: auto; display: block; }
+        .status-btn svg { margin: 0; display: block; }
         .status-btn:hover { background: #eee; border-color: #ccc; }
         .status-btn.active { background: #007acc; color: #fff; border-color: #005a99; }
         .status-btn::after { content: ''; position: absolute; top: -8px; bottom: -8px; left: -8px; right: -8px; z-index: 10; }
@@ -74,7 +74,7 @@
 
         /* --- [ SubBlock: Layout & Resizers ] --- */
         #tm-root { position: fixed; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; display: flex; flex-direction: column; }
-        #app-layout { --primary-split: 50%; --secondary-split: 50%; --timeline-height: 20%; display: flex; flex-direction: column; flex: 1; width: 100vw; height: 100%; }
+        #app-layout { display: flex; flex-direction: column; flex: 1; width: 100vw; height: 100%; }
         
         .core-viewports { display: flex; flex-grow: 1; height: calc(100% - var(--timeline-height) - 4px); width: 100%; overflow: hidden; transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
         .visual-pane { display: flex; overflow: hidden; }
@@ -177,10 +177,10 @@
 
         /* --- [ SubBlock: Status Bar & Modals ] --- */
         .unified-status-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 32px; background: #fff; border-top: 1px solid #ddd; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; box-shadow: 0 -2px 5px rgba(0,0,0,0.02); z-index: 20; }
-        .status-left, .status-right { display: flex; align-items: center; gap: 8px; z-index: 2; }
+        .status-left, .status-right { display: flex; align-items: center; gap: 4px; z-index: 2; }
         .status-center { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; align-items: center; z-index: 1; }
         
-        .semantic-time-span { font-size: 0.75rem; color: #007acc; padding: 0 5px; margin: 0; display: flex; align-items: center; height: 20px;}
+        .semantic-time-span { font-size: 0.75rem; color: #007acc; padding: 0 4px; margin: 0; display: flex; align-items: center; height: 20px;}
         
         #about-modal, #search-modal, #settings-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 700px; max-height: 85vh; background: #fff; z-index: 9001; border-radius: 12px; padding: 30px; overflow-y: auto; display: none; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid #ccc; color: #222; font-size: 1.1rem; }
         #about-modal.open, #search-modal.open, #settings-modal.open { display: block; }
@@ -196,9 +196,10 @@
         /* --- [ End SubBlock: Status Bar & Modals ] --- */
 
         /* --- [ SubBlock: Timeline UI & Leaflet Controls ] --- */
-        .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-y: hidden; overflow-x: auto; position: relative; display: flex; align-items: flex-start; cursor: grab; }
+        .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-y: hidden; overflow-x: auto; position: relative; display: block; cursor: grab; }
         .timeline-scroll-wrapper:active { cursor: grabbing; }
-        .timeline-track-container { position: relative; min-height: 100%; min-width: 100%; flex-grow: 1; }
+        /* [FIX: TL-18] Container Padding for X-Axis Breather */
+        .timeline-track-container { position: relative; min-height: 100%; min-width: 100%; box-sizing: border-box; padding-bottom: 33px; }
         .tag-lane { border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; box-sizing: border-box; width: 100%; position: absolute; left: 0; right: 0; }
         .tag-lane-label { position: sticky; left: 0; z-index: 100; padding: 0 10px; font-size: 0.75rem; color: #555; display: flex; align-items: center; height: 100%; background: inherit; border-right: 1px solid #ccc; box-shadow: 2px 0 4px rgba(0,0,0,0.05);}
         .event-group { position: absolute; z-index: 10; transition: z-index 0.2s; display: flex; align-items: flex-start; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.15)); }
@@ -206,15 +207,17 @@
         
         .event-block { 
             display: flex; flex-direction: column; align-items: flex-start; justify-content: center; text-align: left; font-size: 0.75rem; cursor: pointer; transition: filter 0.2s ease; box-sizing: border-box;
-            --diag-w: 10px; min-height: var(--lane-h); padding: 2px 12px 2px calc(var(--diag-w) + 8px); 
+            --diag-w: 10px; padding: 2px 12px 2px calc(var(--diag-w) + 8px); 
             clip-path: polygon( 0 calc(50% - (var(--lane-h) / 2) + 0.5px), var(--diag-w) 0, 100% 0, 100% 100%, var(--diag-w) 100%, 0 calc(50% + (var(--lane-h) / 2) - 0.5px) );
         }
         .event-block:hover { filter: brightness(1.05); z-index: 40; }
         
-        .timeline-axis { position: sticky; bottom: 0; left: 0; right: 0; height: 28px; background: #e0e0e0; border-top: 2px solid #999; z-index: 5; margin-top: auto; }
+        /* [FIX: TL-19] X-Axis Absolute Pinning */
+        .timeline-axis { position: absolute; bottom: 0; left: 0; right: 0; height: 28px; background: #e0e0e0; border-top: 2px solid #999; z-index: 5; }
         .timeline-ruler-tick { position: absolute; bottom: 3px; display: flex; flex-direction: column; align-items: center; z-index: 5; transform: translateX(-50%); font-size: 0.7rem; color: #555;}
         
         .timeline-control-cluster { position: absolute; right: 15px; z-index: 1000; display: flex; flex-direction: column; box-shadow: 0 1px 5px rgba(0,0,0,0.4); border-radius: 4px; background: #fff; border: 1px solid #ccc; overflow: hidden; }
+        .timeline-control-cluster .status-btn { display: flex; align-items: center; justify-content: center; }
         .timeline-control-cluster .zoom-factor { display: flex; align-items: center; justify-content: center; }
         
         @media (max-height: 500px) {
@@ -241,16 +244,16 @@
 <body>
     <div id="root"></div>
     <script type="module">
-        // === [ MAJOR BLOCK: Imports & Globals v6.8.5 ] ===
+        // === [ MAJOR BLOCK: Imports & Globals v6.8.7 ] ===
         import { h, render, Component } from 'https://esm.sh/preact';
         import { useState, useEffect, useLayoutEffect, useRef } from 'https://esm.sh/preact/hooks';
         import htm from 'https://esm.sh/htm';
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.8.5';
+        const APP_VERSION = 'v6.8.7';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v4.13.5', Globals: 'v1.0.60' }; 
+        const MODULE_VERSIONS = { Styles: 'v4.13.7', Globals: 'v1.0.62' }; 
         const TM_CONFIG = { paneBackground: '#fcfcfc' };
         // === [ END MAJOR BLOCK ] ===
 
@@ -274,7 +277,7 @@
         }
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: VibeMonitor v2.1.5 ] ===
+        // === [ MAJOR BLOCK: VibeMonitor v2.1.7 ] ===
         const VibeMonitor = ({ logs, status, isOpen, setIsOpen, activeSlide, appVersion, moduleVersions }) => {
             const logsEndRef = useRef(null);
             const monitorRef = useRef(null);
@@ -335,7 +338,7 @@
         };
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v4.1.3 ] ===
+        // === [ MAJOR BLOCK: MapViewer v4.1.4 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, basemapsRegistry, maxAutoZoom, minimapOffset, maxPane, setMaxPane, polygonOpacity, showButtonText }) => {
             const mapDomRef = useRef(null);
             const miniMapDomRef = useRef(null);
@@ -736,7 +739,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v4.1.3';
+        MODULE_VERSIONS['MapViewer'] = 'v4.1.4';
         // === [ END MAJOR BLOCK ] ===
 
         // === [ MAJOR BLOCK: MediaViewer v2.11.3 ] ===
@@ -823,7 +826,7 @@
         MODULE_VERSIONS['MediaViewer'] = 'v2.11.3';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: ContentSlider v4.2.3 ] ===
+        // === [ MAJOR BLOCK: ContentSlider v4.2.4 ] ===
         const ContentSlider = ({ data, activeIndex, setActiveIndex, jumpToSlide, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo, visibleTimeSpan, maxPane, setMaxPane, showButtonText, dateLocale }) => {
             const [isMenuOpen, setIsMenuOpen] = useState(false);
             const touchStartX = useRef(0);
@@ -995,10 +998,10 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['ContentSlider'] = 'v4.2.3';
+        MODULE_VERSIONS['ContentSlider'] = 'v4.2.4';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v24.2.3 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v24.2.4 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan, isTimelineExpanded, setIsTimelineExpanded, isTimelineMinimized, setIsTimelineMinimized, dateLocale }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -1044,8 +1047,7 @@
                 if (!placed) orderedTags.push(remaining.shift());
             }
 
-            const laneHeight = 24; 
-            const minInnerHeight = (orderedTags.length * laneHeight) + 40; 
+            const laneHeight = Math.max(24, (containerHeight - 33) / Math.max(1, orderedTags.length)); 
 
             const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
             const minTimeRaw = validData.length > 0 ? validData[0].startDate.getTime() : new Date().getTime();
@@ -1213,8 +1215,8 @@
                         const distCurrent = Math.abs(minorTickPx - majorPx);
                         const distNext = Math.abs(minorTickPx - nextMajorPx);
                         
-                        let hideMinor = distCurrent < 55 || distNext < 55;
-                        if (!hideMinor && distCurrent > 15) { 
+                        let hideMinor = distCurrent < 75 || distNext < 75;
+                        if (!hideMinor && distCurrent > 40) { 
                             let minorLabel = '';
                             if (activeScale.minorType === 'year') minorLabel = minorIter.getFullYear(); 
                             else if (activeScale.minorType === 'month') minorLabel = minorIter.toLocaleString(dateLocale, { month: 'short' });
@@ -1237,14 +1239,13 @@
                 const tagIndices = getParsedTags(item.tags).map(t => orderedTags.indexOf(t)).filter(idx => idx !== -1);
                 const topPos = ((tagIndices.length > 0 ? Math.min(...tagIndices) : 0) * laneHeight) + 5;
                 const blockHeight = ((tagIndices.length > 0 ? Math.max(...tagIndices) : 0) - (tagIndices.length > 0 ? Math.min(...tagIndices) : 0) + 1) * laneHeight; 
-                const distanceToAxis = (Math.max(containerHeight, minInnerHeight) - 28) - topPos; 
 
                 const { lines, pxWidth } = formatLabelSmart(stripHTML(item.title));
                 const hasMedia = item.media && item.media.length > 0;
 
                 return html`
                     <div id="timeline-marker-${globalIndex}" class="event-group ${isActive ? 'active' : ''}" style="left: ${startPct}%; top: ${topPos}px; height: ${blockHeight}px; ${hasDuration ? `width: ${endPct - startPct}%; min-width: 4px;` : `width: ${pxWidth}px;`}" onClick=${() => setActiveIndex(globalIndex)}>
-                        ${isActive ? html`<div style="position: absolute; left: 0; top: 50%; height: ${distanceToAxis - (blockHeight / 2)}px; width: 2px; background: #007acc; z-index: 999;"></div><div style="position: absolute; top: ${distanceToAxis - (hasDuration ? 16 : 4)}px; left: ${hasDuration ? '0' : '-3px'}; width: ${hasDuration ? '100%' : '6px'}; min-width: ${hasDuration ? '2px' : 'auto'}; height: ${hasDuration ? '16px' : '6px'}; ${hasDuration ? 'background: rgba(0,122,204,0.3); clip-path: polygon(0 0, 100% calc(100% - 5px), 100% 100%, 0 100%); filter: drop-shadow(0 2px 2px rgba(0,122,204,0.4));' : 'border-radius: 50%; background: #007acc; border: 1px solid #fff; box-sizing: content-box;'} z-index: 998;"></div>` : ''}
+                        ${isActive ? html`<div style="position: absolute; left: 0; top: 50%; bottom: -28px; width: 2px; background: #007acc; z-index: 999;"></div><div style="position: absolute; bottom: -28px; left: ${hasDuration ? '0' : '-3px'}; width: ${hasDuration ? '100%' : '6px'}; min-width: ${hasDuration ? '2px' : 'auto'}; height: ${hasDuration ? '16px' : '6px'}; ${hasDuration ? 'background: rgba(0,122,204,0.3); clip-path: polygon(0 0, 100% calc(100% - 5px), 100% 100%, 0 100%); filter: drop-shadow(0 2px 2px rgba(0,122,204,0.4));' : 'border-radius: 50%; background: #007acc; border: 1px solid #fff; box-sizing: content-box;'} z-index: 998;"></div>` : ''}
                         <div class="event-block" style="position: absolute; top: 50%; transform: translateY(-50%); left: 0; --lane-h: ${laneHeight}px; background: ${isActive ? '#007acc' : '#f4f4f5'}; color: ${isActive ? '#fff' : '#444'}; z-index: 5; width: ${pxWidth}px;">
                             <div class="event-text" style="display: flex; align-items: center; gap: 0;">
                                 ${hasMedia ? html`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-left: 6px; margin-right: 6px; opacity: 0.8;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>` : ''}
@@ -1283,7 +1284,7 @@
                     </div>
 
                     <div class="timeline-scroll-wrapper" ref=${wrapperRef} onScroll=${onScroll} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${onWheel}>
-                        <div class="timeline-track-container" style="width: ${trackWidthPx}px; flex-shrink: 0; min-height: 100%;">
+                        <div class="timeline-track-container" style="width: ${trackWidthPx}px; flex-shrink: 0; min-height: 100%; flex-grow: 1;">
                             <div style="position: absolute; top: 5px; left: 0; right: 0; bottom: 33px; pointer-events: none; z-index: 0;">
                                 ${orderedTags.map((tag, i) => html`<div class="tag-lane" style="top: ${i * laneHeight}px; height: ${laneHeight}px; background: ${i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent'};"><div class="tag-lane-label" style="background: ${i % 2 === 0 ? '#f4f4f4' : '#fcfcfc'}; pointer-events: auto;">${tag}</div></div>`)}
                             </div>
@@ -1294,10 +1295,10 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v24.2.3';
+        MODULE_VERSIONS['TimelineScrubber'] = 'v24.2.4';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.54.1 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.54.2 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]); const [rawCsvRows, setRawCsvRows] = useState([]); const [data, setData] = useState([]);
             const [aboutData, setAboutData] = useState(null); const [status, setStatus] = useState({ text: 'Initializing Engine...', progress: 10, isFading: false, active: false });
@@ -1366,6 +1367,12 @@
             };
 
             useEffect(() => {
+                // Hardcode variables to fix flickering
+                if (appRef.current) {
+                    appRef.current.style.setProperty('--primary-split', '50%');
+                    appRef.current.style.setProperty('--secondary-split', '50%');
+                    appRef.current.style.setProperty('--timeline-height', '20%');
+                }
                 const gid = getOmniParam('gid') || '0'; const bgid = getOmniParam('bgid'); const source = getOmniParam('source') || '1kdgGiHNDsIZrn8Z1aqWXrEEYKMGxLAqFiwATx3aqbJI';
                 setStatus({ text: 'Fetching CMS Manifests...', progress: 30, isFading: false, active: false });
 
@@ -1527,7 +1534,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.54.1';
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.54.2';
         // === [ END MAJOR BLOCK ] ===
 
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
