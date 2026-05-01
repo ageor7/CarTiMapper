@@ -82,16 +82,16 @@
             display: flex; flex-direction: column; flex: 1; width: 100vw; height: 100%; 
         }
         
-        .core-viewports { display: flex; flex-grow: 1; height: calc(100% - var(--timeline-height) - 4px); width: 100%; overflow: hidden; transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1); min-height: 0; min-width: 0; }
-        .visual-pane { display: flex; overflow: hidden; min-height: 0; min-width: 0; flex-grow: 1;}
+        .core-viewports { display: flex; flex-grow: 1; height: calc(100% - var(--timeline-height) - 4px); width: 100%; overflow: visible; transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1); min-height: 0; min-width: 0; position: relative; z-index: 10; }
+        .visual-pane { display: flex; overflow: visible; min-height: 0; min-width: 0; flex-grow: 1; position: relative; z-index: 20;}
         .visual-pane.no-media .map-pane { width: 100% !important; height: 100% !important; max-width: 100% !important; max-height: 100% !important; flex: 1 1 100% !important; }
         .visual-pane.no-media .resizer-dyn-secondary { display: none !important; }
         .visual-pane.no-media .media-pane { display: none !important; }
         
-        .map-pane { background: #e0e0e0; position: relative; min-height: 0; min-width: 0; flex-shrink: 0; overflow: hidden; }
-        .media-pane { position: relative; overflow: hidden; background-color: #1e1e1e; background-image: radial-gradient(#333 1px, transparent 1px); background-size: 20px 20px; display: flex; flex-direction: column; min-height: 0; min-width: 0; flex-shrink: 0; }
-        .content-slider-pane { background: var(--paneBg); overflow: hidden; display: flex; flex-direction: column; min-height: 0; min-width: 0; flex-shrink: 0; }
-        .timeline-pane { background: #ececec; display: flex; flex-direction: column; position: relative; overflow: hidden; transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1); min-height: 0;}
+        .map-pane { background: #e0e0e0; position: relative; min-height: 0; min-width: 0; flex-shrink: 0; overflow: visible; z-index: 30; }
+        .media-pane { position: relative; overflow: hidden; background-color: #1e1e1e; background-image: radial-gradient(#333 1px, transparent 1px); background-size: 20px 20px; display: flex; flex-direction: column; min-height: 0; min-width: 0; flex-shrink: 0; z-index: 10; }
+        .content-slider-pane { background: var(--paneBg); overflow: hidden; display: flex; flex-direction: column; min-height: 0; min-width: 0; flex-shrink: 0; z-index: 15; }
+        .timeline-pane { background: #ececec; display: flex; flex-direction: column; position: relative; overflow: hidden; transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1); min-height: 0; z-index: 5;}
         
         /* Maximize Panes Matrix */
         .core-viewports.max-text .visual-pane { display: none !important; }
@@ -114,29 +114,29 @@
         .is-minimized-timeline .resizer-dyn-timeline { display: none !important; }
         .is-minimized-timeline .core-viewports { height: 100% !important; }
 
-        .resizer-dyn-primary, .resizer-dyn-secondary, .resizer-dyn-timeline { background: #eee; transition: background 0.2s; z-index: 10; flex-shrink: 0; position: relative; touch-action: none; }
-        .resizer-dyn-primary::after, .resizer-dyn-secondary::after, .resizer-dyn-timeline::after { content: ''; position: absolute; top: -18px; bottom: -18px; left: -18px; right: -18px; z-index: 11; }
+        .resizer-dyn-primary, .resizer-dyn-secondary, .resizer-dyn-timeline { background: #eee; transition: background 0.2s; z-index: 50; flex-shrink: 0; position: relative; touch-action: none; }
+        .resizer-dyn-primary::after, .resizer-dyn-secondary::after, .resizer-dyn-timeline::after { content: ''; position: absolute; top: -18px; bottom: -18px; left: -18px; right: -18px; z-index: 51; }
         .resizer-dyn-primary:hover, .resizer-dyn-secondary:hover, .resizer-dyn-timeline:hover { background: var(--accent); }
         .resizer-dyn-timeline { height: 4px; width: 100%; cursor: row-resize; }
 
         @media (max-width: 1023px) {
             .core-viewports { flex-direction: column; }
-            .visual-pane { width: 100%; height: calc(100% - var(--primary-split) - 4px); flex-direction: row; order: 1; }
+            .visual-pane { width: 100%; height: var(--primary-split); flex-direction: row; order: 1; }
+            .content-slider-pane { width: 100%; height: calc(100% - var(--primary-split) - 4px); order: 3; }
             .resizer-dyn-primary { width: 100%; height: 4px; cursor: row-resize; order: 2; }
-            .content-slider-pane { width: 100%; height: var(--primary-split); order: 3; }
-            .map-pane { width: var(--secondary-split); height: 100%; flex: 0 0 auto; }
+            .map-pane { flex: 0 0 var(--secondary-split); height: 100%; }
             .resizer-dyn-secondary { width: 4px; height: 100%; cursor: col-resize; }
-            .media-pane { width: calc(100% - var(--secondary-split) - 4px); height: 100%; flex: 0 0 auto; }
+            .media-pane { flex: 1 1 auto; height: 100%; }
         }
 
         @media (min-width: 1024px) {
             .core-viewports { flex-direction: row; }
-            .content-slider-pane { height: 100%; width: var(--primary-split); order: 1; }
+            .content-slider-pane { height: 100%; flex-basis: var(--primary-split); order: 1; }
             .resizer-dyn-primary { height: 100%; width: 4px; cursor: col-resize; order: 2; }
-            .visual-pane { height: 100%; width: calc(100% - var(--primary-split) - 4px); flex-direction: column; order: 3; }
-            .map-pane { height: var(--secondary-split); width: 100%; flex: 0 0 auto; }
+            .visual-pane { height: 100%; flex-basis: calc(100% - var(--primary-split) - 4px); flex-direction: column; order: 3; }
+            .map-pane { flex: 0 0 var(--secondary-split); width: 100%; }
             .resizer-dyn-secondary { width: 100%; height: 4px; cursor: row-resize; }
-            .media-pane { height: calc(100% - var(--secondary-split) - 4px); width: 100%; flex: 0 0 auto; }
+            .media-pane { flex: 1 1 auto; width: 100%; }
         }
         /* --- [ End SubBlock: Layout & Resizers ] --- */
 
@@ -202,23 +202,22 @@
         /* --- [ End SubBlock: Status Bar & Modals ] --- */
 
         /* --- [ SubBlock: Timeline UI & Leaflet Controls ] --- */
-        .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-y: hidden; overflow-x: auto; position: relative; display: block; cursor: grab; }
+        .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-y: hidden; overflow-x: auto; position: relative; display: block; cursor: grab; scrollbar-width: thin; }
         .timeline-scroll-wrapper:active { cursor: grabbing; }
-        .timeline-track-container { position: relative; min-height: 100%; min-width: 100%; box-sizing: border-box; padding-bottom: 33px; }
+        .timeline-track-container { position: relative; min-width: 100%; display: block; }
         .tag-lane { border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; box-sizing: border-box; width: 100%; position: absolute; left: 0; right: 0; }
         .tag-lane-label { position: sticky; left: 0; z-index: 100; padding: 0 10px; font-size: 0.75rem; color: #555; display: flex; align-items: center; height: 100%; background: inherit; border-right: 1px solid #ccc; box-shadow: 2px 0 4px rgba(0,0,0,0.05);}
         .event-group { position: absolute; z-index: 10; transition: z-index 0.2s; display: flex; align-items: flex-start; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.15)); }
         .event-group.active { z-index: 30; filter: drop-shadow(0 4px 6px rgba(0,122,204,0.4)); }
         
-        /* [FIX: UI-153] Hexagon CSS Clip-Path Hard Revert */
         .event-block { 
             display: flex; flex-direction: column; align-items: flex-start; justify-content: center; text-align: left; font-size: 0.75rem; cursor: pointer; transition: filter 0.2s ease; box-sizing: border-box;
-            --diag-w: 10px; min-height: var(--lane-h); padding: 2px 12px 2px calc(var(--diag-w) + 8px); 
-            clip-path: polygon( 0 calc(50% - (var(--lane-h) / 2) + 0.5px), var(--diag-w) 0, 100% 0, 100% 100%, var(--diag-w) 100%, 0 calc(50% + (var(--lane-h) / 2) - 0.5px) );
+            --diag-w: 10px; padding: 2px 12px 2px calc(var(--diag-w) + 14px); 
+            clip-path: polygon( 0 calc(50% - 12px), var(--diag-w) 0, 100% 0, 100% 100%, var(--diag-w) 100%, 0 calc(50% + 12px) );
         }
         .event-block:hover { filter: brightness(1.05); z-index: 40; }
         
-        .timeline-axis { position: absolute; bottom: 0; left: 0; right: 0; height: 28px; background: #e0e0e0; border-top: 2px solid #999; z-index: 5; }
+        .timeline-axis { position: absolute; left: 0; right: 0; height: 28px; background: #e0e0e0; border-top: 2px solid #999; z-index: 5; }
         .timeline-ruler-tick { position: absolute; bottom: 3px; display: flex; flex-direction: column; align-items: center; z-index: 5; transform: translateX(-50%); font-size: 0.7rem; color: #555;}
         
         .timeline-control-cluster { position: absolute; right: 15px; z-index: 1000; display: flex; flex-direction: column; box-shadow: 0 1px 5px rgba(0,0,0,0.4); border-radius: 4px; background: #fff; border: 1px solid #ccc; overflow: hidden; }
@@ -249,16 +248,16 @@
 <body>
     <div id="root"></div>
     <script type="module">
-        // === [ MAJOR BLOCK: Imports & Globals v6.8.10 ] ===
+        // === [ MAJOR BLOCK: Imports & Globals v6.8.11 ] ===
         import { h, render, Component } from 'https://esm.sh/preact';
         import { useState, useEffect, useLayoutEffect, useRef } from 'https://esm.sh/preact/hooks';
         import htm from 'https://esm.sh/htm';
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.8.10';
+        const APP_VERSION = 'v6.8.11';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v4.13.10', Globals: 'v1.0.66' }; 
+        const MODULE_VERSIONS = { Styles: 'v4.13.11', Globals: 'v1.0.67' }; 
         const TM_CONFIG = { paneBackground: '#fcfcfc' };
         // === [ END MAJOR BLOCK ] ===
 
@@ -282,7 +281,7 @@
         }
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: VibeMonitor v2.1.10 ] ===
+        // === [ MAJOR BLOCK: VibeMonitor v2.1.11 ] ===
         const VibeMonitor = ({ logs, status, isOpen, setIsOpen, activeSlide, appVersion, moduleVersions }) => {
             const logsEndRef = useRef(null);
             const monitorRef = useRef(null);
@@ -343,7 +342,7 @@
         };
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v4.1.7 ] ===
+        // === [ MAJOR BLOCK: MapViewer v4.1.8 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, basemapsRegistry, maxAutoZoom, minimapOffset, maxPane, setMaxPane, polygonOpacity, showButtonText }) => {
             const mapDomRef = useRef(null);
             const miniMapDomRef = useRef(null);
@@ -679,7 +678,9 @@
 
             return html`
                 <div style="position: relative; width:100%; height:100%;">
-                    <div ref=${mapDomRef} style="width:100%; height:100%; z-index:1; position: absolute; top:0; left:0; right:0; bottom:0;"></div>
+                    <div style="overflow: hidden; width:100%; height:100%; position: absolute; top:0; left:0; z-index:1;">
+                        <div ref=${mapDomRef} style="width:100%; height:100%;"></div>
+                    </div>
                     
                     <div style="position: absolute; top: 15px; right: 15px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
                         
@@ -715,7 +716,7 @@
                         </div>
 
                         ${showLayersMenu ? html`
-                            <div style="background: rgba(255,255,255,0.98); border: 1px solid #ccc; border-radius: 6px; padding: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); width: max-content; max-width: 320px; max-height: 50vh; overflow-y: auto; font-size: 0.85rem; color: #333;">
+                            <div style="background: rgba(255,255,255,0.98); border: 1px solid #ccc; border-radius: 6px; padding: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); width: max-content; max-width: 320px; max-height: 50vh; overflow-y: auto; font-size: 0.85rem; color: #333; position: relative; z-index: 2000;">
                                 <div style="font-weight: 600; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">Basemaps</div>
                                 <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
                                     ${bases.map(b => html`
@@ -744,7 +745,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v4.1.7';
+        MODULE_VERSIONS['MapViewer'] = 'v4.1.8';
         // === [ END MAJOR BLOCK ] ===
 
         // === [ MAJOR BLOCK: MediaViewer v2.11.5 ] ===
@@ -926,7 +927,11 @@
 
                             ${isMenuOpen ? html`
                                 <div style="position: absolute; bottom: calc(100% + 5px); left: 0; background: var(--paneBg, #fff); border: 1px solid rgba(128,128,128,0.2); border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); padding: 5px 0; min-width: 140px; z-index: 1000;" onClick=${e => e.stopPropagation()}>
-                                    <div style="padding: 10px 15px; cursor: pointer; border-bottom: 1px solid rgba(128,128,128,0.1); display: flex; align-items: center; gap: 8px; font-size: 0.85rem;" onClick=${(e) => { e.stopPropagation(); resetLayoutPanes(); setIsMenuOpen(false); }}>
+                                    <div style="padding: 10px 15px; cursor: pointer; border-bottom: 1px solid rgba(128,128,128,0.1); display: flex; align-items: center; gap: 8px; font-size: 0.85rem;" onClick=${(e) => { 
+                                        e.stopPropagation(); 
+                                        resetLayoutPanes();
+                                        setIsMenuOpen(false); 
+                                    }}>
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg> Reset Layout
                                     </div>
                                     <div style="padding: 10px 15px; cursor: pointer; border-bottom: 1px solid rgba(128,128,128,0.1); display: flex; align-items: center; gap: 8px; font-size: 0.85rem;" onClick=${(e) => { e.stopPropagation(); setIsSettingsOpen(true); setIsMenuOpen(false); }}>
@@ -958,7 +963,7 @@
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                                 ${showButtonText ? html`<span>Search</span>` : ''}
                             </button>
-                            ${slideHistory && slideHistory.length > 0 ? html`<button class="${showButtonText ? 'status-btn-text' : 'status-btn'}" onClick=${goBack} title="Back to Previous Slide"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 4 12 A 8 8 0 1 0 12 4"></path><polyline points="16 0 12 4 16 8"></polyline></svg>${showButtonText ? html`<span>Back</span>` : ''}</button>` : ''}
+                            ${slideHistory && slideHistory.length > 0 ? html`<button class="${showButtonText ? 'status-btn-text' : 'status-btn'}" onClick=${goBack} title="Back to Previous Slide"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 12 4 A 8 8 0 1 0 20 12"></path><polyline points="16 0 12 4 16 8"></polyline></svg>${showButtonText ? html`<span>Back</span>` : ''}</button>` : ''}
                             <span style="font-size: 0.85rem; color: #666; font-family: monospace;">${activeIndex + 1} / ${data.length}</span>
                         </div>
                     </div>
@@ -1009,7 +1014,7 @@
         MODULE_VERSIONS['ContentSlider'] = 'v4.2.8';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v24.2.8 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v24.2.9 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan, isTimelineExpanded, setIsTimelineExpanded, isTimelineMinimized, setIsTimelineMinimized, dateLocale, timelineRequiredHeight }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -1019,7 +1024,18 @@
             const scrollTargetRef = useRef(null);
             const scrollTimeout = useRef(null);
             
+            const [containerHeight, setContainerHeight] = useState(200);
             const [viewLeftEdge, setViewLeftEdge] = useState(0);
+
+            useEffect(() => {
+                const ro = new ResizeObserver(entries => {
+                    if (entries && entries[0] && entries[0].target) {
+                        setContainerHeight(entries[0].target.clientHeight);
+                    }
+                });
+                if (wrapperRef.current) ro.observe(wrapperRef.current);
+                return () => ro.disconnect();
+            }, []);
 
             const getParsedTags = (rawTagsArray) => {
                 if (!rawTagsArray || rawTagsArray.length === 0) return ['Untagged'];
@@ -1049,7 +1065,8 @@
                 if (!placed) orderedTags.push(remaining.shift());
             }
 
-            const laneHeight = 24; 
+            const laneCount = Math.max(1, orderedTags.length);
+            const laneHeight = Math.max(24, (containerHeight - 38) / laneCount);
 
             const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
             const minTimeRaw = validData.length > 0 ? validData[0].startDate.getTime() : new Date().getTime();
@@ -1187,7 +1204,7 @@
             else if (activeScale.type === 'minute') { iterDate.setSeconds(0); iterDate.setMinutes(Math.floor(iterDate.getMinutes() / activeScale.step) * activeScale.step); }
 
             let safety = 0; let hasRenderedFullDate = false;
-            const visibleLeftMs = renderMinTime + (viewLeftEdge / trackWidthPx) * renderTimeRange;
+            const visibleLeftMs = renderMinTime + ((viewLeftEdge + 60) / trackWidthPx) * renderTimeRange;
 
             while (iterDate.getTime() <= renderMaxTime && safety < 2000) {
                 safety++; const t = iterDate.getTime();
@@ -1226,7 +1243,7 @@
                         const distCurrent = Math.abs(minorTickPx - majorPx);
                         const distNext = Math.abs(minorTickPx - nextMajorPx);
                         
-                        let hideMinor = distCurrent < 35 || distNext < 35;
+                        let hideMinor = distCurrent < 55 || distNext < 55;
                         if (!hideMinor && distCurrent > 20) { 
                             let minorLabel = '';
                             if (activeScale.minorType === 'year') minorLabel = minorIter.getFullYear(); 
@@ -1255,9 +1272,9 @@
                 const hasMedia = item.media && item.media.length > 0;
 
                 return html`
-                    <div id="timeline-marker-${globalIndex}" class="event-group ${isActive ? 'active' : ''}" style="left: ${startPct}%; top: ${topPos}px; height: ${blockHeight}px; ${hasDuration ? `width: ${endPct - startPct}%; min-width: 4px;` : `width: ${pxWidth}px;`}" onClick=${() => setActiveIndex(globalIndex)}>
-                        ${isActive ? html`<div style="position: absolute; left: 0; top: 50%; height: ${timelineRequiredHeight - topPos - (blockHeight / 2) - 28}px; width: 2px; background: #007acc; z-index: 999;"></div><div style="position: absolute; bottom: -${timelineRequiredHeight - topPos - blockHeight - 28}px; left: ${hasDuration ? '0' : '-3px'}; width: ${hasDuration ? '100%' : '6px'}; min-width: ${hasDuration ? '2px' : 'auto'}; height: ${hasDuration ? '16px' : '6px'}; ${hasDuration ? 'background: rgba(0,122,204,0.3); clip-path: polygon(0 0, 100% calc(100% - 5px), 100% 100%, 0 100%); filter: drop-shadow(0 2px 2px rgba(0,122,204,0.4));' : 'border-radius: 50%; background: #007acc; border: 1px solid #fff; box-sizing: content-box;'} z-index: 998;"></div>` : ''}
-                        <div class="event-block" style="position: absolute; top: 50%; transform: translateY(-50%); left: 0; --lane-h: ${laneHeight}px; background: ${isActive ? '#007acc' : '#f4f4f5'}; color: ${isActive ? '#fff' : '#444'}; z-index: 5; width: ${pxWidth}px;">
+                    <div id="timeline-marker-${globalIndex}" class="event-group ${isActive ? 'active' : ''}" style="left: ${startPct}%; top: ${topPos}px; height: ${containerHeight - 28 - topPos}px; ${hasDuration ? `width: ${endPct - startPct}%; min-width: 4px;` : `width: ${pxWidth}px;`}" onClick=${() => setActiveIndex(globalIndex)}>
+                        ${isActive ? html`<div style="position: absolute; left: 0; top: ${blockHeight / 2}px; bottom: 0; width: 2px; background: #007acc; z-index: 999;"></div><div style="position: absolute; bottom: 0; left: ${hasDuration ? '0' : '-3px'}; width: ${hasDuration ? '100%' : '6px'}; min-width: ${hasDuration ? '2px' : 'auto'}; height: ${hasDuration ? '16px' : '6px'}; ${hasDuration ? 'background: rgba(0,122,204,0.3); clip-path: polygon(0 0, 100% calc(100% - 5px), 100% 100%, 0 100%); filter: drop-shadow(0 2px 2px rgba(0,122,204,0.4));' : 'border-radius: 50%; background: #007acc; border: 1px solid #fff; box-sizing: content-box;'} z-index: 998;"></div>` : ''}
+                        <div class="event-block" style="position: absolute; top: 0; left: 0; min-height: ${blockHeight}px; height: auto; background: ${isActive ? '#007acc' : '#f4f4f5'}; color: ${isActive ? '#fff' : '#444'}; z-index: 5; width: ${pxWidth}px;">
                             ${hasMedia ? html`<svg style="position: absolute; left: 2px; top: 50%; transform: translateY(-50%); width: 10px; height: 10px; opacity: 0.8;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>` : ''}
                             <div style="display: flex; flex-direction: column; width: 100%; letter-spacing: -0.2px;">${lines.map(l => html`<div style="white-space: nowrap; overflow: hidden; width: 100%;">${l}</div>`)}</div>
                         </div>
@@ -1272,7 +1289,17 @@
                         <button class="status-btn" style="border: none; border-right: 1px solid #eee; border-radius: 0;" onClick=${() => setIsTimelineMinimized(true)} title="Minimize Timeline">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                         </button>
-                        <button class="status-btn" style="border: none; border-radius: 0;" onClick=${() => setIsTimelineExpanded(!isTimelineExpanded)} title=${isTimelineExpanded ? "Restore Height" : "Maximize Swimlanes"}>
+                        <button class="status-btn" style="border: none; border-radius: 0;" onClick=${() => {
+                            if (!isTimelineExpanded) {
+                                const appNode = document.getElementById('app-layout');
+                                if(appNode) appNode.style.setProperty('--timeline-height', `${timelineRequiredHeight}px`);
+                                setIsTimelineExpanded(true);
+                            } else {
+                                const appNode = document.getElementById('app-layout');
+                                if(appNode) appNode.style.setProperty('--timeline-height', '10%');
+                                setIsTimelineExpanded(false);
+                            }
+                        }} title=${isTimelineExpanded ? "Restore Height" : "Maximize Swimlanes"}>
                             ${isTimelineExpanded 
                                 ? html`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="12" height="12" rx="1"></rect><path d="M9 3h9a1 1 0 0 1 1 1v9"></path></svg>`
                                 : html`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>`
@@ -1297,14 +1324,14 @@
                             <div style="position: absolute; top: 5px; left: 0; right: 0; bottom: 33px; pointer-events: none; z-index: 0;">
                                 ${orderedTags.map((tag, i) => html`<div class="tag-lane" style="top: ${i * laneHeight}px; height: ${laneHeight}px; background: ${i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent'};"><div class="tag-lane-label" style="background: ${i % 2 === 0 ? '#f4f4f4' : '#fcfcfc'}; pointer-events: auto;">${tag}</div></div>`)}
                             </div>
-                            <div class="timeline-axis">${rulerTicks}</div>
+                            <div class="timeline-axis" style="top: ${containerHeight - 28}px;">${rulerTicks}</div>
                             ${markers}
                         </div>
                     </div>
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v24.2.8';
+        MODULE_VERSIONS['TimelineScrubber'] = 'v24.2.9';
         // === [ END MAJOR BLOCK ] ===
 
         // === [ MAJOR BLOCK: AppOrchestrator v1.54.6 ] ===
@@ -1450,7 +1477,6 @@
                 const valid = cleaned.filter(r => r.startDate).sort((a, b) => a.startDate.getTime() - b.startDate.getTime()); 
                 setData(valid);
                 
-                // Calculate required height for Maximize function
                 const tagsMap = new Set();
                 valid.forEach(d => {
                     const splitRegex = /[\r\n]+|\\n/;
@@ -1473,7 +1499,7 @@
             const CarTiMapperLogo = ({ context, appVersion }) => {
                 const svgIcon = html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 0 165 100" style="width: 100%; height: 100%; display: block;"><defs><filter id="dot-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs><path d="M28,38 L45,15 L180,15 L180,85 L45,85 L28,62 Z" fill="#2c3e50" stroke="#007acc" stroke-width="2.5" stroke-linejoin="round"/><g fill="#fff" opacity="0.9"><rect x="55" y="19" width="4" height="6" rx="1" /><rect x="71" y="19" width="4" height="6" rx="1" /><rect x="87" y="19" width="4" height="6" rx="1" /><rect x="103" y="19" width="4" height="6" rx="1" /><rect x="119" y="19" width="4" height="6" rx="1" /><rect x="135" y="19" width="4" height="6" rx="1" /><rect x="151" y="19" width="4" height="6" rx="1" /><rect x="167" y="19" width="4" height="6" rx="1" /><rect x="55" y="75" width="4" height="6" rx="1" /><rect x="71" y="75" width="4" height="6" rx="1" /><rect x="87" y="75" width="4" height="6" rx="1" /><rect x="103" y="75" width="4" height="6" rx="1" /><rect x="119" y="75" width="4" height="6" rx="1" /><rect x="135" y="75" width="4" height="6" rx="1" /><rect x="151" y="75" width="4" height="6" rx="1" /><rect x="167" y="75" width="4" height="6" rx="1" /></g><g transform="translate(112, 50)"><path d="M0,-28 L4,-6 L28,0 L4,6 L0,28 L-4,6 L-28,0 L-4,-6 Z" fill="#546e7a" opacity="0.8"/><g fill="#fcfcfc" font-family="Arial, sans-serif" font-size="7" font-weight="normal" text-anchor="middle"><text x="0" y="-21">N</text><text x="24" y="2.5">E</text><text x="0" y="27">S</text><text x="-24" y="2.5">W</text></g><g fill="#8be9fd" filter="url(#dot-glow)"><circle cx="12.5" cy="-21.6" r="1.2" /><circle cx="21.6" cy="-12.5" r="1.2" /><circle cx="21.6" cy="12.5" r="1.2" /><circle cx="12.5" cy="21.6" r="1.2" /><circle cx="-12.5" cy="21.6" r="1.2" /><circle cx="-21.6" cy="12.5" r="1.2" /><circle cx="-21.6" cy="-12.5" r="1.2" /><circle cx="-12.5" cy="-21.6" r="1.2" /></g><g transform="rotate(60)"><path d="M0,0 L-1,-16 L1,-16 Z" fill="#999" /><circle cx="0" cy="-20" r="2.8" fill="#007acc" /></g><g transform="rotate(270)"><path d="M0,0 L-1.2,-9 L1.2,-9 Z" fill="#999" /><circle cx="0" cy="-13" r="2.8" fill="#28a745" /></g><circle cx="0" cy="0" r="1.5" fill="#fff" /></g></svg>`;
                 if (context === 'splash') return html`<div class="logo-stack-splash"><div class="splash-icon-wrapper">${svgIcon}</div><div class="splash-text">CarTiMapper</div><div class="splash-version">${appVersion}</div></div>`;
-                if (context === 'status') return html`<div style="display: flex; align-items: center; gap: 6px; height: 100%;"><div style="height: 22px; width: auto; display: flex; align-items: center;">${svgIcon}</div><div style="display: flex; align-items: baseline; gap: 4px;"><span style="font-size: 0.85rem; color: #444; line-height: 1;">CarTiMapper</span><span style="font-size: 0.65rem; color: #888; line-height: 1;">${appVersion}</span></div></div>`;
+                if (context === 'status') return html`<div style="display: flex; align-items: center; gap: 6px; height: 100%;"><div style="height: 16px; width: auto; display: flex; align-items: center;">${svgIcon}</div><div style="display: flex; align-items: baseline; gap: 4px;"><span style="font-size: 0.85rem; color: #444; line-height: 1;">CarTiMapper</span><span style="font-size: 0.65rem; color: #888; line-height: 1;">${appVersion}</span></div></div>`;
                 return html`<div style="display: flex; align-items: center; gap: 20px; margin-bottom: 25px;"><div style="width: 240px; height: auto; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));">${svgIcon}</div><div style="display: flex; flex-direction: column; justify-content: center;"><h2 style="margin: 0; font-size: 2.2rem; color: #222; letter-spacing: -1px; line-height: 1;">CarTiMapper</h2><div style="font-family: monospace; color: #007acc; font-size: 0.95rem; font-weight: 600; margin-top: 4px;">${appVersion}</div></div></div>`;
             };
 
