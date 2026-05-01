@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file.
 
 
+### [v6.8.7] - Timeline Fluidity Expansion & Global CSS Variables
+
+**TimelineScrubber (v24.2.4):**
+* **[UI-134]** **X-Axis Padding Buffer:** The `.timeline-track-container` now applies explicit `padding-bottom: 33px;` physics. This mathematically forces the bottom-most swimlane to rest exactly 5px above the sticky chronological `timeline-axis`, restoring perfect visual hierarchy and preventing event geometry from touching the background numbers.
+
+**AppOrchestrator (v1.54.2):**
+* **[UI-135]** **Global CSS Boot Stabilization:** Refactored the DOM boot sequence to prevent initial frame flickering on the `timeline-pane` wrapper. The global `--primary-split`, `--secondary-split`, and `--timeline-height` CSS variables are now physically hardcoded inside a `useEffect` hook that executes immediately after the main `appRef` is attached to the DOM, explicitly bypassing CSS parsing latency and guaranteeing accurate initial spatial math.
+
 ### [v6.8.6] - Hotfix: Omni-Parser Crash
 * **[CRASH-05]** **ReferenceError Eradicated:** Corrected a fatal syntax typo (`newSearchParams` to `new URLSearchParams`) inside the `getOmniParam` function in `AppOrchestrator`, preventing the engine from crashing during the deep-link initialization sequence.
 
