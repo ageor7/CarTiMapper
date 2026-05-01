@@ -1,6 +1,9 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+### [v6.7.2]
+* **AppOrchestrator (v1.50.1) [MAP-81]:** Deployed a native URI decoding mechanism (`decodeURIComponent`) within the `Papa.parse` Web Map Service (WMS) extraction matrix. This intercepts and cleans double-encoded URL characters (e.g., converting `%3A` back to `:`) originating from user-sniffed Network payloads. This sanitization prevents literal string collisions within the Leaflet `L.tileLayer.wms()` WebGL rendering engine.
+
 ### [v6.7.1]
 * **AppOrchestrator (v1.50.0) [MAP-80]:** Updated the `DEFAULT_BASEMAPS` schema and the `Papa.parse` block to ingest `format` and `wmsLayer` metadata. Injected the Dipylon 'Karten von Attika (Kaupert)' map configuration into the default registry.
 * **MapViewer (v3.30.0) [MAP-80]:** Refactored the `activeOverlays` rendering loop. Engineered a conditional router that intercepts WMS definitions and redirects them to the `L.tileLayer.wms` method, enabling real-time, bounding-box-driven institutional tile generation alongside standard XYZ overlays.
