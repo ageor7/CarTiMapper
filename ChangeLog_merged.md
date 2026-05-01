@@ -2,6 +2,17 @@
 All notable changes to this project will be documented in this file.
 
 
+### [v6.8.9] - Liquid Height Restoration & Layout Reset Protocol
+
+**AppOrchestrator (v1.54.4):**
+* **[UI-147]** Engineered a global `Reset Layout` command sequence within the main `☰ Menu` UI. Clicking the reset trigger fires a DOM dispatch loop that instantly zero-states the `--primary-split`, `--secondary-split`, and `--timeline-height` CSS variables back to their exact defaults (`50%`, `50%`, `20%`), guaranteeing a flawless recovery mechanism if mobile users accidentally distort the fluid panes.
+
+**TimelineScrubber (v24.2.6):**
+* **[PERF-20]** **Liquid Swimlane Restoration:** Reinstated the dynamic mathematical equation calculating the height of each tag lane (`Math.max(24, (containerHeight - 33) / Math.max(1, orderedTags.length))`). This perfectly synchronizes the JS rendering engine with the `min-height: 100%` pure-CSS constraint of the parent drawer, guaranteeing the swimlanes structurally stretch and compress relative to the current resizer height without generating graphic voids.
+
+**ContentSlider (v4.2.6):**
+* **[UI-148]** Repaired the `CarTiMapperLogo` baseline typographic alignment bug. Re-locked the SVG wrapper inside the `context="status"` return block to exactly `<div style="height: 22px;">`. This acts as an absolute physical boundary, forcing `align-items: baseline` to render the graphic flush from ascender to descender against the neighboring text strings.
+
 ### [v6.8.8] - Structural Bounds & Precision Mechanics Patch
 
 **AppOrchestrator (v1.54.3):**
