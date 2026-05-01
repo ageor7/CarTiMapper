@@ -1,6 +1,50 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+
+### [v6.8.1] - DOM Collision & UI Standardization Patch
+
+**TimelineScrubber (v24.1.0):**
+* **[UI-89]** Swapped spatial window control order to standard OS paradigm (Minimize `[_]` ➔ Maximize/Restore `[□]`).
+* **[UI-90]** Implemented strict responsive `@media (max-height: 500px)` query for Android landscape orientation. Automatically un-stacks temporal zoom controls into a horizontal flex-row to prevent bottom-axis clipping.
+* **[UI-91]** Repositioned the minimized Timeline Floating Action Button (FAB) to the absolute bottom-right. Injected `env(safe-area-inset-bottom)` to guarantee OS-level chrome (Safari URL bars, Android navigation) never occludes the touch target.
+* **[UI-92]** Applied `line-height: 0` and `display: block` to all SVG button containers, mathematically neutralizing phantom typographical baselines and achieving perfect pixel centering.
+* **[UI-93]** Restored full-height spatial consumption for the timeline track. The outer wrapper reverts to `height: 100%`, while the inner `.timeline-track-container` dynamically scales via `min-height` based on active swimlane counts.
+
+**MapViewer (v4.1.0):**
+* **[MAP-87]** Repositioned the dynamic radar Minimap to absolute `bottom-left` (`left: 15px`), acting as a geometric counter-weight to the right-aligned zoom/layer controls.
+* **[MAP-88]** Hardened the Layers overlay menu against viewport decapitation. Injected `max-height: 50vh; overflow-y: auto;`, forcing internal scrolling rather than clipping behind the `overflow: hidden` map bounds.
+* **[MAP-89]** Stripped `stroke` rendering from WKT Polygons to render pure, borderless fills. 
+* **[MAP-90]** Recalibrated Polyline `dashArray` to `8, 8`, enforcing a perfect 1:1 pixel/gap ratio for maximum contrast over complex basemaps.
+
+**ContentSlider (v4.1.0) & AppOrchestrator (v1.51.0):**
+* **[UI-94]** Upgraded the Splash Screen data injector. Replaced generic hardcoded text with active parsing of the Headless CMS payload (`aboutData.title`). Massively scaled the SVG logo to `500px` (clamped to `80vw`).
+* **[UI-95]** Architecturally partitioned the About Modal into three semantic hierarchies: Dataset Overview, Core Engine Telemetry, and Usage & Parameters (restoring Deep-Link URL instructions).
+* **[UI-96]** Re-engineered the Back (`↺`) SVG navigation icon. Shortened the geometric path arc to widen the white-space gap, ensuring it reads distinctly as a directional arrow at mobile scales.
+* **[UI-97]** Purged legacy `|` CSS border pipes from the temporal Span readout in the Status Bar.
+* **[UI-98]** Stripped all native `font-weight` (bolding) from the global Status Bar About button. Flex-anchored the version integer to the bottom (`align-items: flex-end`).
+
+**System Telemetry (VibeMonitor v2.1.1):**
+* **[PERF-13]** Overhauled spatial drag math. Deprecated `bottom` calculation vectors and anchored the monitor strictly to `top` and `left` viewport client coordinates, permanently neutralizing the mathematical inversion bug that launched the HUD off-screen during upward drags.
+
+### [v6.8.0] - The Architectural Consolidation Compile
+*   **Core UI / Engine:**
+    *   **[UI-80]** Purged custom/local overlays from the `DEFAULT_BASEMAPS` registry. Standardized global WebGIS basemaps (Carto, Esri, OSM, Protomaps).
+    *   **[UI-82]** Ripped out all OS-dependent emojis across the entire platform. Replaced with raw, color-inheriting SVGs for cross-platform contrast and dimensional stability.
+    *   **[UI-87]** Deployed strict CSS resets (`-webkit-appearance: none`) and "phantom hitboxes" to all interactive buttons to prevent Android text-scaling bloat while preserving 44px+ mobile touch targets.
+*   **MapViewer (v4.0.0):**
+    *   **[MAP-85]** Integrated dynamic, on-demand loading for MapLibre GL JS to support WebGL rendering of Protomaps vector tiles.
+    *   **[MAP-86]** Rerouted vector rendering to consume a local `style.json` to enable advanced cartographic layer casing and dynamic zoom interpolation.
+*   **TimelineScrubber (v24.0.0):**
+    *   **[UI-85]** Refactored control clusters. Split spatial window controls (Minimize/Maximize) from temporal navigation (Zoom/Lock).
+    *   **[UI-86]** Engineered "Drawer" collapse mechanics. Added a Floating Action Button (FAB) to restore the timeline when minimized to `0px`.
+    *   **[UI-84]** Added an SVG media indicator to timeline event blocks if the associated data contains photos or video.
+*   **MediaViewer (v2.11.0):**
+    *   **[UI-83]** Extracted external source links and the active image counter from individual carousel nodes. Locked them to a floating, top-right spatial axis for consistent accessibility.
+    *   **[PERF-12]** Implemented passive `onScroll` tracking to update the active media index, allowing the browser GPU to handle CSS scroll-snapping natively.
+*   **System Telemetry:**
+    *   **[UI-81]** Upgraded the `VibeMonitor` into a persistent, draggable HUD. Replaced absolute coordinates with fixed z-indexing to prevent clipping beneath the map canvas. Added a standard `[ X ]` close control.
+
 ### [v6.7.5]
 * **Style Engine (style.json v1.0.0) [MAP-86]:** Engineered and deployed a custom MapLibre-compatible stylesheet for Protomaps vector data. 
 * **Cartographic Upgrade:** Implemented Layer Casing for minor roads and major highways, allowing for dynamic pixel-width scaling across zoom levels 8 through 18.
