@@ -2,6 +2,22 @@
 All notable changes to this project will be documented in this file.
 
 
+### [v6.8.5] - Timeline Fluidity Restoration & Telemetry Polish
+
+**TimelineScrubber (v24.2.3):**
+* **[PERF-16]** **Structural Reversion (Swimlane Height):** Deprecated the mathematical height division equation. Reverted `laneHeight` to a hardcoded constant (`24px`). Restored native CSS `min-height` wrapping to the `.timeline-pane`, allowing the drawer to hug the data organically without generating distorted, oversized lane geometries.
+* **[UI-126]** **X-Axis Spatial Decluttering:** 
+    * Deployed a strict proximity-collision clamp (`distCurrent < 55`). The renderer calculates the absolute pixel distance between minor ticks and surrounding Major Ticks, completely suppressing minor strings before they overlap the full Date string.
+    * Overhauled the `minorLabel` output matrix. If the active scale is `hour`, the algorithm detects on-the-hour marks (`getMinutes() === 0`) and truncates the string from `22:00` to just `22`. This eliminates redundancy and massively declutters the horizontal axis during localized viewing.
+
+**ContentSlider (v4.2.3):**
+* **[UI-127]** Refined the Global Back SVG icon (`[↺]`). Re-plotted the mathematical arc to `a8.5 8.5` and terminated the path early, generating a wide geometric gap that distinctly reads as a "Rewind Arrow" rather than a broken circle.
+* **[UI-128]** Upgraded the Status Bar `CarTiMapperLogo` bounds. Hard-locked the SVG wrapper to `22px` height and enforced `align-items: baseline` on the adjacent text block, creating a pristine lockup that matches the top of the 'C' to the descender of the 'p'.
+* **[UI-129]** Restructured the 'About Modal' separators. Stripped the `border-bottom` beneath the logo and injected a `border-top: 1px solid #eee` immediately *above* it, physically sealing the Dataset Overview block from the Application Telemetry block.
+
+**AppOrchestrator (v1.54.0):**
+* **[UI-130]** Purged the dynamic `aboutData.title` string injection from the Splash Screen boots sequence, ensuring the `CarTiMapper` brand identity commands visual presence regardless of upstream data latency.
+
 ### [v6.8.4] - Hotfix: Timeline Physics Rescue
 
 **TimelineScrubber (v24.2.2):**
