@@ -2,6 +2,28 @@
 All notable changes to this project will be documented in this file.
 
 
+### [v6.8.8] - Structural Bounds & Precision Mechanics Patch
+
+**AppOrchestrator (v1.54.3):**
+* **[UI-136]** **Flex-Shrink Boundary Hardening:** Instructed `.map-pane` to operate strictly on `flex: 0 0 var(--secondary-split)` and injected absolute `min-height: 0; min-width: 0; flex-shrink: 0;` boundaries to both the map and media panes. This constructs an indestructible structural cage, permanently preventing high-resolution native imagery from crushing the map viewport into a `0x0` state on desktop displays.
+* **[UI-137]** Removed hardcoded JS variable overrides (`appRef.current.style.setProperty`) from the boot sequence, successfully delegating baseline dimension initialization entirely to the CSS `:root` node rendering tree.
+
+**ContentSlider (v4.2.5):**
+* **[UI-138]** **Status Bar Micro-Compression:** Shrunk horizontal padding inside `.status-btn-text` to `6px`, and reduced the internal central `.status-left` gap to a dense `2px`. This successfully clears the left geometric overhang on restrictive portrait screens (1080px width), allowing the Status Logo lockup to completely bypass the central UI cluster.
+* **[UI-139]** **Back Nav Path Re-Calculation:** Executed a mathematical adjustment of the SVG `<path d="M 12 4 A 8 8 0 1 0 20 12">`. It now traces a true 270-degree counter-clockwise arc, yielding a perfectly exposed top-right quadrant gap that unmistakably reads as a standard rewind icon, rather than an incomplete circle.
+* **[UI-140]** **Status Bar Ascender-Descender Lock:** Explicitly defined the Status Bar SVG bounds to exactly `16px`, forcing the bounding box to perfectly mimic the ascender height (top of 'C') to descender height (bottom of 'p') of the adjacent 0.85rem `CarTiMapper` brand typography.
+* **[UI-141]** Reverted `aboutData.title` in the `AppOrchestrator` splash screen pipeline to standard "CarTiMapper", maintaining instant core brand exposure during data ingestion loops. Increased the About window Core Engine SVG graphic base size to `240px`.
+
+**MediaViewer (v2.11.4):**
+* **[UI-142]** **Empty Space Spotlighting:** Adjusted the `.media-pane` background from absolute black to a softer slate (`#1e1e1e`) augmented with a dot-matrix overlay (`radial-gradient(#333 1px, transparent 1px)`). The `<img>` flex container is injected with an absolute center soft white `radial-gradient` acting as an optical spotlight. This visually decouples high-aspect ratio vertical portraits from the dark graphical void behind them.
+* **[UI-143]** Converted harsh black media-carousel action buttons to frosted glassmorphism elements (`background: rgba(255,255,255,0.15)`), harmonizing perfectly with the new slate backdrop matrix.
+
+**TimelineScrubber (v24.2.5):**
+* **[PERF-19]** **X-Axis Spatial Memory Logic:** Rewrote the primary rendering loop algorithm (`visibleLeftMs`). It now dynamically tracks the temporal scroll coordinate limit on the horizontal plane. The very first Major Tick to clear this scrolling boundary is mathematically granted the full date string (`isFirstVisibleMajor`), guaranteeing one persistent chronological label is always visible without crashing into surrounding labels.
+* **[UI-144]** **Minor Tick Kill-Zone Reduction:** Compressed the rendering threshold mask for minor ticks from `75px` to a localized `35px` radius (`distCurrent < 35 || distNext < 35`). This guarantees unsuppressed hours and minutes gracefully render deep within day-level zoom hierarchies, seamlessly avoiding the full-date major tick strings.
+* **[UI-145]** **Active Drop-Line CSS Re-Architecture:** Abrogated volatile relative JS pixel math determining the vertical length of the timeline drop-indicator. The drop-line and the triangle vector are now bound to pure absolute coordinates (`bottom: 0`). The `.event-group` parent itself is mathematically pushed to `bottom: 28px`—effectively locking the lower bound of every active event perfectly to the absolute top pixel edge of the 28px horizontal Axis strip.
+* **[UI-146]** Lifted the `.hasMedia` SVG indicator outside of the typographical flex-flow entirely, assigning it absolute coordinates (`left: 6px; top: 50%`) to let it optically center within the inner-left triangular point of the `.event-block` geometric hexagon.
+
 ### [v6.8.7] - Timeline Fluidity Expansion & Global CSS Variables
 
 **TimelineScrubber (v24.2.4):**
