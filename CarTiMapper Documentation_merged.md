@@ -1,5 +1,5 @@
 # CarTiMapper Engine Master Blueprint
-**Version:** v6.4.9 | **Date:** April 25, 2026
+**Version:** v6.7.5 | **Date:** May 1, 2026
 
 **Source Repositories:**
 * **CarTiMapper App:** 'CarTiMapper/cartimapper.v6.html at main · ageor7/CarTiMapper' (<https://github.com/ageor7/CarTiMapper/blob/main/index.html>)
