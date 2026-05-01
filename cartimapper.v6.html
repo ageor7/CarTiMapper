@@ -82,7 +82,8 @@
         .visual-pane.no-media .media-pane { display: none !important; }
         
         .map-pane { background: #e0e0e0; position: relative; }
-        .media-pane { position: relative; overflow: hidden; background: #111; display: flex; flex-direction: column; }
+        /* [FIX: MED-26] Media Pane Aesthetic Upgrade */
+        .media-pane { position: relative; overflow: hidden; background-color: #1e1e1e; background-image: radial-gradient(#333 1px, transparent 1px); background-size: 20px 20px; display: flex; flex-direction: column; }
         .content-slider-pane { background: var(--paneBg); overflow: hidden; display: flex; flex-direction: column; }
         .timeline-pane { background: #ececec; display: flex; flex-direction: column; position: relative; overflow: hidden; transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
         
@@ -181,8 +182,8 @@
         
         .semantic-time-span { font-size: 0.75rem; color: #007acc; padding: 0 5px; margin: 0; display: flex; align-items: center; height: 20px;}
         
-        #about-modal, #search-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 700px; max-height: 85vh; background: #fff; z-index: 9001; border-radius: 12px; padding: 30px; overflow-y: auto; display: none; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid #ccc; color: #222; font-size: 1.1rem; }
-        #about-modal.open, #search-modal.open { display: block; }
+        #about-modal, #search-modal, #settings-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 700px; max-height: 85vh; background: #fff; z-index: 9001; border-radius: 12px; padding: 30px; overflow-y: auto; display: none; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid #ccc; color: #222; font-size: 1.1rem; }
+        #about-modal.open, #search-modal.open, #settings-modal.open { display: block; }
         .modal-close { position: absolute; top: 15px; right: 15px; border: none; background: none; font-size: 1.5rem; cursor: pointer; color: #999; outline: none; }
         .modal-close:hover { color: #222; }
         
@@ -195,9 +196,9 @@
         /* --- [ End SubBlock: Status Bar & Modals ] --- */
 
         /* --- [ SubBlock: Timeline UI & Leaflet Controls ] --- */
-        .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-y: hidden; overflow-x: auto; position: relative; display: flex; flex-direction: column; align-items: flex-start; cursor: grab; }
+        .timeline-scroll-wrapper { width: 100%; height: 100%; overflow-y: hidden; overflow-x: auto; position: relative; display: flex; align-items: flex-start; cursor: grab; }
         .timeline-scroll-wrapper:active { cursor: grabbing; }
-        .timeline-track-container { position: relative; min-height: 100%; flex-grow: 1; }
+        .timeline-track-container { position: relative; height: 100%; min-width: 100%; }
         .tag-lane { border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; box-sizing: border-box; width: 100%; position: absolute; left: 0; right: 0; }
         .tag-lane-label { position: sticky; left: 0; z-index: 100; padding: 0 10px; font-size: 0.75rem; color: #555; display: flex; align-items: center; height: 100%; background: inherit; border-right: 1px solid #ccc; box-shadow: 2px 0 4px rgba(0,0,0,0.05);}
         .event-group { position: absolute; z-index: 10; transition: z-index 0.2s; display: flex; align-items: flex-start; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.15)); }
@@ -209,7 +210,8 @@
             clip-path: polygon( 0 calc(50% - (var(--lane-h) / 2) + 0.5px), var(--diag-w) 0, 100% 0, 100% 100%, var(--diag-w) 100%, 0 calc(50% + (var(--lane-h) / 2) - 0.5px) );
         }
         .event-block:hover { filter: brightness(1.05); z-index: 40; }
-        .timeline-axis { position: sticky; bottom: 0; left: 0; right: 0; height: 28px; background: #e0e0e0; border-top: 2px solid #999; z-index: 5; margin-top: auto; }
+        
+        .timeline-axis { position: absolute; bottom: 0; left: 0; right: 0; height: 28px; background: #e0e0e0; border-top: 2px solid #999; z-index: 5; }
         .timeline-ruler-tick { position: absolute; bottom: 3px; display: flex; flex-direction: column; align-items: center; z-index: 5; transform: translateX(-50%); font-size: 0.7rem; color: #555;}
         
         .timeline-control-cluster { position: absolute; right: 15px; z-index: 1000; display: flex; flex-direction: column; box-shadow: 0 1px 5px rgba(0,0,0,0.4); border-radius: 4px; background: #fff; border: 1px solid #ccc; overflow: hidden; }
@@ -238,16 +240,16 @@
 <body>
     <div id="root"></div>
     <script type="module">
-        // === [ MAJOR BLOCK: Imports & Globals v6.8.2 ] ===
+        // === [ MAJOR BLOCK: Imports & Globals v6.8.3 ] ===
         import { h, render, Component } from 'https://esm.sh/preact';
         import { useState, useEffect, useLayoutEffect, useRef } from 'https://esm.sh/preact/hooks';
         import htm from 'https://esm.sh/htm';
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.8.2';
+        const APP_VERSION = 'v6.8.3';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
-        const MODULE_VERSIONS = { Styles: 'v4.13.2', Globals: 'v1.0.57' }; 
+        const MODULE_VERSIONS = { Styles: 'v4.13.3', Globals: 'v1.0.58' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
         // === [ END MAJOR BLOCK ] ===
 
@@ -271,7 +273,7 @@
         }
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: VibeMonitor v2.1.2 ] ===
+        // === [ MAJOR BLOCK: VibeMonitor v2.1.3 ] ===
         const VibeMonitor = ({ logs, status, isOpen, setIsOpen, activeSlide, appVersion, moduleVersions }) => {
             const logsEndRef = useRef(null);
             const monitorRef = useRef(null);
@@ -282,7 +284,9 @@
 
             useEffect(() => {
                 if (!hasInitPos.current) {
-                    setPos({ x: Math.max(10, window.innerWidth - 340), y: Math.max(10, window.innerHeight - 300) });
+                    const isDesktop = window.innerWidth >= 1024;
+                    const containerWidth = isDesktop ? window.innerWidth * 0.5 : window.innerWidth;
+                    setPos({ x: Math.max(10, containerWidth - 340), y: Math.max(10, window.innerHeight - 300) });
                     hasInitPos.current = true;
                 }
             }, []);
@@ -330,8 +334,8 @@
         };
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v4.1.1 ] ===
-        const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, basemapsRegistry, maxAutoZoom, minimapOffset, maxPane, setMaxPane, polygonOpacity }) => {
+        // === [ MAJOR BLOCK: MapViewer v4.1.2 ] ===
+        const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, basemapsRegistry, maxAutoZoom, minimapOffset, maxPane, setMaxPane, polygonOpacity, showButtonText }) => {
             const mapDomRef = useRef(null);
             const miniMapDomRef = useRef(null);
             
@@ -731,10 +735,10 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v4.1.1';
+        MODULE_VERSIONS['MapViewer'] = 'v4.1.2';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: MediaViewer v2.11.2 ] ===
+        // === [ MAJOR BLOCK: MediaViewer v2.11.3 ] ===
         const MediaViewer = ({ activeSlide, maxPane, setMaxPane }) => {
             const carouselRef = useRef(null);
             const [activeMediaIdx, setActiveMediaIdx] = useState(0);
@@ -776,7 +780,7 @@
                     const videoId = url.includes('v=') ? url.split('v=')[1].split('&')[0] : url.split('/').pop().split('?')[0];
                     return html`<div style="flex-grow: 1; width: 100%; min-height: 0; display: flex;"><iframe src="https://www.youtube.com/embed/${videoId}" style="width:100%; height:100%; border:none;" allowfullscreen></iframe></div>`;
                 }
-                return html`<div style="flex-grow: 1; display: flex; width: 100%; min-height: 0; align-items: center; justify-content: center;"><img src=${url} alt="Media" loading="lazy" style="max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: none;" /></div>`;
+                return html`<div style="flex-grow: 1; display: flex; width: 100%; min-height: 0; align-items: center; justify-content: center; background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);"><img src=${url} alt="Media" loading="lazy" style="max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: none;" /></div>`;
             };
 
             const currentCleanUrl = getCleanUrl(mediaItems[activeMediaIdx] || '');
@@ -815,11 +819,11 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['MediaViewer'] = 'v2.11.2';
+        MODULE_VERSIONS['MediaViewer'] = 'v2.11.3';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: ContentSlider v4.2.0 ] ===
-        const ContentSlider = ({ data, activeIndex, setActiveIndex, jumpToSlide, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo, visibleTimeSpan, maxPane, setMaxPane }) => {
+        // === [ MAJOR BLOCK: ContentSlider v4.2.1 ] ===
+        const ContentSlider = ({ data, activeIndex, setActiveIndex, jumpToSlide, slideHistory, goBack, aboutData, isAboutOpen, setIsAboutOpen, isMonitorOpen, setIsMonitorOpen, isSettingsOpen, setIsSettingsOpen, CarTiMapperLogo, visibleTimeSpan, maxPane, setMaxPane, showButtonText }) => {
             const [isMenuOpen, setIsMenuOpen] = useState(false);
             const touchStartX = useRef(0);
             const [isScrolled, setIsScrolled] = useState(false);
@@ -906,8 +910,9 @@
 
                     <div class="unified-status-bar" style="flex-shrink: 0; z-index: 20;">
                         <div class="status-left" style="position: relative;">
-                            <button class="status-btn" onClick=${(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen); }} title="Menu">
+                            <button class="${showButtonText ? 'status-btn-text' : 'status-btn'}" onClick=${(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen); }} title="Menu">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                                ${showButtonText ? html`<span>Menu</span>` : ''}
                             </button>
 
                             ${isMenuOpen ? html`
@@ -925,20 +930,23 @@
                         </div>
                         
                         <div class="status-center">
-                            <button class="status-btn-text" onClick=${goPrev} disabled=${activeIndex === 0} title="Previous">
+                            <button class="${showButtonText ? 'status-btn-text' : 'status-btn'}" onClick=${goPrev} disabled=${activeIndex === 0} title="Previous">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                                ${showButtonText ? html`<span>Prev</span>` : ''}
                             </button>
                             <span class="semantic-time-span" title="Visible Time Span">${visibleTimeSpan || '...'}</span>
-                            <button class="status-btn-text" onClick=${goNext} disabled=${activeIndex === data.length - 1} title="Next">
+                            <button class="${showButtonText ? 'status-btn-text' : 'status-btn'}" onClick=${goNext} disabled=${activeIndex === data.length - 1} title="Next">
+                                ${showButtonText ? html`<span>Next</span>` : ''}
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                             </button>
                         </div>
                         
                         <div class="status-right">
-                            <button class="status-btn" onClick=${() => setIsSearchOpen(true)} title="Search">
+                            <button class="${showButtonText ? 'status-btn-text' : 'status-btn'}" onClick=${() => setIsSearchOpen(true)} title="Search">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                ${showButtonText ? html`<span>Search</span>` : ''}
                             </button>
-                            ${slideHistory && slideHistory.length > 0 ? html`<button class="status-btn" onClick=${goBack} title="Back to Previous Slide"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-7"></path><polyline points="3 3 3 8 8 8"></polyline></svg></button>` : ''}
+                            ${slideHistory && slideHistory.length > 0 ? html`<button class="${showButtonText ? 'status-btn-text' : 'status-btn'}" onClick=${goBack} title="Back to Previous Slide"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-7"></path><polyline points="3 3 3 8 8 8"></polyline></svg>${showButtonText ? html`<span>Back</span>` : ''}</button>` : ''}
                             <span style="font-size: 0.85rem; color: #666; font-family: monospace;">${activeIndex + 1} / ${data.length}</span>
                         </div>
                     </div>
@@ -974,6 +982,7 @@
                                 <li><code>&gid=ID</code> : Load a specific dataset tab ID.</li>
                                 <li><code>&bgid=ID</code> : Load a specific basemap registry tab ID.</li>
                                 <li><code>&slide=X</code> : Deep-link directly to chronological event X.</li>
+                                <li><code>&date=YYYY-MM-DD</code> : Deep-link to the closest absolute temporal event.</li>
                                 <li><strong>Panes & Media:</strong> Maximize [□] panes, scroll media horizontally.</li>
                                 <li><strong>Timeline:</strong> Drag to pan, scroll to zoom. Use Drawer controls to manage height.</li>
                             </ul>
@@ -983,10 +992,10 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['ContentSlider'] = 'v4.2.0';
+        MODULE_VERSIONS['ContentSlider'] = 'v4.2.1';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v24.2.0 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v24.2.1 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan, isTimelineExpanded, setIsTimelineExpanded, isTimelineMinimized, setIsTimelineMinimized }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -995,14 +1004,6 @@
             const prevActiveIndexRef = useRef(-1);
             const scrollTargetRef = useRef(null);
             const scrollTimeout = useRef(null);
-            
-            const [containerHeight, setContainerHeight] = useState(200);
-            const [viewLeftEdge, setViewLeftEdge] = useState(0);
-
-            useEffect(() => {
-                const measure = () => { if (wrapperRef.current) setContainerHeight(wrapperRef.current.clientHeight); };
-                measure(); window.addEventListener('resize', measure); return () => window.removeEventListener('resize', measure);
-            }, []);
 
             const getParsedTags = (rawTagsArray) => {
                 if (!rawTagsArray || rawTagsArray.length === 0) return ['Untagged'];
@@ -1033,8 +1034,6 @@
             }
 
             const laneHeight = 24;
-            const minInnerHeight = (orderedTags.length * laneHeight) + 40; 
-
             const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
             const minTimeRaw = validData.length > 0 ? validData[0].startDate.getTime() : new Date().getTime();
             let maxTimeRaw = minTimeRaw;
@@ -1088,7 +1087,7 @@
                     const containerW = wrapperRef.current.clientWidth || 1000;
                     const targetTrackW = Math.max(containerW, containerW * zoomLevel);
                     const scrollPos = ((sT - renderMinTime) / renderTimeRange * targetTrackW) + (pxWidth / 2) - (containerW / 2);
-                    wrapperRef.current.scrollTo({ left: scrollPos, behavior: 'smooth' }); setViewLeftEdge(Math.max(0, scrollPos));
+                    wrapperRef.current.scrollTo({ left: scrollPos, behavior: 'smooth' }); 
                 }
             }, [activeIndex]);
 
@@ -1119,7 +1118,7 @@
             }, [activeIndex, data, zoomLock, setZoomLock]); 
 
             useLayoutEffect(() => {
-                if (scrollTargetRef.current !== null && wrapperRef.current) { wrapperRef.current.scrollTo({ left: scrollTargetRef.current, behavior: 'auto' }); setViewLeftEdge(Math.max(0, scrollTargetRef.current)); scrollTargetRef.current = null; }
+                if (scrollTargetRef.current !== null && wrapperRef.current) { wrapperRef.current.scrollTo({ left: scrollTargetRef.current, behavior: 'auto' }); scrollTargetRef.current = null; }
             }, [zoomLevel]);
 
             const handleManualZoom = (newZoom, centerType = 'center', eventX = 0) => {
@@ -1137,14 +1136,13 @@
                 const x = e.touches ? e.touches[0].clientX : e.clientX;
                 dragRef.current = { isDragging: true, startX: x - wrapperRef.current.offsetLeft, scrollLeft: wrapperRef.current.scrollLeft }; wrapperRef.current.classList.add('is-dragging'); 
             };
-            const onUp = () => { dragRef.current.isDragging = false; wrapperRef.current?.classList.remove('is-dragging'); if (wrapperRef.current) setViewLeftEdge(wrapperRef.current.scrollLeft); };
+            const onUp = () => { dragRef.current.isDragging = false; wrapperRef.current?.classList.remove('is-dragging'); };
             const onMove = (e) => {
                 if (e.touches && e.touches.length === 2) { e.preventDefault(); const scale = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY) / touchZoomRef.current.initialDist; handleManualZoom(Math.min(Math.max(touchZoomRef.current.initialZoom * scale, 1), 500), 'center'); return; }
                 if (!dragRef.current.isDragging) return; if (!e.touches) e.preventDefault(); 
                 wrapperRef.current.scrollLeft = dragRef.current.scrollLeft - (((e.touches ? e.touches[0].clientX : e.clientX) - wrapperRef.current.offsetLeft - dragRef.current.startX) * 2);
             };
             const onWheel = (e) => { e.preventDefault(); if (zoomLock !== 'hard') setZoomLock('soft'); handleManualZoom(e.deltaY < 0 ? Math.min(zoomLevel * 1.5, 500) : Math.max(zoomLevel / 1.5, 1), 'mouse', e.clientX - wrapperRef.current.getBoundingClientRect().left); };
-            const onScroll = () => { if (scrollTimeout.current) clearTimeout(scrollTimeout.current); scrollTimeout.current = setTimeout(() => { if (wrapperRef.current) setViewLeftEdge(wrapperRef.current.scrollLeft); }, 100); };
 
             if (validData.length === 0) return html`<div style="padding:1rem;">No valid temporal data.</div>`;
 
@@ -1170,21 +1168,14 @@
             else if (activeScale.type === 'hour') { iterDate.setMinutes(0,0); iterDate.setHours(Math.floor(iterDate.getHours() / activeScale.step) * activeScale.step); }
             else if (activeScale.type === 'minute') { iterDate.setSeconds(0); iterDate.setMinutes(Math.floor(iterDate.getMinutes() / activeScale.step) * activeScale.step); }
 
-            let safety = 0; let expectedVisibleMinWithBuffer = renderMinTime + ((viewLeftEdge + 60) / trackWidthPx) * renderTimeRange;
-            let firstVisibleMajorTickTime = null; let firstVisibleMajorTickPx = -1;
-
+            let safety = 0; 
             while (iterDate.getTime() <= renderMaxTime && safety < 2000) {
                 safety++; const t = iterDate.getTime();
                 if (t >= renderMinTime) {
-                    const pctLeft = ((t - renderMinTime) / renderTimeRange) * 100; const currentTickPx = (pctLeft / 100) * trackWidthPx;
-                    let label = ''; let isFirstVisibleMajor = false;
-                    
-                    if (t >= expectedVisibleMinWithBuffer && firstVisibleMajorTickTime === null) { firstVisibleMajorTickTime = t; firstVisibleMajorTickPx = currentTickPx; isFirstVisibleMajor = true; }
-                    if (isFirstVisibleMajor) label = iterDate.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: (activeScale.type==='hour'||activeScale.type==='minute')?'2-digit':undefined, minute: (activeScale.type==='hour'||activeScale.type==='minute')?'2-digit':undefined });
-                    else {
-                        if (activeScale.type === 'year') label = iterDate.getFullYear(); else if (activeScale.type === 'month') label = iterDate.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
-                        else if (activeScale.type === 'day') label = iterDate.toLocaleString('en-GB', { day: 'numeric', month: 'short' }); else if (activeScale.type === 'hour' || activeScale.type === 'minute') label = iterDate.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
-                    }
+                    const pctLeft = ((t - renderMinTime) / renderTimeRange) * 100;
+                    let label = '';
+                    if (activeScale.type === 'year') label = iterDate.getFullYear(); else if (activeScale.type === 'month') label = iterDate.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
+                    else if (activeScale.type === 'day') label = iterDate.toLocaleString('en-GB', { day: 'numeric', month: 'short' }); else if (activeScale.type === 'hour' || activeScale.type === 'minute') label = iterDate.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
                     rulerTicks.push(html`<div class="timeline-ruler-tick" style="left: ${pctLeft}%;"><div style="width: 2px; height: 10px; background: #666; margin-bottom: 2px;"></div><div style="font-size: 0.75rem; color: #444; white-space: nowrap;">${label}</div></div>`);
                 }
 
@@ -1204,8 +1195,7 @@
                     if (minorT >= renderMinTime && minorT <= renderMaxTime) {
                         const minorTickPx = (((minorT - renderMinTime) / renderTimeRange) * 100 / 100) * trackWidthPx;
                         const gapPx = minorTickPx - ((t - renderMinTime) / renderTimeRange) * trackWidthPx; 
-                        let hideMinor = firstVisibleMajorTickPx !== -1 && minorTickPx >= firstVisibleMajorTickPx - 65 && minorTickPx <= firstVisibleMajorTickPx + 65;
-                        if (!hideMinor && gapPx > 15) { 
+                        if (gapPx > 15) { 
                             let minorLabel = '';
                             if (gapPx > 28) { 
                                 if (activeScale.minorType === 'year') minorLabel = minorIter.getFullYear(); else if (activeScale.minorType === 'month') minorLabel = minorIter.toLocaleString('en-GB', { month: 'short' });
@@ -1226,14 +1216,13 @@
                 const tagIndices = getParsedTags(item.tags).map(t => orderedTags.indexOf(t)).filter(idx => idx !== -1);
                 const topPos = ((tagIndices.length > 0 ? Math.min(...tagIndices) : 0) * laneHeight) + 5;
                 const blockHeight = ((tagIndices.length > 0 ? Math.max(...tagIndices) : 0) - (tagIndices.length > 0 ? Math.min(...tagIndices) : 0) + 1) * laneHeight; 
-                const distanceToAxis = (Math.max(containerHeight, minInnerHeight) - 28) - topPos; 
-
+                
                 const { lines, pxWidth } = formatLabelSmart(stripHTML(item.title));
                 const hasMedia = item.media && item.media.length > 0;
 
                 return html`
                     <div id="timeline-marker-${globalIndex}" class="event-group ${isActive ? 'active' : ''}" style="left: ${startPct}%; top: ${topPos}px; height: ${blockHeight}px; ${hasDuration ? `width: ${endPct - startPct}%; min-width: 4px;` : `width: ${pxWidth}px;`}" onClick=${() => setActiveIndex(globalIndex)}>
-                        ${isActive ? html`<div style="position: absolute; left: 0; top: 50%; height: ${distanceToAxis - (blockHeight / 2)}px; width: 2px; background: #007acc; z-index: 999;"></div><div style="position: absolute; top: ${distanceToAxis - (hasDuration ? 16 : 4)}px; left: ${hasDuration ? '0' : '-3px'}; width: ${hasDuration ? '100%' : '6px'}; min-width: ${hasDuration ? '2px' : 'auto'}; height: ${hasDuration ? '16px' : '6px'}; ${hasDuration ? 'background: rgba(0,122,204,0.3); clip-path: polygon(0 0, 100% calc(100% - 5px), 100% 100%, 0 100%); filter: drop-shadow(0 2px 2px rgba(0,122,204,0.4));' : 'border-radius: 50%; background: #007acc; border: 1px solid #fff; box-sizing: content-box;'} z-index: 998;"></div>` : ''}
+                        ${isActive ? html`<div style="position: absolute; left: 0; top: ${blockHeight / 2}px; bottom: -28px; width: 2px; background: #007acc; z-index: 999;"></div><div style="position: absolute; bottom: -28px; left: ${hasDuration ? '0' : '-3px'}; width: ${hasDuration ? '100%' : '6px'}; min-width: ${hasDuration ? '2px' : 'auto'}; height: ${hasDuration ? '16px' : '6px'}; ${hasDuration ? 'background: rgba(0,122,204,0.3); clip-path: polygon(0 0, 100% calc(100% - 5px), 100% 100%, 0 100%); filter: drop-shadow(0 2px 2px rgba(0,122,204,0.4));' : 'border-radius: 50%; background: #007acc; border: 1px solid #fff; box-sizing: content-box;'} z-index: 998;"></div>` : ''}
                         <div class="event-block" style="position: absolute; top: 50%; transform: translateY(-50%); left: 0; --lane-h: ${laneHeight}px; background: ${isActive ? '#007acc' : '#f4f4f5'}; color: ${isActive ? '#fff' : '#444'}; z-index: 5; width: ${pxWidth}px;">
                             <div class="event-text" style="display: flex; align-items: center; gap: 0;">
                                 ${hasMedia ? html`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-right: 6px; margin-left: 2px; opacity: 0.8;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>` : ''}
@@ -1272,7 +1261,7 @@
                     </div>
 
                     <div class="timeline-scroll-wrapper" ref=${wrapperRef} onScroll=${onScroll} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${onWheel}>
-                        <div class="timeline-track-container" style="width: ${trackWidthPx}px; flex-shrink: 0; min-height: ${minInnerHeight}px;">
+                        <div class="timeline-track-container" style="width: ${trackWidthPx}px; flex-shrink: 0;">
                             <div style="position: absolute; top: 5px; left: 0; right: 0; bottom: 33px; pointer-events: none; z-index: 0;">
                                 ${orderedTags.map((tag, i) => html`<div class="tag-lane" style="top: ${i * laneHeight}px; height: ${laneHeight}px; background: ${i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent'};"><div class="tag-lane-label" style="background: ${i % 2 === 0 ? '#f4f4f4' : '#fcfcfc'}; pointer-events: auto;">${tag}</div></div>`)}
                             </div>
@@ -1283,10 +1272,10 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v24.2.0';
+        MODULE_VERSIONS['TimelineScrubber'] = 'v24.2.1';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.52.0 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.53.0 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]); const [rawCsvRows, setRawCsvRows] = useState([]); const [data, setData] = useState([]);
             const [aboutData, setAboutData] = useState(null); const [status, setStatus] = useState({ text: 'Initializing Engine...', progress: 10, isFading: false, active: false });
@@ -1296,7 +1285,9 @@
             const [maxPane, setMaxPane] = useState(null); 
             const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
             const [isTimelineMinimized, setIsTimelineMinimized] = useState(false);
+            
             const [polygonOpacity, setPolygonOpacity] = useState(0.4);
+            const [showButtonText, setShowButtonText] = useState(() => { try { return JSON.parse(localStorage.getItem('tm_show_button_text')) ?? true; } catch(e) { return true; } });
 
             const DEFAULT_BASEMAPS = [
                 { id: 'carto-light', label: 'CartoDB Light', type: 'base', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', format: 'xyz', maxZoom: 19, active: true, attrText: '© CartoDB', attrLink: 'https://carto.com/attributions', defaultOpacity: 1.0 },
@@ -1419,10 +1410,10 @@
             }, [rawCsvRows]);
 
             const CarTiMapperLogo = ({ context, appVersion }) => {
-                const svgIcon = html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 0 165 100" style="width: 100%; height: auto; display: block;"><defs><filter id="dot-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs><path d="M28,38 L45,15 L180,15 L180,85 L45,85 L28,62 Z" fill="#222" stroke="#007acc" stroke-width="2.5" stroke-linejoin="round"/><g fill="#fff" opacity="0.9"><rect x="55" y="19" width="4" height="6" rx="1" /><rect x="71" y="19" width="4" height="6" rx="1" /><rect x="87" y="19" width="4" height="6" rx="1" /><rect x="103" y="19" width="4" height="6" rx="1" /><rect x="119" y="19" width="4" height="6" rx="1" /><rect x="135" y="19" width="4" height="6" rx="1" /><rect x="151" y="19" width="4" height="6" rx="1" /><rect x="167" y="19" width="4" height="6" rx="1" /><rect x="55" y="75" width="4" height="6" rx="1" /><rect x="71" y="75" width="4" height="6" rx="1" /><rect x="87" y="75" width="4" height="6" rx="1" /><rect x="103" y="75" width="4" height="6" rx="1" /><rect x="119" y="75" width="4" height="6" rx="1" /><rect x="135" y="75" width="4" height="6" rx="1" /><rect x="151" y="75" width="4" height="6" rx="1" /><rect x="167" y="75" width="4" height="6" rx="1" /></g><g transform="translate(112, 50)"><path d="M0,-28 L4,-6 L28,0 L4,6 L0,28 L-4,6 L-28,0 L-4,-6 Z" fill="#444" opacity="0.8"/><g fill="#fcfcfc" font-family="Arial, sans-serif" font-size="7" font-weight="normal" text-anchor="middle"><text x="0" y="-21">N</text><text x="24" y="2.5">E</text><text x="0" y="27">S</text><text x="-24" y="2.5">W</text></g><g fill="#8be9fd" filter="url(#dot-glow)"><circle cx="12.5" cy="-21.6" r="1.2" /><circle cx="21.6" cy="-12.5" r="1.2" /><circle cx="21.6" cy="12.5" r="1.2" /><circle cx="12.5" cy="21.6" r="1.2" /><circle cx="-12.5" cy="21.6" r="1.2" /><circle cx="-21.6" cy="12.5" r="1.2" /><circle cx="-21.6" cy="-12.5" r="1.2" /><circle cx="-12.5" cy="-21.6" r="1.2" /></g><g transform="rotate(60)"><path d="M0,0 L-1,-16 L1,-16 Z" fill="#999" /><circle cx="0" cy="-20" r="2.8" fill="#007acc" /></g><g transform="rotate(270)"><path d="M0,0 L-1.2,-9 L1.2,-9 Z" fill="#999" /><circle cx="0" cy="-13" r="2.8" fill="#28a745" /></g><circle cx="0" cy="0" r="1.5" fill="#fff" /></g></svg>`;
+                const svgIcon = html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 0 165 100" style="width: 100%; height: auto; display: block;"><defs><filter id="dot-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs><path d="M28,38 L45,15 L180,15 L180,85 L45,85 L28,62 Z" fill="#2c3e50" stroke="#007acc" stroke-width="2.5" stroke-linejoin="round"/><g fill="#fff" opacity="0.9"><rect x="55" y="19" width="4" height="6" rx="1" /><rect x="71" y="19" width="4" height="6" rx="1" /><rect x="87" y="19" width="4" height="6" rx="1" /><rect x="103" y="19" width="4" height="6" rx="1" /><rect x="119" y="19" width="4" height="6" rx="1" /><rect x="135" y="19" width="4" height="6" rx="1" /><rect x="151" y="19" width="4" height="6" rx="1" /><rect x="167" y="19" width="4" height="6" rx="1" /><rect x="55" y="75" width="4" height="6" rx="1" /><rect x="71" y="75" width="4" height="6" rx="1" /><rect x="87" y="75" width="4" height="6" rx="1" /><rect x="103" y="75" width="4" height="6" rx="1" /><rect x="119" y="75" width="4" height="6" rx="1" /><rect x="135" y="75" width="4" height="6" rx="1" /><rect x="151" y="75" width="4" height="6" rx="1" /><rect x="167" y="75" width="4" height="6" rx="1" /></g><g transform="translate(112, 50)"><path d="M0,-28 L4,-6 L28,0 L4,6 L0,28 L-4,6 L-28,0 L-4,-6 Z" fill="#546e7a" opacity="0.8"/><g fill="#fcfcfc" font-family="Arial, sans-serif" font-size="7" font-weight="normal" text-anchor="middle"><text x="0" y="-21">N</text><text x="24" y="2.5">E</text><text x="0" y="27">S</text><text x="-24" y="2.5">W</text></g><g fill="#8be9fd" filter="url(#dot-glow)"><circle cx="12.5" cy="-21.6" r="1.2" /><circle cx="21.6" cy="-12.5" r="1.2" /><circle cx="21.6" cy="12.5" r="1.2" /><circle cx="12.5" cy="21.6" r="1.2" /><circle cx="-12.5" cy="21.6" r="1.2" /><circle cx="-21.6" cy="12.5" r="1.2" /><circle cx="-21.6" cy="-12.5" r="1.2" /><circle cx="-12.5" cy="-21.6" r="1.2" /></g><g transform="rotate(60)"><path d="M0,0 L-1,-16 L1,-16 Z" fill="#999" /><circle cx="0" cy="-20" r="2.8" fill="#007acc" /></g><g transform="rotate(270)"><path d="M0,0 L-1.2,-9 L1.2,-9 Z" fill="#999" /><circle cx="0" cy="-13" r="2.8" fill="#28a745" /></g><circle cx="0" cy="0" r="1.5" fill="#fff" /></g></svg>`;
                 if (context === 'splash') return html`<div class="logo-stack-splash"><div class="splash-icon-wrapper">${svgIcon}</div><div class="splash-text" dangerouslySetInnerHTML=${{__html: aboutData ? aboutData.title : 'Loading...'}}></div><div class="splash-version">${appVersion}</div></div>`;
-                if (context === 'status') return html`<div style="display: flex; align-items: center; gap: 6px; height: 100%;"><div style="height: 18px; display: flex; align-items: center;">${svgIcon}</div><div style="display: flex; align-items: baseline; gap: 4px;"><span style="font-size: 0.85rem; color: #444; letter-spacing: -0.3px;">CarTiMapper</span><span style="font-size: 0.65rem; color: #888;">${appVersion}</span></div></div>`;
-                return html`<div style="display: flex; align-items: center; gap: 20px; margin-bottom: 25px;"><div style="width: 140px; height: auto;">${svgIcon}</div><div style="display: flex; align-items: baseline; gap: 8px;"><h2 style="margin: 0; font-size: 2rem; color: #222; letter-spacing: -1px; line-height: 1;">CarTiMapper</h2><div style="font-family: monospace; color: #007acc; font-size: 0.95rem; font-weight: 600;">Core Engine ${appVersion}</div></div></div>`;
+                if (context === 'status') return html`<div style="display: flex; align-items: center; gap: 6px; height: 100%;"><div style="width: 18px; display: flex; align-items: center;">${svgIcon}</div><div style="display: flex; align-items: baseline; gap: 4px;"><span style="font-size: 0.85rem; color: #444; letter-spacing: -0.3px;">CarTiMapper</span><span style="font-size: 0.65rem; color: #888;">${appVersion}</span></div></div>`;
+                return html`<div style="display: flex; align-items: center; gap: 20px; margin-bottom: 25px;"><div style="width: 180px; height: auto; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));">${svgIcon}</div><div style="display: flex; flex-direction: column; justify-content: center;"><h2 style="margin: 0; font-size: 2.2rem; color: #222; letter-spacing: -1px; line-height: 1;">CarTiMapper</h2><div style="font-family: monospace; color: #007acc; font-size: 0.95rem; font-weight: 600; margin-top: 4px;">${appVersion}</div></div></div>`;
             };
 
             const activeSlide = data[activeIndex]; const hasMedia = activeSlide && activeSlide.media && activeSlide.media.length > 0;
@@ -1437,7 +1428,7 @@
                             <div class="core-viewports ${maxPane ? 'max-' + maxPane : ''}">
                                 <div class="visual-pane ${hasMedia ? '' : 'no-media'}">
                                     <div class="map-pane">
-                                        <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} maxAutoZoom=${maxAutoZoom} minimapOffset=${minimapOffset} basemapsRegistry=${basemapsRegistry} maxPane=${maxPane} setMaxPane=${setMaxPane} polygonOpacity=${polygonOpacity} />
+                                        <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} maxAutoZoom=${maxAutoZoom} minimapOffset=${minimapOffset} basemapsRegistry=${basemapsRegistry} maxPane=${maxPane} setMaxPane=${setMaxPane} polygonOpacity=${polygonOpacity} showButtonText=${showButtonText} />
                                         <${VibeMonitor} logs=${logs} status=${status.text} isOpen=${isMonitorOpen} setIsOpen=${setIsMonitorOpen} activeSlide=${activeSlide} appVersion=${APP_VERSION} moduleVersions=${MODULE_VERSIONS} />
                                     </div>
                                     <div class="resizer-dyn-secondary" onMouseDown=${startSecondaryResize} onTouchStart=${startSecondaryResize}></div>
@@ -1445,7 +1436,7 @@
                                 </div>
                                 <div class="resizer-dyn-primary" onMouseDown=${startPrimaryResize} onTouchStart=${startPrimaryResize}></div>
                                 <div class="content-slider-pane">
-                                    <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} jumpToSlide=${jumpToSlide} slideHistory=${slideHistory} goBack=${goBack} aboutData=${aboutData} isAboutOpen=${isAboutOpen} setIsAboutOpen=${setIsAboutOpen} isMonitorOpen=${isMonitorOpen} setIsMonitorOpen=${setIsMonitorOpen} isSettingsOpen=${isSettingsOpen} setIsSettingsOpen=${setIsSettingsOpen} CarTiMapperLogo=${CarTiMapperLogo} visibleTimeSpan=${visibleTimeSpan} maxPane=${maxPane} setMaxPane=${setMaxPane} />
+                                    <${ContentSlider} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} jumpToSlide=${jumpToSlide} slideHistory=${slideHistory} goBack=${goBack} aboutData=${aboutData} isAboutOpen=${isAboutOpen} setIsAboutOpen=${setIsAboutOpen} isMonitorOpen=${isMonitorOpen} setIsMonitorOpen=${setIsMonitorOpen} isSettingsOpen=${isSettingsOpen} setIsSettingsOpen=${setIsSettingsOpen} CarTiMapperLogo=${CarTiMapperLogo} visibleTimeSpan=${visibleTimeSpan} maxPane=${maxPane} setMaxPane=${setMaxPane} showButtonText=${showButtonText} />
                                 </div>
                             </div>
                             
@@ -1470,6 +1461,13 @@
                         <h3 style="margin-top: 0; font-size: 1.3rem; margin-bottom: 20px; color: #222;">Engine Settings</h3>
                         <div style="display: flex; flex-direction: column; gap: 20px;">
                             <div>
+                                <label style="font-weight: 600; display: block; margin-bottom: 8px; font-size: 0.9rem; color: #444;">Interface Mode</label>
+                                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                    <input type="checkbox" checked=${showButtonText} onChange=${e => { setShowButtonText(e.target.checked); localStorage.setItem('tm_show_button_text', JSON.stringify(e.target.checked)); }} style="width: 18px; height: 18px; cursor: pointer;" />
+                                    <span style="font-size: 1rem; color: #333;">Show Text Labels on Buttons</span>
+                                </label>
+                            </div>
+                            <div style="border-top: 1px solid #eee; padding-top: 15px;">
                                 <label style="font-weight: 600; display: block; margin-bottom: 8px; font-size: 0.9rem; color: #444;">Global Polygon Opacity</label>
                                 <div style="display: flex; align-items: center; gap: 15px;">
                                     <input type="range" min="0.1" max="1" step="0.1" value=${polygonOpacity} onInput=${e => setPolygonOpacity(parseFloat(e.target.value))} style="flex-grow: 1; -webkit-appearance: none; height: 4px; background: #ddd; border-radius: 2px; outline: none;" />
@@ -1482,10 +1480,12 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.52.0';
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.53.0';
         // === [ END MAJOR BLOCK ] ===
 
+        // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
         render(html`<${ErrorBoundary}><${App} /></${ErrorBoundary}>`, document.getElementById('root'));
+        // === [ END MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
     </script>
 </body>
 </html>
