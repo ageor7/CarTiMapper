@@ -247,7 +247,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.8.3';
+        const APP_VERSION = 'v6.8.4';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.13.3', Globals: 'v1.0.58' }; 
         const TM_CONFIG = { timeZone: 'Europe/Athens', paneBackground: '#fcfcfc' };
@@ -995,7 +995,7 @@
         MODULE_VERSIONS['ContentSlider'] = 'v4.2.1';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v24.2.1 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v24.2.2 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan, isTimelineExpanded, setIsTimelineExpanded, isTimelineMinimized, setIsTimelineMinimized }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -1004,6 +1004,7 @@
             const prevActiveIndexRef = useRef(-1);
             const scrollTargetRef = useRef(null);
             const scrollTimeout = useRef(null);
+            const [viewLeftEdge, setViewLeftEdge] = useState(0);
 
             const getParsedTags = (rawTagsArray) => {
                 if (!rawTagsArray || rawTagsArray.length === 0) return ['Untagged'];
@@ -1087,7 +1088,7 @@
                     const containerW = wrapperRef.current.clientWidth || 1000;
                     const targetTrackW = Math.max(containerW, containerW * zoomLevel);
                     const scrollPos = ((sT - renderMinTime) / renderTimeRange * targetTrackW) + (pxWidth / 2) - (containerW / 2);
-                    wrapperRef.current.scrollTo({ left: scrollPos, behavior: 'smooth' }); 
+                    wrapperRef.current.scrollTo({ left: scrollPos, behavior: 'smooth' }); setViewLeftEdge(Math.max(0, scrollPos));
                 }
             }, [activeIndex]);
 
@@ -1118,7 +1119,7 @@
             }, [activeIndex, data, zoomLock, setZoomLock]); 
 
             useLayoutEffect(() => {
-                if (scrollTargetRef.current !== null && wrapperRef.current) { wrapperRef.current.scrollTo({ left: scrollTargetRef.current, behavior: 'auto' }); scrollTargetRef.current = null; }
+                if (scrollTargetRef.current !== null && wrapperRef.current) { wrapperRef.current.scrollTo({ left: scrollTargetRef.current, behavior: 'auto' }); setViewLeftEdge(Math.max(0, scrollTargetRef.current)); scrollTargetRef.current = null; }
             }, [zoomLevel]);
 
             const handleManualZoom = (newZoom, centerType = 'center', eventX = 0) => {
@@ -1136,13 +1137,16 @@
                 const x = e.touches ? e.touches[0].clientX : e.clientX;
                 dragRef.current = { isDragging: true, startX: x - wrapperRef.current.offsetLeft, scrollLeft: wrapperRef.current.scrollLeft }; wrapperRef.current.classList.add('is-dragging'); 
             };
-            const onUp = () => { dragRef.current.isDragging = false; wrapperRef.current?.classList.remove('is-dragging'); };
+            const onUp = () => { dragRef.current.isDragging = false; wrapperRef.current?.classList.remove('is-dragging'); if (wrapperRef.current) setViewLeftEdge(wrapperRef.current.scrollLeft); };
             const onMove = (e) => {
                 if (e.touches && e.touches.length === 2) { e.preventDefault(); const scale = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY) / touchZoomRef.current.initialDist; handleManualZoom(Math.min(Math.max(touchZoomRef.current.initialZoom * scale, 1), 500), 'center'); return; }
                 if (!dragRef.current.isDragging) return; if (!e.touches) e.preventDefault(); 
                 wrapperRef.current.scrollLeft = dragRef.current.scrollLeft - (((e.touches ? e.touches[0].clientX : e.clientX) - wrapperRef.current.offsetLeft - dragRef.current.startX) * 2);
             };
             const onWheel = (e) => { e.preventDefault(); if (zoomLock !== 'hard') setZoomLock('soft'); handleManualZoom(e.deltaY < 0 ? Math.min(zoomLevel * 1.5, 500) : Math.max(zoomLevel / 1.5, 1), 'mouse', e.clientX - wrapperRef.current.getBoundingClientRect().left); };
+            
+            // THE FIX: Re-injected the missing onScroll function
+            const onScroll = () => { if (scrollTimeout.current) clearTimeout(scrollTimeout.current); scrollTimeout.current = setTimeout(() => { if (wrapperRef.current) setViewLeftEdge(wrapperRef.current.scrollLeft); }, 100); };
 
             if (validData.length === 0) return html`<div style="padding:1rem;">No valid temporal data.</div>`;
 
@@ -1168,14 +1172,21 @@
             else if (activeScale.type === 'hour') { iterDate.setMinutes(0,0); iterDate.setHours(Math.floor(iterDate.getHours() / activeScale.step) * activeScale.step); }
             else if (activeScale.type === 'minute') { iterDate.setSeconds(0); iterDate.setMinutes(Math.floor(iterDate.getMinutes() / activeScale.step) * activeScale.step); }
 
-            let safety = 0; 
+            let safety = 0; let expectedVisibleMinWithBuffer = renderMinTime + ((viewLeftEdge + 60) / trackWidthPx) * renderTimeRange;
+            let firstVisibleMajorTickTime = null; let firstVisibleMajorTickPx = -1;
+
             while (iterDate.getTime() <= renderMaxTime && safety < 2000) {
                 safety++; const t = iterDate.getTime();
                 if (t >= renderMinTime) {
-                    const pctLeft = ((t - renderMinTime) / renderTimeRange) * 100;
-                    let label = '';
-                    if (activeScale.type === 'year') label = iterDate.getFullYear(); else if (activeScale.type === 'month') label = iterDate.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
-                    else if (activeScale.type === 'day') label = iterDate.toLocaleString('en-GB', { day: 'numeric', month: 'short' }); else if (activeScale.type === 'hour' || activeScale.type === 'minute') label = iterDate.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                    const pctLeft = ((t - renderMinTime) / renderTimeRange) * 100; const currentTickPx = (pctLeft / 100) * trackWidthPx;
+                    let label = ''; let isFirstVisibleMajor = false;
+                    
+                    if (t >= expectedVisibleMinWithBuffer && firstVisibleMajorTickTime === null) { firstVisibleMajorTickTime = t; firstVisibleMajorTickPx = currentTickPx; isFirstVisibleMajor = true; }
+                    if (isFirstVisibleMajor) label = iterDate.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: (activeScale.type==='hour'||activeScale.type==='minute')?'2-digit':undefined, minute: (activeScale.type==='hour'||activeScale.type==='minute')?'2-digit':undefined });
+                    else {
+                        if (activeScale.type === 'year') label = iterDate.getFullYear(); else if (activeScale.type === 'month') label = iterDate.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
+                        else if (activeScale.type === 'day') label = iterDate.toLocaleString('en-GB', { day: 'numeric', month: 'short' }); else if (activeScale.type === 'hour' || activeScale.type === 'minute') label = iterDate.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                    }
                     rulerTicks.push(html`<div class="timeline-ruler-tick" style="left: ${pctLeft}%;"><div style="width: 2px; height: 10px; background: #666; margin-bottom: 2px;"></div><div style="font-size: 0.75rem; color: #444; white-space: nowrap;">${label}</div></div>`);
                 }
 
@@ -1195,7 +1206,8 @@
                     if (minorT >= renderMinTime && minorT <= renderMaxTime) {
                         const minorTickPx = (((minorT - renderMinTime) / renderTimeRange) * 100 / 100) * trackWidthPx;
                         const gapPx = minorTickPx - ((t - renderMinTime) / renderTimeRange) * trackWidthPx; 
-                        if (gapPx > 15) { 
+                        let hideMinor = firstVisibleMajorTickPx !== -1 && minorTickPx >= firstVisibleMajorTickPx - 65 && minorTickPx <= firstVisibleMajorTickPx + 65;
+                        if (!hideMinor && gapPx > 15) { 
                             let minorLabel = '';
                             if (gapPx > 28) { 
                                 if (activeScale.minorType === 'year') minorLabel = minorIter.getFullYear(); else if (activeScale.minorType === 'month') minorLabel = minorIter.toLocaleString('en-GB', { month: 'short' });
@@ -1216,13 +1228,13 @@
                 const tagIndices = getParsedTags(item.tags).map(t => orderedTags.indexOf(t)).filter(idx => idx !== -1);
                 const topPos = ((tagIndices.length > 0 ? Math.min(...tagIndices) : 0) * laneHeight) + 5;
                 const blockHeight = ((tagIndices.length > 0 ? Math.max(...tagIndices) : 0) - (tagIndices.length > 0 ? Math.min(...tagIndices) : 0) + 1) * laneHeight; 
-                
+
                 const { lines, pxWidth } = formatLabelSmart(stripHTML(item.title));
                 const hasMedia = item.media && item.media.length > 0;
 
                 return html`
                     <div id="timeline-marker-${globalIndex}" class="event-group ${isActive ? 'active' : ''}" style="left: ${startPct}%; top: ${topPos}px; height: ${blockHeight}px; ${hasDuration ? `width: ${endPct - startPct}%; min-width: 4px;` : `width: ${pxWidth}px;`}" onClick=${() => setActiveIndex(globalIndex)}>
-                        ${isActive ? html`<div style="position: absolute; left: 0; top: ${blockHeight / 2}px; bottom: -28px; width: 2px; background: #007acc; z-index: 999;"></div><div style="position: absolute; bottom: -28px; left: ${hasDuration ? '0' : '-3px'}; width: ${hasDuration ? '100%' : '6px'}; min-width: ${hasDuration ? '2px' : 'auto'}; height: ${hasDuration ? '16px' : '6px'}; ${hasDuration ? 'background: rgba(0,122,204,0.3); clip-path: polygon(0 0, 100% calc(100% - 5px), 100% 100%, 0 100%); filter: drop-shadow(0 2px 2px rgba(0,122,204,0.4));' : 'border-radius: 50%; background: #007acc; border: 1px solid #fff; box-sizing: content-box;'} z-index: 998;"></div>` : ''}
+                        ${isActive ? html`<div style="position: absolute; left: 0; top: 50%; bottom: -28px; width: 2px; background: #007acc; z-index: 999;"></div><div style="position: absolute; bottom: -28px; left: ${hasDuration ? '0' : '-3px'}; width: ${hasDuration ? '100%' : '6px'}; min-width: ${hasDuration ? '2px' : 'auto'}; height: ${hasDuration ? '16px' : '6px'}; ${hasDuration ? 'background: rgba(0,122,204,0.3); clip-path: polygon(0 0, 100% calc(100% - 5px), 100% 100%, 0 100%); filter: drop-shadow(0 2px 2px rgba(0,122,204,0.4));' : 'border-radius: 50%; background: #007acc; border: 1px solid #fff; box-sizing: content-box;'} z-index: 998;"></div>` : ''}
                         <div class="event-block" style="position: absolute; top: 50%; transform: translateY(-50%); left: 0; --lane-h: ${laneHeight}px; background: ${isActive ? '#007acc' : '#f4f4f5'}; color: ${isActive ? '#fff' : '#444'}; z-index: 5; width: ${pxWidth}px;">
                             <div class="event-text" style="display: flex; align-items: center; gap: 0;">
                                 ${hasMedia ? html`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-right: 6px; margin-left: 2px; opacity: 0.8;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>` : ''}
@@ -1261,7 +1273,7 @@
                     </div>
 
                     <div class="timeline-scroll-wrapper" ref=${wrapperRef} onScroll=${onScroll} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${onWheel}>
-                        <div class="timeline-track-container" style="width: ${trackWidthPx}px; flex-shrink: 0;">
+                        <div class="timeline-track-container" style="width: ${trackWidthPx}px; flex-shrink: 0; min-height: 100%;">
                             <div style="position: absolute; top: 5px; left: 0; right: 0; bottom: 33px; pointer-events: none; z-index: 0;">
                                 ${orderedTags.map((tag, i) => html`<div class="tag-lane" style="top: ${i * laneHeight}px; height: ${laneHeight}px; background: ${i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent'};"><div class="tag-lane-label" style="background: ${i % 2 === 0 ? '#f4f4f4' : '#fcfcfc'}; pointer-events: auto;">${tag}</div></div>`)}
                             </div>
@@ -1272,7 +1284,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v24.2.1';
+        MODULE_VERSIONS['TimelineScrubber'] = 'v24.2.2';
         // === [ END MAJOR BLOCK ] ===
 
         // === [ MAJOR BLOCK: AppOrchestrator v1.53.0 ] ===
