@@ -187,7 +187,12 @@
 * **[REF: UI-72] Global Maximization Matrix:** To support intense visual analysis (e.g., deep-zooming historical geometries or viewing massive 4K photography), the engine bypasses standard `--primary-split` and `--secondary-split` JavaScript logic to grant users total screen real estate.
     * **State-Driven Geometry:** Utilizing global states (`maxPane` & `isTimelineExpanded`), the `AppOrchestrator` injects scoped CSS wrapper classes (e.g., `.max-map`, `.max-text`). This uses CSS Flexbox `!important` properties to natively expand the active pane to `100% width/height` while safely unmounting sibling `display:none` panes without destroying the virtual DOM or triggering Leaflet map crashes.
     * **Dynamic Timeline Math:** The Timeline expander does not hide the upper layout. It intercepts the exact `orderedTags.length` (swimlanes) integer from the `TimelineScrubber`, multiplies it by the physical 24px height of the lanes plus the bottom axis offset, and injects that exact `totalHeightNeeded` back into the CSS height variable. This guarantees every overlapping chronological event is instantly visible without internal scrolling.
-
+### Add to: V. UI/UX Elements & Design Solutions
+* **[REF: MAP-86] Advanced WebGL Vector Styling (Layer Casing):** To replicate the aesthetic of high-end cartography (e.g., roads appearing as physical ribbons rather than single-pixel lines), the engine leverages WebGL layer casing within the `style.json`.
+    * **Dual-Layer Rendering:** Mathematical centerlines (roads/highways) are rendered twice by the GPU. A thicker, darker layer is painted first (the casing), followed by a slightly thinner, lighter layer perfectly stacked on top (the fill), creating the optical illusion of bounded streets.
+    * **Interpolation Math:** The styling utilizes the Mapbox/MapLibre `stops` array to dynamically scale `line-width` based on the user's active zoom level, ensuring geometries expand naturally as the viewport closes in.
+    * **JSON Metadata Documentation:** Because standard `.json` parsers fatally crash on `//` or `/* */` comments, the architecture utilizes the native `metadata` object namespace to store version control, logic explanations, and developer notes safely within the file structure.
+    
 ---
 
 ## VI. Algorithms, Analytics & Methodologies
