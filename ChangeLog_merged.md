@@ -2,6 +2,17 @@
 All notable changes to this project will be documented in this file.
 
 
+### [v6.8.11-2] - Stable Geometry Reversion & Intelligent Maximize
+
+**TimelineScrubber (v24.2.10):**
+* **[PERF-26]** **Geometric Baseline Restoration:** Hard-reverted the swimlane `laneHeight` to the proven static `24px` constant. This restores the native CSS fluid shrink-wrapping of the timeline track container and permanently eliminates the dynamic stretching distortion from previous builds.
+* **[UI-160]** **Hexagon Mathematics Reversion:** Restored the original `v6.7.5` `clip-path` polygon formula (`calc(50% - (var(--lane-h) / 2)...`). Event blocks wrapping multi-line text now seamlessly expand downward while maintaining perfect geometric symmetry on the left-facing arrow point, gracefully anchoring to the vertical drop-line without shearing into a parallelogram.
+* **[UI-161]** **Media Icon Re-Alignment:** Decoupled the `.hasMedia` SVG indicator from the text flex-flow. It is now absolutely positioned (`left: 2px; top: 50%; transform: translateY(-50%)`) to sink perfectly inside the negative space of the left-facing hexagon point, guaranteeing zero interference with textual alignment.
+
+**AppOrchestrator (v1.54.7):**
+* **[UI-162]** **Intelligent Timeline Maximize:** Overhauled the Timeline Maximize button logic to respect absolute data density. The engine now pre-calculates the exact `timelineRequiredHeight` based on the dataset's active tag count (`laneCount * 24 + 40`). Toggling Maximize explicitly opens the drawer to this exact required pixel height—flawlessly framing all active swimlanes—rather than arbitrarily consuming the viewport. Toggling it off flawlessly restores the drawer to its collapsed state.
+* **[UI-163]** **Absolute Pane Defaults:** Refined the root CSS initialization variables and the `Reset Layout` logic to strictly enforce the requested `55% / 50% / 10%` spatial split (Text / Map+Media / Timeline). The timeline now remains comfortably out of the way on boot until the user explicitly requests more vertical space.
+
 ### [v6.8.11] - Absolute Spatial Matrix & Z-Index Liberation
 
 **TimelineScrubber (v24.2.9):**
