@@ -2,6 +2,17 @@
 All notable changes to this project will be documented in this file.
 
 
+### [v6.8.11] - Absolute Spatial Matrix & Z-Index Liberation
+
+**TimelineScrubber (v24.2.9):**
+* **[PERF-24]** **Cross-Browser Axis Pinning:** Abandoned `bottom: 0` CSS anchoring, which inherently conflicts with Firefox's native scrollbar height deductions. Implemented a `ResizeObserver` to extract the true `clientHeight`, plotting the `.timeline-axis` via absolute JS topography (`top: ${containerHeight - 28}px`). This mathematically guarantees the horizontal chronological ruler never drops below the visible CSS clipping mask on any engine.
+* **[PERF-25]** **Liquid Swimlanes via ResizeObserver:** Re-engineered the lane height division mathematics (`Math.max(24, (containerHeight - 38) / laneCount)`). By binding this computation to the `ResizeObserver` payload rather than relying on CSS flex-grow limits, the timeline flawlessly expands and contracts to fill the drawer in real-time, strictly obeying the new axis breather margins.
+* **[UI-157]** **Absolute Hexagon Drop-Line:** Rebuilt the `.event-group` absolute bounding box. The vertical tracking line now mathematically anchors exactly between the dead-center of the active hexagon and the absolute top pixel edge of the chronological axis, permanently eliminating "floating" trapezoids.
+* **[UI-158]** **X-Axis Margin Safety Threshold:** Injected a `60px` geometric safe-zone (`viewLeftEdge + 60`) into the rendering loop. The algorithmic assignment of the Full Date string now forces the label to seamlessly shift to the next viable Major Tick before the text string can physically crash into the left-hand viewport margin.
+
+**MapViewer (v4.1.8) & AppOrchestrator (v1.54.6):**
+* **[UI-159]** **Z-Index Layer Menu Liberation:** Resolved the Tablet clipping collision by surgically decoupling the Map container's CSS properties. `.map-pane` and `.visual-pane` are now commanded to `overflow: visible; z-index: 30`. The Leaflet tile engine itself is trapped inside a new, absolute-positioned child node (`overflow: hidden; z-index: 1;`). This flawlessly traps the interactive map vectors while liberating the absolute-positioned Layers Menu, allowing it to render beautifully over the adjacent Media and Text viewports.
+
 ### [v6.8.10] - Architectural Reversion & Native Geometric Locks
 
 **AppOrchestrator (v1.54.6):**
