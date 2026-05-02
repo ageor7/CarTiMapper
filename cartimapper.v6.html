@@ -255,7 +255,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.8.14';
+        const APP_VERSION = 'v6.8.15';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.13.12', Globals: 'v1.0.68' }; 
         const TM_CONFIG = { paneBackground: '#fcfcfc' };
@@ -1414,7 +1414,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v24.2.14';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: AppOrchestrator v1.54.7 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v1.54.8 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]); const [rawCsvRows, setRawCsvRows] = useState([]); const [data, setData] = useState([]);
             const [aboutData, setAboutData] = useState(null); const [status, setStatus] = useState({ text: 'Initializing Engine...', progress: 10, isFading: false, active: false });
@@ -1426,9 +1426,9 @@
             const [isTimelineMinimized, setIsTimelineMinimized] = useState(false);
             const [timelineRequiredHeight, setTimelineRequiredHeight] = useState(200);
             
-            const [polygonOpacity, setPolygonOpacity] = useState(0.4);
+            // [FIX] All settings are now permanently sticky
+            const [polygonOpacity, setPolygonOpacity] = useState(() => { try { return parseFloat(localStorage.getItem('tm_polygon_opacity')) || 0.4; } catch(e) { return 0.4; } });
             const [showButtonText, setShowButtonText] = useState(() => { try { return JSON.parse(localStorage.getItem('tm_show_button_text')) ?? false; } catch(e) { return false; } });
-            
             const [dateLocale, setDateLocale] = useState(() => { try { return localStorage.getItem('tm_date_locale') || 'en-GB'; } catch(e) { return 'en-GB'; } });
             const [maxAutoZoom, setMaxAutoZoom] = useState(() => { try { return parseInt(localStorage.getItem('tm_max_auto_zoom')) || 15; } catch(e) { return 15; } });
             const [minimapOffset, setMinimapOffset] = useState(() => { try { return parseInt(localStorage.getItem('tm_minimap_offset')) || -4; } catch(e) { return -4; } });
@@ -1449,6 +1449,7 @@
             const addLog = (msg, type = 'info') => setLogs(p => [...p, { time: new Date().toLocaleTimeString('en-US', { hour12: false }), msg, type }]);
 
             const getOmniParam = (key) => { const sp = new URLSearchParams(window.location.search); let val = sp.get(key) || sp.get(`amp;${key}`); if (val) return val; const hp = new URLSearchParams(window.location.hash.replace(/^#\/?\??/, '')); return hp.get(key) || hp.get(`amp;${key}`); };
+            
             const jumpToSlide = (newIdx, isSequential = false) => { if (newIdx !== activeIndex && newIdx >= 0 && newIdx < data.length) { if (!isSequential) setSlideHistory(prev => [...prev, activeIndex]); setActiveIndex(newIdx); } };
             const goBack = () => { if (slideHistory.length > 0) { const prev = slideHistory[slideHistory.length - 1]; setSlideHistory(h => h.slice(0, -1)); setActiveIndex(prev); } };
 
@@ -1554,7 +1555,7 @@
                     };
                 });
                 
-                const valid = cleaned.filter(r => r.startDate).sort((a, b) => a.startDate.getTime() - b.startDate.getTime()); 
+                const valid = cleaned.filter(r => r.startDate).sort((a, b) => (a.startDate.getTime() - b.startDate.getTime()) || (a.id - b.id)); 
                 setData(valid);
                 
                 const tagsMap = new Set();
@@ -1622,8 +1623,8 @@
                         </div>
                     ` : ''}
 
-                    <div class="tm-backdrop ${isSettingsOpen ? 'open' : ''}" onClick=${() => setIsSettingsOpen(false)}></div>
-                    <div id="settings-modal" class=${isSettingsOpen ? 'open' : ''} style="display: ${isSettingsOpen ? 'block' : 'none'}; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 400px; max-height: 85vh; overflow-y: auto; background: #fff; z-index: 9001; border-radius: 12px; padding: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid #ccc;">
+                    <div class="tm-backdrop ${isSettingsOpen ? 'open' : ''}" onClick=${() => setIsSettingsOpen(false)} style="z-index: 10000;"></div>
+                    <div id="settings-modal" class=${isSettingsOpen ? 'open' : ''} style="display: ${isSettingsOpen ? 'block' : 'none'}; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 400px; max-height: 85vh; overflow-y: auto; background: #fff; z-index: 10001; border-radius: 12px; padding: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid #ccc;">
                         <button class="modal-close" onClick=${() => setIsSettingsOpen(false)} title="Close">×</button>
                         <h3 style="margin-top: 0; font-size: 1.3rem; margin-bottom: 20px; color: #222;">Engine Settings</h3>
                         <div style="display: flex; flex-direction: column; gap: 20px;">
@@ -1659,7 +1660,7 @@
                             <div style="border-top: 1px solid #eee; padding-top: 15px;">
                                 <label style="font-weight: 600; display: block; margin-bottom: 8px; font-size: 0.9rem; color: #444;">Global Polygon Opacity</label>
                                 <div style="display: flex; align-items: center; gap: 15px;">
-                                    <input type="range" min="0.1" max="1" step="0.1" value=${polygonOpacity} onInput=${e => setPolygonOpacity(parseFloat(e.target.value))} style="flex-grow: 1; -webkit-appearance: none; height: 4px; background: #ddd; border-radius: 2px; outline: none;" />
+                                    <input type="range" min="0.1" max="1" step="0.1" value=${polygonOpacity} onInput=${e => { setPolygonOpacity(parseFloat(e.target.value)); localStorage.setItem('tm_polygon_opacity', e.target.value); }} style="flex-grow: 1; -webkit-appearance: none; height: 4px; background: #ddd; border-radius: 2px; outline: none;" />
                                     <span style="font-family: monospace; font-size: 1rem; color: #007acc; font-weight: 600; width: 30px; text-align: right;">${polygonOpacity.toFixed(1)}</span>
                                 </div>
                             </div>
@@ -1669,7 +1670,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v1.54.7';
+        MODULE_VERSIONS['AppOrchestrator'] = 'v1.54.8';
         // === [ END MAJOR BLOCK ] ===
 
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
