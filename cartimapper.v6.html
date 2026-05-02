@@ -1014,7 +1014,7 @@
         MODULE_VERSIONS['ContentSlider'] = 'v4.2.9';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v24.2.13 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v24.2.14 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan, isTimelineExpanded, setIsTimelineExpanded, isTimelineMinimized, setIsTimelineMinimized, dateLocale, timelineRequiredHeight }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -1229,7 +1229,7 @@
             const stopTime = Math.min(renderMaxTime, visibleRightMs + (activeScale.ms * 2));
             
             const majorTicksData = [];
-            const minorTicksHTML = [];
+            const minorTicksData = [];
 
             while (iterDate.getTime() <= stopTime && safety < 1000) {
                 safety++; const t = iterDate.getTime();
@@ -1265,37 +1265,14 @@
                         const minorTickPx = (((minorT - renderMinTime) / renderTimeRange)) * trackWidthPx;
                         const majorPx = ((t - renderMinTime) / renderTimeRange) * trackWidthPx;
                         const nextMajorPx = ((nextMajor.getTime() - renderMinTime) / renderTimeRange) * trackWidthPx;
-                        const distCurrent = Math.abs(minorTickPx - majorPx);
-                        const distNext = Math.abs(minorTickPx - nextMajorPx);
                         
-                        let hideMinor = distCurrent < 35 || distNext < 35;
-                        if (!hideMinor && distCurrent > 20) { 
-                            let showLabelText = false;
-                            if (activeScale.minorCount % 2 === 0) {
-                                showLabelText = (minorIndex % 2 === 0);
-                            } else {
-                                showLabelText = (minorIndex === Math.floor(activeScale.minorCount / 2));
-                            }
-                            
-                            let minorLabel = '';
-                            if (showLabelText) {
-                                if (activeScale.minorType === 'year') minorLabel = minorIter.getFullYear(); 
-                                else if (activeScale.minorType === 'month') minorLabel = minorIter.toLocaleString(dateLocale, { month: 'short' });
-                                else if (activeScale.minorType === 'day') minorLabel = minorIter.getDate(); 
-                                else if (activeScale.minorType === 'hour' || activeScale.minorType === 'minute') {
-                                    minorLabel = minorIter.getMinutes() === 0 ? minorIter.getHours() + 'h' : ':' + minorIter.getMinutes().toString().padStart(2, '0');
-                                }
-                            }
-                            
-                            if (minorTickPx >= viewLeftEdge - 50 && minorTickPx <= viewLeftEdge + containerW + 50) {
-                                minorTicksHTML.push(html`<div style="position: absolute; left: ${((minorT - renderMinTime) / renderTimeRange) * 100}%; top: 0; width: 1px; height: ${minorLabel ? '7px' : '5px'}; background: #aaa; z-index: 4;">${minorLabel ? html`<div style="position: absolute; left: -20px; right: -20px; top: 7px; text-align: center; font-size: 0.6rem; color: #888; letter-spacing: -0.5px;">${minorLabel}</div>` : ''}</div>`);
-                            }
-                        }
+                        minorTicksData.push({ t: minorT, px: minorTickPx, majorPx, nextMajorPx, date: new Date(minorIter), minorIndex });
                     }
                 }
                 iterDate = nextMajor;
             }
 
+            // Find optimal center anchor for the full date string
             let centerTickIndex = -1;
             let minDist = Infinity;
             majorTicksData.forEach((d, i) => {
@@ -1305,19 +1282,55 @@
                 }
             });
 
-            const rulerTicks = majorTicksData.map((d, i) => {
+            const centerTickPx = centerTickIndex !== -1 ? (majorTicksData[centerTickIndex].pctLeft / 100) * trackWidthPx : -1000;
+            const centerKeepout = 65; // Pixel radius to suppress adjacent labels around the full date
+
+            const rulerTicksHTML = majorTicksData.map((d, i) => {
                 let label = '';
+                const tickPx = (d.pctLeft / 100) * trackWidthPx;
+
                 if (i === centerTickIndex) {
                     label = d.date.toLocaleString(dateLocale, { day: '2-digit', month: 'short', year: 'numeric', hour: (activeScale.type==='hour'||activeScale.type==='minute')?'2-digit':undefined, minute: (activeScale.type==='hour'||activeScale.type==='minute')?'2-digit':undefined });
-                } else {
+                } else if (Math.abs(tickPx - centerTickPx) > centerKeepout) {
                      if (activeScale.type === 'year') label = d.date.getFullYear(); 
                      else if (activeScale.type === 'month') label = d.date.toLocaleString(dateLocale, { month: 'short', year: 'numeric' });
                      else if (activeScale.type === 'day') label = d.date.toLocaleString(dateLocale, { day: 'numeric', month: 'short' }); 
                      else if (activeScale.type === 'hour' || activeScale.type === 'minute') {
-                         label = d.date.getMinutes() === 0 ? d.date.getHours() + 'h' : ':' + d.date.getMinutes().toString().padStart(2, '0');
+                         label = d.date.getMinutes() === 0 ? d.date.getHours().toString() : ':' + d.date.getMinutes().toString().padStart(2, '0');
                      }
                 }
-                return html`<div class="timeline-ruler-tick" style="left: ${d.pctLeft}%;"><div style="width: 2px; height: 10px; background: #666; margin-bottom: 2px;"></div><div style="font-size: 0.75rem; white-space: nowrap; font-weight: ${i === centerTickIndex ? '700' : 'normal'}; color: ${i === centerTickIndex ? '#007acc' : '#444'};">${label}</div></div>`;
+                return html`<div class="timeline-ruler-tick" style="left: ${d.pctLeft}%;"><div style="width: 2px; height: 10px; background: #666; margin-bottom: 2px;"></div><div style="font-size: 0.75rem; white-space: nowrap; font-weight: normal; color: #444;">${label}</div></div>`;
+            });
+
+            const minorTicksHTML = minorTicksData.map(m => {
+                const distCurrent = Math.abs(m.px - m.majorPx);
+                const distNext = Math.abs(m.px - m.nextMajorPx);
+                const distCenter = Math.abs(m.px - centerTickPx);
+                
+                let hideMinor = distCurrent < 35 || distNext < 35;
+                if (!hideMinor && distCurrent > 20) { 
+                    let showLabelText = false;
+                    if (activeScale.minorCount % 2 === 0) {
+                        showLabelText = (m.minorIndex % 2 === 0);
+                    } else {
+                        showLabelText = (m.minorIndex === Math.floor(activeScale.minorCount / 2));
+                    }
+                    
+                    let minorLabel = '';
+                    if (showLabelText && distCenter > centerKeepout) {
+                        if (activeScale.minorType === 'year') minorLabel = m.date.getFullYear(); 
+                        else if (activeScale.minorType === 'month') minorLabel = m.date.toLocaleString(dateLocale, { month: 'short' });
+                        else if (activeScale.minorType === 'day') minorLabel = m.date.getDate(); 
+                        else if (activeScale.minorType === 'hour' || activeScale.minorType === 'minute') {
+                            minorLabel = m.date.getMinutes() === 0 ? m.date.getHours().toString() : ':' + m.date.getMinutes().toString().padStart(2, '0');
+                        }
+                    }
+                    
+                    if (m.px >= viewLeftEdge - 50 && m.px <= viewLeftEdge + containerW + 50) {
+                        return html`<div style="position: absolute; left: ${((m.t - renderMinTime) / renderTimeRange) * 100}%; top: 0; width: 1px; height: ${minorLabel ? '7px' : '5px'}; background: #aaa; z-index: 4;">${minorLabel ? html`<div style="position: absolute; left: -20px; right: -20px; top: 7px; text-align: center; font-size: 0.6rem; color: #888; letter-spacing: -0.5px;">${minorLabel}</div>` : ''}</div>`;
+                    }
+                }
+                return null;
             });
 
             const markers = validData.map((item, index) => {
@@ -1388,7 +1401,7 @@
                             </div>
                             
                             <div class="timeline-axis" style="position: absolute; bottom: 0; left: 0; right: 0; height: 28px; background: #e0e0e0; border-top: 2px solid #999; z-index: 5;">
-                                ${rulerTicks}
+                                ${rulerTicksHTML}
                                 ${minorTicksHTML}
                             </div>
                             
@@ -1398,7 +1411,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v24.2.13';
+        MODULE_VERSIONS['TimelineScrubber'] = 'v24.2.14';
         // === [ END MAJOR BLOCK ] ===
 
         // === [ MAJOR BLOCK: AppOrchestrator v1.54.7 ] ===
