@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file.
 
 
+### [v6.8.15] - X-Axis Hardware Anchorage (Block Patch)
+
+**TimelineScrubber (v24.2.13):**
+* **[PERF-30]** **Absolute Axis Hardware Anchoring:** Stripped the volatile JavaScript `ResizeObserver` math calculating the `top` position of the X-Axis (`top: ${containerHeight - 28}px`). Injected pure CSS structural anchoring directly into the track container (`position: relative; height: 100%;`). This permanently bypasses the DOM rendering race condition, guaranteeing the absolute timeline ruler (`bottom: 0`) flawlessly anchors to the hardware floor of the scrolling pane across all browser engines, regardless of initial boot latency or collapsed flex-boundaries.
+* **[UI-167]** **Hour/Minute Modulo Formatting:** Integrated a unified string truncator for both major and minor ticks. Time scales operating on standard hour/minute rules now perfectly adhere to the geometric rule: if the tick aligns perfectly with an hour (`getMinutes() === 0`), it suppresses the minutes (`14h`). If it intersects an hour block (`getMinutes() !== 0`), it completely strips the hour identifier, isolating the exact minute delta (`:15`).
+
 ### [v6.8.14] - Axes Density Matrix & Center-Mass Anchoring
 
 **TimelineScrubber (v24.2.12):**
