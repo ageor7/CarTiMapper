@@ -1,5 +1,5 @@
 # CarTiMapper Engine Master Blueprint
-**Version:** v6.8.1 | **Date:** May 1, 2026
+**Version:** v6.8.13 | **Date:** May 2, 2026
 
 **Source Repositories:**
 * **CarTiMapper App:** 'CarTiMapper/cartimapper.v6.html at main · ageor7/CarTiMapper'
@@ -78,6 +78,7 @@
 * **[REF: UI-42] InvalidateSize Base-Tile Forcing:** The engine mechanically circumvents React Flexbox layout race conditions by delaying execution for 250ms and forcing `mapInstance.invalidateSize()`, commanding Leaflet to poll the true DOM dimensions and trigger the pending HTTP tile requests.
 * **[REF: CRASH-01] Dynamic Zoom Ceilings & Tile Stretching:** The engine dynamically calculates an absolute `maxGlobalZoom` from the highest available CMS layer. All spatial layers utilize a decoupled `maxNativeZoom` vs `maxZoom` matrix, commanding Leaflet to physically stretch lower-resolution tiles to seamlessly fill the viewport when the user zooms deep into high-resolution historical overlays.
 * **[REF: UI-71] Real-Time Layer Opacity Engine:** When an overlay is toggled `Active`, the Layers HUD mounts an HTML `<input type="range">` slider. This slider is structurally decoupled from the `<label>` parent, allowing users to scrub the `L.tileLayer.setOpacity()` WebGL rendering in real-time.
+* **[REF: UI-159] Z-Index Layer Menu Liberation:** Map and Visual panes explicitly utilize `overflow: visible; z-index: 30`, while Leaflet map tiles are isolated within a child node (`overflow: hidden; z-index: 1`). This architectural decoupling prevents Tablet viewports from clipping or decapitating the Map Overlay configuration menus.
 
 ---
 
@@ -95,7 +96,7 @@
 * **[REF: UI-51] Fluid Axis Rotation (The "Reading Room" Architecture):** 
     * *< 1024px Portrait:* Vertical layout stack. Primary resizer acts as a horizontal drag-bar calculating Y-Axis deltas.
     * *>= 1024px Desktop:* The geometric axis rotates 90 degrees. The Text pane claims 50-60% of the left screen. Map & Media are pushed to the right sidebar. The Javascript resizer strictly detects this orientation shift and mathematically switches its calculation logic to the X-Axis.
-* **[REF: UI-52] Layout Boundary Mathematical Reset:** The absolute instant the browser boundary crosses the `1024px` threshold, the app automatically zeroes both CSS structural variables back to `50%`, ensuring perfect proportional integrity.
+* **[REF: UI-52] Layout Boundary Mathematical Reset:** The absolute instant the browser boundary crosses the `1024px` threshold, the app automatically zeroes structural variables back to baseline, ensuring perfect proportional integrity.
 * **[REF: UI-53] Dynamic Secondary Viewport Collapse:** If `activeSlide.media.length === 0`, the engine absolutely hides the Media pane and Secondary Resizer via `display: none`, and seamlessly expands the Map instance to consume `100%` of the available quadrant.
 * **[REF: UI-61] CSS Native Touch Override (The Panning Hijack Fix):** The CSS `touch-action: none;` directive is surgically applied directly to the `.resizer-dyn` classes. This explicitly commands the OS to ignore all native pan/scroll interpretations and yield 100% of the raw touch coordinates to the JavaScript delta engine.
 * **[REF: UI-62] Strict Android Flexbox Containment Cage:** The global stylesheet enforces an absolute CSS cage (`max-width: 150px !important; flex-shrink: 0 !important`) entirely forbidding the Android rendering engine from expanding the Minimap node.
@@ -111,10 +112,34 @@
 * **[REF: UI-87] The Android Bloat Fix (CSS Reset):** Mobile OS accessibility settings forcefully inflate typography, distorting buttons. The UI architecture completely abandons emojis in favor of mathematically defined SVGs. Combined with `-webkit-appearance: none;` and hardcoded dimensions, the buttons are permanently immune to OS-level geometry distortion.
 * **[REF: UI-88] The Phantom Hitbox:** To maintain a minimalist aesthetic without sacrificing mobile usability, critical interactive elements (`.status-btn`) utilize an `::after` pseudo-element. This projects an invisible, absolute-positioned hitbox 8px beyond the visual boundaries of the button, preventing fat-finger misclicks while keeping the visual grid tight.
 * **[REF: PERF-12] Scroll-Tracking Indexing:** The `MediaViewer` abandons React-state-driven indexing in favor of native CSS `scroll-snap-type: x mandatory`. The active image index and counter are passively updated by reading the browser's native `scrollLeft` property, ensuring buttery-smooth swipe performance on mobile devices.
+* **[REF: UI-136] Absolute Pane Flex-Cages:** To prevent high-resolution native imagery from forcing `.media-pane` bounds open and crushing the `.map-pane` to a `0x0` state, map wrappers are locked explicitly to `flex: 0 0 var(--secondary-split)` and hard-bounded with `min-height: 0; min-width: 0; flex-shrink: 0`.
+* **[REF: UI-139] The 270-Degree Back Vector:** The Navigation Back button SVG arc relies on precise mathematical counter-clockwise tracing (`M 4 12 A 8 8 0 1 0 12 4`). This creates a mathematically perfect rewind visual queue, exposing only the top-right geometric quadrant.
+* **[REF: UI-142] Media Spotlight Casing:** High-aspect ratio vertical media is decoupled from dark-mode black voids via a native CSS dot-matrix casing overlay (`radial-gradient(#333 1px, transparent 1px)`). An absolute-center soft white `radial-gradient` spotlight is applied to the image node container to separate media from the UI structure.
+* **[REF: UI-150] Layout Reset Engine:** Prevents mobile users from structurally breaking the viewport. A core `Reset Layout` command executes a DOM override, instantly zero-stating all active pane variables back to the structural baseline (`55% / 50% / 10%`) and clearing active Maximize states.
+* **[REF: UI-156] Ascender/Descender Brand Typographic Locking:** Inline `CarTiMapperLogo` SVGs are bound to an absolute vertical wrapper (`height: 22px`). This forces the `align-items: baseline` CSS directive to perfectly align the Logo ascender to the brand text descender.
 
 ---
 
-## V. Algorithms, Analytics & Methodologies
+## VII. Timeline Physics & Chronological Mathematics
+
+* **[REF: TL-01] Intelligent Time Rendering Range:** The timeline automatically buffers raw dataset time edges with a 5% chronological margin (`padMs = rawTimeRange * 0.05`), generating aesthetically pleasing spatial breathing room for the first and last graphical event nodes.
+* **[REF: TL-02] Dynamic Timeline Swimlane Math:** The timeline iterates through dataset tags to generate a mathematical constant `laneCount`. It binds `orderedTags.indexOf(tag)` to dynamically calculate specific Y-axis placement constraints, enforcing pure chronological collision prevention.
+* **[REF: TL-13] Hexagon Arrow Typographic Envelope:** Event geometry eschews standard square nodes for an absolute CSS geometric `clip-path` ( `polygon( 0 calc(50% - 12px), ... )` ). This allows the block to expand infinitely downward to accept 3-line text wrapping while structurally guaranteeing the left-facing directional chevron remains perfectly aligned and never shears into a parallelogram.
+* **[REF: TL-14] Drop-Line Vertical Pinning:** Volatile JavaScript vertical pixel tracking is deprecated. The `.event-group` parent is anchored securely above the X-Axis track via `bottom: 28px`. The active indicator line simply utilizes `height: ${containerHeight - 28 - topPos - (blockHeight / 2)}px;`, tracing an indestructible line straight down from the geometric center of the active hexagon node to the X-Axis plane.
+* **[REF: TL-15] Semantic Timeline Spans:** Active UI span counters auto-convert abstract millisecond variables to human-readable strings (Minutes, Hours, Days, Years) based on real-time scroll zoom coefficients.
+* **[REF: TL-16] Smart Chronology Formatting:** To optimize spatial density, labels employ real-time string deduplication arrays: rendering Year for multi-year spans, `DD/MM/YYYY` strings for intermediate spans, and `HH:mm` clock arrays for intra-day zooms.
+* **[REF: UI-154] Intelligent Contextual Maximize:** The Maximize trigger explicitly rejects rigid viewport-takeovers. It evaluates the exact data footprint (`timelineRequiredHeight = (laneCount * 24) + 40`). Engaging Maximize snaps the drawer height strictly to this pixel matrix, structurally revealing all active swimlanes with zero pixel waste.
+* **[REF: PERF-24] Cross-Browser Axis Pinning (Hardware Override):** Bypasses Firefox native scrollbar occlusion loops by stripping JavaScript `top` plotting. The X-Axis `.timeline-axis` utilizes pure CSS structural anchoring (`position: absolute; bottom: 0; left: 0; right: 0;`). By locking the `.timeline-track-container` height to exactly `100%`, the X-Axis is guaranteed to rest seamlessly at the absolute base boundary of the UI, immune to boot rendering race conditions.
+* **[REF: PERF-25] The Shrink-Wrapped Swimlane Matrix:** Timeline lane scaling overrides liquid percentage growth vectors. Swimlanes rely on a permanently fixed baseline coefficient (`laneHeight = 24px`). This structural constant allows horizontal scrolling interactions to properly mask event overflows without creating vertical geometric collapse loops.
+* **[REF: PERF-28] Axes Density Throttle:** Limits maximum Major Tick visual density to 6-12 occurrences per screen width (anchoring standard ticks roughly every 120 pixels). Scale-down triggers are defined explicitly via `minorCount`, strictly enforcing 5-12 minor ticks within every active chronological block.
+* **[REF: PERF-29] One-Indexed Monthly Drift Protection:** Forces Javascript chronological math strings to operate on `getDate() - 1` architecture. This geometrically bounds date stepping limits, eliminating zero-indexed drift anomalies and securely forcing monthly and yearly Major Ticks to render flawlessly on the '1st' of their respective calendar periods.
+* **[REF: UI-164] Viewport Center-Mass Selection:** The rendering loop isolates the specific `viewportCenterMs`. It scans all visible Major Ticks and mathematical grants the active `DD/MM/YYYY` anchor label *exclusively* to the single Tick structurally closest to absolute screen center-mass.
+* **[REF: UI-165] Declutter Modulo Masks:** Physical minor tick geometry rendering (the 1px indicator line) runs unconditionally, while semantic text values execute heavily restricted Modulo arrays. Even density scales use `% 2 === 0` loops to alternating text tags, while odd scale counts limit text rendering explicitly to the absolute median array instance.
+* **[REF: UI-167] Contextual Truncation Math:** Prevents hour/minute string overlap collisions at granular zoom arrays. Ticks that geometrically snap to the exact hour (`getMinutes() === 0`) truncate completely down to the base hour integer (`14h`). All trailing minor ticks mathematically strip the hour value and render clean fractional deltas (`:15`, `:30`).
+
+---
+
+## VIII. Algorithms, Analytics & Methodologies
 
 * **1. Spatial Indexing (The R-Tree Engine):** `MarkerCluster` uses `RBush` to divide the map into nested rectangular grids. It measures point-to-grid, allowing instant, `O(log n)` collision detection.
 * **2. State-Based Layer Swapping & The O(1) Dictionary:** To bypass Leaflet's internal `_leaflet_id` amnesia, the engine builds a global dictionary (`markersRef`). Slide changes execute an `O(1)` instant lookup to swap layers in and out of the cluster bucket seamlessly.
@@ -124,10 +149,11 @@
 * **6. HTML Filter Bifurcation:** Timeline Hexagons are processed through `stripHTML()` to guarantee layout breaks (`<br>`) do not physically break geometric rendering. Content Pane Titles are processed through `dangerouslySetInnerHTML` to permit manual formatting.
 * **7. Canvas Memory Leak Assassination (Singleton Hoisting):** `[REF: PERF-06]` A singular, immutable `_globalTmCtx` singleton variable is instantiated once during script load and serves as a permanent, zero-leak mathematical reference for all global geometry canvas calculations.
 * **8. Strict Mode Memory Leak Assassination:** `[REF: PERF-01]` The global keyboard spatial navigation engine decouples history state mutation (`setSlideHistory`) from the active state update loop. By wrapping the side-effects in a mathematically pure `jumpToSlide` closure, we prevent recursive Virtual DOM re-renders.
+* **9. Real-Time Geometric Culling:** `[REF: PERF-31]` Extreme zoom intervals inside dense chronological sets execute a strict Viewport Loop execution. Before rendering Ticks, it calculates absolute left and right pixel boundaries, instantly bypassing ~2,000,000 array steps to paint *only* the ticks currently intersecting the user's active screen width.
 
 ---
 
-## VI. System Stability & Error Boundaries
+## IX. System Stability & Error Boundaries
 
 * **[REF: BOOT-CRASH-01] Boot Safety Validation:** To prevent fatal unrecoverable blank screens, all Native JS constructors (`new URLSearchParams`) must be strictly validated against syntax typos prior to React's first render hook.
 * **[REF: TL-CLAMP-01] Span Geometry Clamp:** The Timeline Scrubber must strictly enforce a minimum temporal visual width of 24 hours (`86400000` ms) to prevent `0px` layout collapse in single-event datasets.
