@@ -281,7 +281,7 @@
         }
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: VibeMonitor v2.1.12 ] ===
+        // === [ MAJOR BLOCK: VibeMonitor v2.1.13 ] ===
         const VibeMonitor = ({ logs, status, isOpen, setIsOpen, activeSlide, appVersion, moduleVersions }) => {
             const logsEndRef = useRef(null);
             const monitorRef = useRef(null);
@@ -289,6 +289,12 @@
             const [pos, setPos] = useState({ x: -1000, y: -1000 }); 
             const dragStart = useRef({ x: 0, y: 0 });
             const hasInitPos = useRef(false);
+            
+            const [isConfigMode, setIsConfigMode] = useState(false);
+            const [trackedFields, setTrackedFields] = useState(() => {
+                try { return JSON.parse(localStorage.getItem('tm_telemetry_fields')) || ['id', 'location', 'priority']; } 
+                catch(e) { return ['id', 'location', 'priority']; }
+            });
 
             useEffect(() => {
                 if (!hasInitPos.current) {
@@ -299,10 +305,10 @@
                 }
             }, []);
 
-            useEffect(() => { if (logsEndRef.current && isOpen) logsEndRef.current.scrollIntoView({ behavior: "smooth" }); }, [logs, isOpen]);
+            useEffect(() => { if (logsEndRef.current && isOpen && !isConfigMode) logsEndRef.current.scrollIntoView({ behavior: "smooth" }); }, [logs, isOpen, isConfigMode]);
 
             const onMouseDown = (e) => {
-                if (e.target.closest('.vibe-close-btn')) return;
+                if (e.target.closest('.vibe-close-btn') || e.target.closest('.vibe-config-btn')) return;
                 setIsDragging(true);
                 dragStart.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
             };
@@ -318,25 +324,57 @@
                 return () => { document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); };
             }, [isDragging]);
 
+            const handleToggleField = (field) => {
+                const newFields = trackedFields.includes(field) ? trackedFields.filter(f => f !== field) : [...trackedFields, field];
+                setTrackedFields(newFields);
+                localStorage.setItem('tm_telemetry_fields', JSON.stringify(newFields));
+            };
+
+            const availableFields = activeSlide ? Object.keys(activeSlide) : ['id', 'title', 'startDate', 'endDate', 'place', 'location', 'priority', 'tags'];
+
             if (!isOpen) return null;
             return html`
                 <div id="vibe-monitor" ref=${monitorRef} style="left: ${pos.x}px; top: ${pos.y}px;">
                     <div id="vibe-header" onMouseDown=${onMouseDown}>
                         <span>SYSTEM TELEMETRY</span>
-                        <button class="vibe-close-btn" onClick=${() => setIsOpen(false)} title="Close Monitor">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                        </button>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="vibe-config-btn" onClick=${() => setIsConfigMode(!isConfigMode)} style="background: transparent; border: none; color: ${isConfigMode ? '#007acc' : '#aaa'}; cursor: pointer; outline: none;" title="Configure Telemetry">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                            </button>
+                            <button class="vibe-close-btn" onClick=${() => setIsOpen(false)} title="Close Monitor">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
                     </div>
-                    <div style="background: #222; padding: 8px 12px; border-bottom: 1px solid #333; font-size: 0.75rem; color: #8be9fd; display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                        <div>ENGINE: ${appVersion}</div>
-                        <div style="color: #50fa7b;">LOC: ${activeSlide ? (activeSlide.location || 'NULL') : 'N/A'}</div>
-                        <div style="color: #ffb86c;">LAYOUT: ${window.innerWidth >= 1024 ? 'Desktop' : 'Mobile'}</div>
-                        <div style="color: #ff79c6;">FOCUS ID: ${activeSlide ? activeSlide.id : '...'}</div>
-                    </div>
-                    <div id="vibe-logs">
-                        ${logs.map((log, i) => html`<div key=${i} class="log-${log.type}"><span class="log-time">[${log.time}]</span> ${log.msg}</div>`)}
-                        <div ref=${logsEndRef} />
-                    </div>
+                    
+                    ${isConfigMode ? html`
+                        <div style="background: #111; padding: 12px; flex-grow: 1; overflow-y: auto; font-size: 0.8rem;">
+                            <div style="color: #aaa; margin-bottom: 8px;">Select variables to track:</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                                ${availableFields.filter(f => !['media', 'mediaCaption', 'description', 'mediaCredit'].includes(f)).map(field => html`
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #ddd;">
+                                        <input type="checkbox" checked=${trackedFields.includes(field)} onChange=${() => handleToggleField(field)} style="margin:0;" />
+                                        ${field}
+                                    </label>
+                                `)}
+                            </div>
+                        </div>
+                    ` : html`
+                        <div style="background: #222; padding: 8px 12px; border-bottom: 1px solid #333; font-size: 0.75rem; color: #8be9fd; display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                            <div>ENGINE: ${appVersion}</div>
+                            <div style="color: #ffb86c;">LAYOUT: ${window.innerWidth >= 1024 ? 'Desktop' : 'Mobile'}</div>
+                            ${trackedFields.map(f => {
+                                let val = activeSlide ? activeSlide[f] : 'N/A';
+                                if (val instanceof Date) val = val.toISOString().split('T')[0];
+                                if (Array.isArray(val)) val = val.length > 0 ? `[Array:${val.length}]` : '[]';
+                                return html`<div style="color: #50fa7b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${f.toUpperCase()}: ${val || 'NULL'}</div>`;
+                            })}
+                        </div>
+                        <div id="vibe-logs">
+                            ${logs.map((log, i) => html`<div key=${i} class="log-${log.type}"><span class="log-time">[${log.time}]</span> ${log.msg}</div>`)}
+                            <div ref=${logsEndRef} />
+                        </div>
+                    `}
                 </div>
             `;
         };
@@ -1014,7 +1052,7 @@
         MODULE_VERSIONS['ContentSlider'] = 'v4.2.9';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v24.2.14 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v24.2.15 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan, isTimelineExpanded, setIsTimelineExpanded, isTimelineMinimized, setIsTimelineMinimized, dateLocale, timelineRequiredHeight }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -1183,7 +1221,12 @@
 
             const containerW = wrapperRef.current ? wrapperRef.current.clientWidth : 1000;
             const trackWidthPx = Math.max(containerW, containerW * zoomLevel);
-            const targetMsPerMajorTick = (120 / containerW) * (renderTimeRange / zoomLevel); 
+            const visibleTimeSpanMs = renderTimeRange / zoomLevel;
+            const spansMultipleDays = visibleTimeSpanMs > 86400000; // > 24 hours
+
+            // [FIX] Hardware max of 12 ticks per viewport.
+            const targetMsPerMajorTick = Math.max((120 / containerW) * visibleTimeSpanMs, visibleTimeSpanMs / 12); 
+            
             const SECOND = 1000; const MINUTE = 60 * SECOND; const HOUR = 60 * MINUTE; const DAY = 24 * HOUR; const MONTH = 30 * DAY; const YEAR = 365.25 * DAY;
 
             const scaleConfigs = [
@@ -1272,7 +1315,6 @@
                 iterDate = nextMajor;
             }
 
-            // Find optimal center anchor for the full date string
             let centerTickIndex = -1;
             let minDist = Infinity;
             majorTicksData.forEach((d, i) => {
@@ -1283,7 +1325,7 @@
             });
 
             const centerTickPx = centerTickIndex !== -1 ? (majorTicksData[centerTickIndex].pctLeft / 100) * trackWidthPx : -1000;
-            const centerKeepout = 65; // Pixel radius to suppress adjacent labels around the full date
+            const centerKeepout = 65; 
 
             const rulerTicksHTML = majorTicksData.map((d, i) => {
                 let label = '';
@@ -1296,7 +1338,12 @@
                      else if (activeScale.type === 'month') label = d.date.toLocaleString(dateLocale, { month: 'short', year: 'numeric' });
                      else if (activeScale.type === 'day') label = d.date.toLocaleString(dateLocale, { day: 'numeric', month: 'short' }); 
                      else if (activeScale.type === 'hour' || activeScale.type === 'minute') {
-                         label = d.date.getMinutes() === 0 ? d.date.getHours().toString() : ':' + d.date.getMinutes().toString().padStart(2, '0');
+                         // [FIX] If spanning days but viewing hours, show the Date. Otherwise, show the hour/minute.
+                         if (spansMultipleDays && d.date.getHours() === 0 && d.date.getMinutes() === 0) {
+                             label = d.date.toLocaleString(dateLocale, { day: 'numeric', month: 'short' });
+                         } else {
+                             label = d.date.getMinutes() === 0 ? d.date.getHours().toString() : ':' + d.date.getMinutes().toString().padStart(2, '0');
+                         }
                      }
                 }
                 return html`<div class="timeline-ruler-tick" style="left: ${d.pctLeft}%;"><div style="width: 2px; height: 10px; background: #666; margin-bottom: 2px;"></div><div style="font-size: 0.75rem; white-space: nowrap; font-weight: normal; color: #444;">${label}</div></div>`;
@@ -1308,27 +1355,29 @@
                 const distCenter = Math.abs(m.px - centerTickPx);
                 
                 let hideMinor = distCurrent < 35 || distNext < 35;
+                let showLabelText = false;
+                
                 if (!hideMinor && distCurrent > 20) { 
-                    let showLabelText = false;
                     if (activeScale.minorCount % 2 === 0) {
                         showLabelText = (m.minorIndex % 2 === 0);
                     } else {
                         showLabelText = (m.minorIndex === Math.floor(activeScale.minorCount / 2));
                     }
-                    
-                    let minorLabel = '';
-                    if (showLabelText && distCenter > centerKeepout) {
-                        if (activeScale.minorType === 'year') minorLabel = m.date.getFullYear(); 
-                        else if (activeScale.minorType === 'month') minorLabel = m.date.toLocaleString(dateLocale, { month: 'short' });
-                        else if (activeScale.minorType === 'day') minorLabel = m.date.getDate(); 
-                        else if (activeScale.minorType === 'hour' || activeScale.minorType === 'minute') {
-                            minorLabel = m.date.getMinutes() === 0 ? m.date.getHours().toString() : ':' + m.date.getMinutes().toString().padStart(2, '0');
-                        }
+                }
+                
+                let minorLabel = '';
+                if (showLabelText && distCenter > centerKeepout) {
+                    if (activeScale.minorType === 'year') minorLabel = m.date.getFullYear(); 
+                    else if (activeScale.minorType === 'month') minorLabel = m.date.toLocaleString(dateLocale, { month: 'short' });
+                    else if (activeScale.minorType === 'day') minorLabel = m.date.getDate(); 
+                    else if (activeScale.minorType === 'hour' || activeScale.minorType === 'minute') {
+                        minorLabel = m.date.getMinutes() === 0 ? m.date.getHours().toString() : ':' + m.date.getMinutes().toString().padStart(2, '0');
                     }
-                    
-                    if (m.px >= viewLeftEdge - 50 && m.px <= viewLeftEdge + containerW + 50) {
-                        return html`<div style="position: absolute; left: ${((m.t - renderMinTime) / renderTimeRange) * 100}%; top: 0; width: 1px; height: ${minorLabel ? '7px' : '5px'}; background: #aaa; z-index: 4;">${minorLabel ? html`<div style="position: absolute; left: -20px; right: -20px; top: 7px; text-align: center; font-size: 0.6rem; color: #888; letter-spacing: -0.5px;">${minorLabel}</div>` : ''}</div>`;
-                    }
+                }
+                
+                // [FIX] Always push the physical tick, regardless of label text
+                if (m.px >= viewLeftEdge - 50 && m.px <= viewLeftEdge + containerW + 50) {
+                    return html`<div style="position: absolute; left: ${((m.t - renderMinTime) / renderTimeRange) * 100}%; top: 0; width: 1px; height: ${minorLabel ? '7px' : '5px'}; background: #aaa; z-index: 4;">${minorLabel ? html`<div style="position: absolute; left: -20px; right: -20px; top: 7px; text-align: center; font-size: 0.6rem; color: #888; letter-spacing: -0.5px;">${minorLabel}</div>` : ''}</div>`;
                 }
                 return null;
             });
@@ -1411,7 +1460,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v24.2.14';
+        MODULE_VERSIONS['TimelineScrubber'] = 'v24.2.15';
         // === [ END MAJOR BLOCK ] ===
 
         // === [ MAJOR BLOCK: AppOrchestrator v1.54.8 ] ===
