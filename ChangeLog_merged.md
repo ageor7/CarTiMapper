@@ -2,6 +2,15 @@
 All notable changes to this project will be documented in this file.
 
 
+### [v6.8.14] - Axes Density Matrix & Center-Mass Anchoring
+
+**TimelineScrubber (v24.2.12):**
+* **[PERF-28] Density Throttling & Scale Overhaul:** Abandoned the static 200px threshold. Adjusted `targetMsPerMajorTick` to mathematically enforce 6-12 major ticks per viewport (`120px` target base). Completely rebuilt the `scaleConfigs` array to inject explicit `minorCount` parameters, guaranteeing 5-12 minor ticks per major block across all zoom hierarchies.
+* **[UI-164] Absolute Center Anchoring:** The rendering loop now pre-calculates the exact temporal midpoint of the viewport (`viewportCenterMs`). It evaluates the generated major ticks and assigns the full `DD/MM/YYYY` label *exclusively* to the single tick mathematically closest to absolute center-mass, completely eliminating edge-clipping.
+* **[UI-165] Minor Tick Modulo Decluttering:** Implemented an index-based rendering mask for minor tick labels. While the physical 1px vertical tick marks always render, the text strings are heavily suppressed: even `minorCount` arrays utilize modulo logic (`minorIndex % 2 === 0`) to alternate labels, while odd arrays isolate and label only the exact median tick.
+* **[UI-166] Granular Delta Truncation:** Engineered a string-truncation mask for minor ticks operating within minute-level scales. The leading hour is stripped entirely, outputting pristine temporal deltas (e.g., `:15`, `:30`, `:45`) to drastically reduce horizontal character footprint and prevent overlapping.
+* **[PERF-29] 1-Indexed Month Alignment:** Re-engineered the day-stepping algorithm to utilize a 1-indexed date foundation (`setDate(Math.floor((iterDate.getDate() - 1) / step) * step + 1)`). This mathematically guarantees that major ticks perfectly anchor to the 1st of the month during macro-level zoom limits, resolving native JS zero-index drift.
+
 ### [v6.8.13] - X-Axis Hardware Anchorage (Block Patch)
 
 **TimelineScrubber (v24.2.11):**
