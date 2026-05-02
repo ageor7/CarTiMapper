@@ -1014,7 +1014,7 @@
         MODULE_VERSIONS['ContentSlider'] = 'v4.2.9';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v24.2.12 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v24.2.13 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan, isTimelineExpanded, setIsTimelineExpanded, isTimelineMinimized, setIsTimelineMinimized, dateLocale, timelineRequiredHeight }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -1024,7 +1024,18 @@
             const scrollTargetRef = useRef(null);
             const scrollTimeout = useRef(null);
             
+            const [containerHeight, setContainerHeight] = useState(200);
             const [viewLeftEdge, setViewLeftEdge] = useState(0);
+
+            useEffect(() => {
+                const ro = new ResizeObserver(entries => {
+                    if (entries && entries[0] && entries[0].target) {
+                        setContainerHeight(entries[0].target.clientHeight);
+                    }
+                });
+                if (wrapperRef.current) ro.observe(wrapperRef.current);
+                return () => ro.disconnect();
+            }, []);
 
             const getParsedTags = (rawTagsArray) => {
                 if (!rawTagsArray || rawTagsArray.length === 0) return ['Untagged'];
@@ -1054,7 +1065,8 @@
                 if (!placed) orderedTags.push(remaining.shift());
             }
 
-            const laneHeight = 24; 
+            const laneCount = Math.max(1, orderedTags.length);
+            const laneHeight = Math.max(24, (containerHeight - 38) / laneCount);
 
             const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
             const minTimeRaw = validData.length > 0 ? validData[0].startDate.getTime() : new Date().getTime();
@@ -1270,8 +1282,9 @@
                                 if (activeScale.minorType === 'year') minorLabel = minorIter.getFullYear(); 
                                 else if (activeScale.minorType === 'month') minorLabel = minorIter.toLocaleString(dateLocale, { month: 'short' });
                                 else if (activeScale.minorType === 'day') minorLabel = minorIter.getDate(); 
-                                else if (activeScale.minorType === 'hour') minorLabel = minorIter.getHours() + 'h';
-                                else if (activeScale.minorType === 'minute') minorLabel = ':' + minorIter.getMinutes().toString().padStart(2, '0');
+                                else if (activeScale.minorType === 'hour' || activeScale.minorType === 'minute') {
+                                    minorLabel = minorIter.getMinutes() === 0 ? minorIter.getHours() + 'h' : ':' + minorIter.getMinutes().toString().padStart(2, '0');
+                                }
                             }
                             
                             if (minorTickPx >= viewLeftEdge - 50 && minorTickPx <= viewLeftEdge + containerW + 50) {
@@ -1300,8 +1313,9 @@
                      if (activeScale.type === 'year') label = d.date.getFullYear(); 
                      else if (activeScale.type === 'month') label = d.date.toLocaleString(dateLocale, { month: 'short', year: 'numeric' });
                      else if (activeScale.type === 'day') label = d.date.toLocaleString(dateLocale, { day: 'numeric', month: 'short' }); 
-                     else if (activeScale.type === 'hour') label = d.date.toLocaleString(dateLocale, { hour: '2-digit', minute: '2-digit' }).replace(':00', ''); 
-                     else if (activeScale.type === 'minute') label = d.date.toLocaleString(dateLocale, { hour: '2-digit', minute: '2-digit' });
+                     else if (activeScale.type === 'hour' || activeScale.type === 'minute') {
+                         label = d.date.getMinutes() === 0 ? d.date.getHours() + 'h' : ':' + d.date.getMinutes().toString().padStart(2, '0');
+                     }
                 }
                 return html`<div class="timeline-ruler-tick" style="left: ${d.pctLeft}%;"><div style="width: 2px; height: 10px; background: #666; margin-bottom: 2px;"></div><div style="font-size: 0.75rem; white-space: nowrap; font-weight: ${i === centerTickIndex ? '700' : 'normal'}; color: ${i === centerTickIndex ? '#007acc' : '#444'};">${label}</div></div>`;
             });
@@ -1368,18 +1382,23 @@
                     </div>
 
                     <div class="timeline-scroll-wrapper" ref=${wrapperRef} onScroll=${onScroll} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${onWheel}>
-                        <div class="timeline-track-container" style="width: ${trackWidthPx}px; flex-shrink: 0; min-height: 100%; box-sizing: border-box; padding-bottom: 33px;">
+                        <div class="timeline-track-container" style="position: relative; width: ${trackWidthPx}px; flex-shrink: 0; height: 100%; box-sizing: border-box; padding-bottom: 33px;">
                             <div style="position: absolute; top: 5px; left: 0; right: 0; bottom: 33px; pointer-events: none; z-index: 0;">
                                 ${orderedTags.map((tag, i) => html`<div class="tag-lane" style="top: ${i * laneHeight}px; height: ${laneHeight}px; background: ${i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent'};"><div class="tag-lane-label" style="background: ${i % 2 === 0 ? '#f4f4f4' : '#fcfcfc'}; pointer-events: auto;">${tag}</div></div>`)}
                             </div>
-                            <div class="timeline-axis">${rulerTicks}${minorTicksHTML}</div>
+                            
+                            <div class="timeline-axis" style="position: absolute; bottom: 0; left: 0; right: 0; height: 28px; background: #e0e0e0; border-top: 2px solid #999; z-index: 5;">
+                                ${rulerTicks}
+                                ${minorTicksHTML}
+                            </div>
+                            
                             ${markers}
                         </div>
                     </div>
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v24.2.12';
+        MODULE_VERSIONS['TimelineScrubber'] = 'v24.2.13';
         // === [ END MAJOR BLOCK ] ===
 
         // === [ MAJOR BLOCK: AppOrchestrator v1.54.7 ] ===
