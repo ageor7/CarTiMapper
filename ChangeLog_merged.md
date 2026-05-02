@@ -2,6 +2,17 @@
 All notable changes to this project will be documented in this file.
 
 
+### [v6.8.16] - Telemetry Expansion & Temporal Ceilings (Block Patch)
+
+**TimelineScrubber (v24.2.15):**
+* **[PERF-32] Absolute Density Capping:** Injected a `Math.max()` hard ceiling into the `targetMsPerMajorTick` calculation (`Math.max(pixelDensityTarget, timeSpan / 12)`). This algorithm strictly caps the rendering engine at a maximum of 12 Major Ticks per viewport across all zoom depths and all monitor widths, permanently eliminating X-Axis clutter.
+* **[UI-171] Contextual Day Overrides:** Upgraded the string formatter logic on `hour` and `minute` scale configs. The engine now reads the global span of the viewport (`visibleTimeSpanMs > 24 Hours`). If true, but the scale demands an hourly tick at midnight (`getHours() === 0`), it unconditionally overrides the hour text and outputs the Short Date (e.g., `12 May`). This preserves daily context when zooming out horizontally.
+* **[UI-172] Unconditional Physical Sub-Ticks:** Decoupled the rendering of the `1px` vertical minor tick mark from the collision logic controlling its text label. The comb-tooth geometric axis now renders every single minor increment flawlessly, while typography is selectively culled above it.
+
+**VibeMonitor (v2.1.13):**
+* **[UI-173] Dynamic Variable Inspection:** The Telemetry modal is no longer a static readout. Injected a Configuration Mode (`⚙`) that mathematically scans the `activeSlide` DOM node and arrays all available CMS fields. 
+* **[UI-174] Telemetry Persistence:** Checkbox selections are now strictly bound to `localStorage.getItem('tm_telemetry_fields')`. Custom user tracking profiles securely survive across hard page reloads and cross-session navigation.
+
 ### [v6.8.15] - Stacking Contexts & State Persistence (Block Patch)
 
 **AppOrchestrator (v1.54.8):**
