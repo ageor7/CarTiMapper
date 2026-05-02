@@ -1014,7 +1014,7 @@
         MODULE_VERSIONS['ContentSlider'] = 'v4.2.9';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v24.2.11 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v24.2.12 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan, isTimelineExpanded, setIsTimelineExpanded, isTimelineMinimized, setIsTimelineMinimized, dateLocale, timelineRequiredHeight }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -1024,18 +1024,7 @@
             const scrollTargetRef = useRef(null);
             const scrollTimeout = useRef(null);
             
-            const [containerHeight, setContainerHeight] = useState(200);
             const [viewLeftEdge, setViewLeftEdge] = useState(0);
-
-            useEffect(() => {
-                const ro = new ResizeObserver(entries => {
-                    if (entries && entries[0] && entries[0].target) {
-                        setContainerHeight(entries[0].target.clientHeight);
-                    }
-                });
-                if (wrapperRef.current) ro.observe(wrapperRef.current);
-                return () => ro.disconnect();
-            }, []);
 
             const getParsedTags = (rawTagsArray) => {
                 if (!rawTagsArray || rawTagsArray.length === 0) return ['Untagged'];
@@ -1065,8 +1054,7 @@
                 if (!placed) orderedTags.push(remaining.shift());
             }
 
-            const laneCount = Math.max(1, orderedTags.length);
-            const laneHeight = Math.max(24, (containerHeight - 38) / laneCount);
+            const laneHeight = 24; 
 
             const validData = data.filter(d => d.startDate && !isNaN(d.startDate.getTime()));
             const minTimeRaw = validData.length > 0 ? validData[0].startDate.getTime() : new Date().getTime();
@@ -1183,62 +1171,81 @@
 
             const containerW = wrapperRef.current ? wrapperRef.current.clientWidth : 1000;
             const trackWidthPx = Math.max(containerW, containerW * zoomLevel);
-            const targetMsPerMajorTick = (200 / containerW) * (renderTimeRange / zoomLevel); 
+            const targetMsPerMajorTick = (120 / containerW) * (renderTimeRange / zoomLevel); 
             const SECOND = 1000; const MINUTE = 60 * SECOND; const HOUR = 60 * MINUTE; const DAY = 24 * HOUR; const MONTH = 30 * DAY; const YEAR = 365.25 * DAY;
 
             const scaleConfigs = [
-                { ms: 1000 * YEAR, type: 'year', step: 1000, minorType: 'year', minorStep: 100 }, { ms: 100 * YEAR, type: 'year', step: 100, minorType: 'year', minorStep: 10 }, { ms: 10 * YEAR, type: 'year', step: 10, minorType: 'year', minorStep: 1 }, { ms: YEAR, type: 'year', step: 1, minorType: 'month', minorStep: 1 },
-                { ms: 6 * MONTH, type: 'month', step: 6, minorType: 'month', minorStep: 1 }, { ms: 3 * MONTH, type: 'month', step: 3, minorType: 'month', minorStep: 1 }, { ms: MONTH, type: 'month', step: 1, minorType: 'day', minorStep: 5 }, { ms: 7 * DAY, type: 'day', step: 7, minorType: 'day', minorStep: 1 },
-                { ms: 2 * DAY, type: 'day', step: 2, minorType: 'hour', minorStep: 12 }, { ms: DAY, type: 'day', step: 1, minorType: 'hour', minorStep: 4 }, { ms: 12 * HOUR, type: 'hour', step: 12, minorType: 'hour', minorStep: 2 }, { ms: 6 * HOUR, type: 'hour', step: 6, minorType: 'hour', minorStep: 1 },
-                { ms: HOUR, type: 'hour', step: 1, minorType: 'minute', minorStep: 15 }, { ms: 30 * MINUTE, type: 'minute', step: 30, minorType: 'minute', minorStep: 5 }, { ms: 15 * MINUTE, type: 'minute', step: 15, minorType: 'minute', minorStep: 1 }, { ms: MINUTE, type: 'minute', step: 1, minorType: 'second', minorStep: 15 }
+                { ms: 1000 * YEAR, type: 'year', step: 1000, minorType: 'year', minorStep: 100, minorCount: 10 }, 
+                { ms: 100 * YEAR, type: 'year', step: 100, minorType: 'year', minorStep: 10, minorCount: 10 }, 
+                { ms: 10 * YEAR, type: 'year', step: 10, minorType: 'year', minorStep: 1, minorCount: 10 }, 
+                { ms: 2 * YEAR, type: 'year', step: 2, minorType: 'month', minorStep: 2, minorCount: 12 }, 
+                { ms: YEAR, type: 'year', step: 1, minorType: 'month', minorStep: 1, minorCount: 12 },
+                { ms: 6 * MONTH, type: 'month', step: 6, minorType: 'month', minorStep: 1, minorCount: 6 }, 
+                { ms: 3 * MONTH, type: 'month', step: 3, minorType: 'day', minorStep: 10, minorCount: 9 }, 
+                { ms: MONTH, type: 'month', step: 1, minorType: 'day', minorStep: 5, minorCount: 6 }, 
+                { ms: 14 * DAY, type: 'day', step: 14, minorType: 'day', minorStep: 2, minorCount: 7 },
+                { ms: 7 * DAY, type: 'day', step: 7, minorType: 'day', minorStep: 1, minorCount: 7 },
+                { ms: 2 * DAY, type: 'day', step: 2, minorType: 'hour', minorStep: 4, minorCount: 12 }, 
+                { ms: DAY, type: 'day', step: 1, minorType: 'hour', minorStep: 3, minorCount: 8 }, 
+                { ms: 12 * HOUR, type: 'hour', step: 12, minorType: 'hour', minorStep: 1, minorCount: 12 },
+                { ms: 6 * HOUR, type: 'hour', step: 6, minorType: 'hour', minorStep: 1, minorCount: 6 },
+                { ms: 2 * HOUR, type: 'hour', step: 2, minorType: 'minute', minorStep: 15, minorCount: 8 }, 
+                { ms: HOUR, type: 'hour', step: 1, minorType: 'minute', minorStep: 10, minorCount: 6 },
+                { ms: 30 * MINUTE, type: 'minute', step: 30, minorType: 'minute', minorStep: 5, minorCount: 6 }, 
+                { ms: 15 * MINUTE, type: 'minute', step: 15, minorType: 'minute', minorStep: 1, minorCount: 15 }, 
+                { ms: 10 * MINUTE, type: 'minute', step: 10, minorType: 'minute', minorStep: 1, minorCount: 10 },
+                { ms: 5 * MINUTE, type: 'minute', step: 5, minorType: 'minute', minorStep: 1, minorCount: 5 },
+                { ms: MINUTE, type: 'minute', step: 1, minorType: 'second', minorStep: 10, minorCount: 6 }
             ];
 
             let activeScale = scaleConfigs.find(c => targetMsPerMajorTick > c.ms) || scaleConfigs[scaleConfigs.length - 1];
 
-            const rulerTicks = [];
-            
             const visibleLeftMs = renderMinTime + (viewLeftEdge / trackWidthPx) * renderTimeRange;
             const visibleRightMs = renderMinTime + ((viewLeftEdge + containerW) / trackWidthPx) * renderTimeRange;
+            const viewportCenterMs = visibleLeftMs + ((visibleRightMs - visibleLeftMs) / 2);
 
             let iterDate = new Date(Math.max(renderMinTime, visibleLeftMs - (activeScale.ms * 2)));
             iterDate.setMilliseconds(0);
-            if (activeScale.type === 'year') { iterDate.setMonth(0, 1); iterDate.setHours(0,0,0); iterDate.setFullYear(Math.floor(iterDate.getFullYear() / activeScale.step) * activeScale.step); }
-            else if (activeScale.type === 'month') { iterDate.setDate(1); iterDate.setHours(0,0,0); iterDate.setMonth(Math.floor(iterDate.getMonth() / activeScale.step) * activeScale.step); }
-            else if (activeScale.type === 'day') { iterDate.setHours(0,0,0); iterDate.setDate(Math.floor(iterDate.getDate() / activeScale.step) * activeScale.step); }
-            else if (activeScale.type === 'hour') { iterDate.setMinutes(0,0); iterDate.setHours(Math.floor(iterDate.getHours() / activeScale.step) * activeScale.step); }
-            else if (activeScale.type === 'minute') { iterDate.setSeconds(0); iterDate.setMinutes(Math.floor(iterDate.getMinutes() / activeScale.step) * activeScale.step); }
+            
+            if (activeScale.type === 'year') { iterDate.setMonth(0, 1); iterDate.setHours(0,0,0,0); iterDate.setFullYear(Math.floor(iterDate.getFullYear() / activeScale.step) * activeScale.step); }
+            else if (activeScale.type === 'month') { iterDate.setDate(1); iterDate.setHours(0,0,0,0); iterDate.setMonth(Math.floor(iterDate.getMonth() / activeScale.step) * activeScale.step); }
+            else if (activeScale.type === 'day') { iterDate.setHours(0,0,0,0); iterDate.setDate(Math.floor((iterDate.getDate() - 1) / activeScale.step) * activeScale.step + 1); }
+            else if (activeScale.type === 'hour') { iterDate.setMinutes(0,0,0); iterDate.setHours(Math.floor(iterDate.getHours() / activeScale.step) * activeScale.step); }
+            else if (activeScale.type === 'minute') { iterDate.setSeconds(0,0); iterDate.setMinutes(Math.floor(iterDate.getMinutes() / activeScale.step) * activeScale.step); }
 
-            let safety = 0; let hasRenderedFullDate = false;
+            let safety = 0;
             const stopTime = Math.min(renderMaxTime, visibleRightMs + (activeScale.ms * 2));
+            
+            const majorTicksData = [];
+            const minorTicksHTML = [];
 
             while (iterDate.getTime() <= stopTime && safety < 1000) {
                 safety++; const t = iterDate.getTime();
                 if (t >= renderMinTime) {
                     const pctLeft = ((t - renderMinTime) / renderTimeRange) * 100;
-                    let label = ''; 
-                    
-                    // Display the full date on the first major tick that is comfortably within the viewport
-                    if (!hasRenderedFullDate && t >= visibleLeftMs + ((60 / trackWidthPx) * renderTimeRange)) { 
-                        hasRenderedFullDate = true; 
-                        label = iterDate.toLocaleString(dateLocale, { day: '2-digit', month: 'short', year: 'numeric', hour: (activeScale.type==='hour'||activeScale.type==='minute')?'2-digit':undefined, minute: (activeScale.type==='hour'||activeScale.type==='minute')?'2-digit':undefined });
-                    }
-                    else {
-                        if (activeScale.type === 'year') label = iterDate.getFullYear(); else if (activeScale.type === 'month') label = iterDate.toLocaleString(dateLocale, { month: 'short', year: 'numeric' });
-                        else if (activeScale.type === 'day') label = iterDate.toLocaleString(dateLocale, { day: 'numeric', month: 'short' }); else if (activeScale.type === 'hour' || activeScale.type === 'minute') label = iterDate.toLocaleString(dateLocale, { hour: '2-digit', minute: '2-digit' });
-                    }
-                    rulerTicks.push(html`<div class="timeline-ruler-tick" style="left: ${pctLeft}%;"><div style="width: 2px; height: 10px; background: #666; margin-bottom: 2px;"></div><div style="font-size: 0.75rem; color: #444; white-space: nowrap;">${label}</div></div>`);
+                    majorTicksData.push({ t, pctLeft, date: new Date(iterDate) });
                 }
 
                 let nextMajor = new Date(iterDate);
-                if (activeScale.type === 'year') nextMajor.setFullYear(nextMajor.getFullYear() + activeScale.step); else if (activeScale.type === 'month') nextMajor.setMonth(nextMajor.getMonth() + activeScale.step);
-                else if (activeScale.type === 'day') nextMajor.setDate(nextMajor.getDate() + activeScale.step); else if (activeScale.type === 'hour') nextMajor.setHours(nextMajor.getHours() + activeScale.step); else if (activeScale.type === 'minute') nextMajor.setMinutes(nextMajor.getMinutes() + activeScale.step);
+                if (activeScale.type === 'year') nextMajor.setFullYear(nextMajor.getFullYear() + activeScale.step); 
+                else if (activeScale.type === 'month') nextMajor.setMonth(nextMajor.getMonth() + activeScale.step);
+                else if (activeScale.type === 'day') nextMajor.setDate(nextMajor.getDate() + activeScale.step); 
+                else if (activeScale.type === 'hour') nextMajor.setHours(nextMajor.getHours() + activeScale.step); 
+                else if (activeScale.type === 'minute') nextMajor.setMinutes(nextMajor.getMinutes() + activeScale.step);
 
-                let minorIter = new Date(iterDate); let minorSafety = 0;
+                let minorIter = new Date(iterDate); 
+                let minorSafety = 0;
+                let minorIndex = 0;
+
                 while (minorSafety < 100) {
-                    minorSafety++;
-                    if (activeScale.minorType === 'year') minorIter.setFullYear(minorIter.getFullYear() + activeScale.minorStep); else if (activeScale.minorType === 'month') minorIter.setMonth(minorIter.getMonth() + activeScale.minorStep);
-                    else if (activeScale.minorType === 'day') minorIter.setDate(minorIter.getDate() + activeScale.minorStep); else if (activeScale.minorType === 'hour') minorIter.setHours(minorIter.getHours() + activeScale.minorStep);
-                    else if (activeScale.minorType === 'minute') minorIter.setMinutes(minorIter.getMinutes() + activeScale.minorStep); else if (activeScale.minorType === 'second') minorIter.setSeconds(minorIter.getSeconds() + activeScale.minorStep);
+                    minorSafety++; minorIndex++;
+                    if (activeScale.minorType === 'year') minorIter.setFullYear(minorIter.getFullYear() + activeScale.minorStep); 
+                    else if (activeScale.minorType === 'month') minorIter.setMonth(minorIter.getMonth() + activeScale.minorStep);
+                    else if (activeScale.minorType === 'day') minorIter.setDate(minorIter.getDate() + activeScale.minorStep); 
+                    else if (activeScale.minorType === 'hour') minorIter.setHours(minorIter.getHours() + activeScale.minorStep);
+                    else if (activeScale.minorType === 'minute') minorIter.setMinutes(minorIter.getMinutes() + activeScale.minorStep); 
+                    else if (activeScale.minorType === 'second') minorIter.setSeconds(minorIter.getSeconds() + activeScale.minorStep);
+                    
                     if (minorIter.getTime() >= nextMajor.getTime()) break;
                     
                     const minorT = minorIter.getTime();
@@ -1251,21 +1258,53 @@
                         
                         let hideMinor = distCurrent < 35 || distNext < 35;
                         if (!hideMinor && distCurrent > 20) { 
+                            let showLabelText = false;
+                            if (activeScale.minorCount % 2 === 0) {
+                                showLabelText = (minorIndex % 2 === 0);
+                            } else {
+                                showLabelText = (minorIndex === Math.floor(activeScale.minorCount / 2));
+                            }
+                            
                             let minorLabel = '';
-                            if (activeScale.minorType === 'year') minorLabel = minorIter.getFullYear(); 
-                            else if (activeScale.minorType === 'month') minorLabel = minorIter.toLocaleString(dateLocale, { month: 'short' });
-                            else if (activeScale.minorType === 'day') minorLabel = minorIter.getDate(); 
-                            else if (activeScale.minorType === 'hour') minorLabel = minorIter.getMinutes() === 0 ? minorIter.getHours().toString() : minorIter.toLocaleString(dateLocale, { hour: '2-digit', minute: '2-digit' });
-                            else if (activeScale.minorType === 'minute') minorLabel = minorIter.toLocaleString(dateLocale, { hour: '2-digit', minute: '2-digit' });
+                            if (showLabelText) {
+                                if (activeScale.minorType === 'year') minorLabel = minorIter.getFullYear(); 
+                                else if (activeScale.minorType === 'month') minorLabel = minorIter.toLocaleString(dateLocale, { month: 'short' });
+                                else if (activeScale.minorType === 'day') minorLabel = minorIter.getDate(); 
+                                else if (activeScale.minorType === 'hour') minorLabel = minorIter.getHours() + 'h';
+                                else if (activeScale.minorType === 'minute') minorLabel = ':' + minorIter.getMinutes().toString().padStart(2, '0');
+                            }
                             
                             if (minorTickPx >= viewLeftEdge - 50 && minorTickPx <= viewLeftEdge + containerW + 50) {
-                                rulerTicks.push(html`<div style="position: absolute; left: ${((minorT - renderMinTime) / renderTimeRange) * 100}%; top: 0; width: 1px; height: ${minorLabel ? '7px' : '5px'}; background: #aaa; z-index: 4;">${minorLabel ? html`<div style="position: absolute; left: -20px; right: -20px; top: 7px; text-align: center; font-size: 0.6rem; color: #888; letter-spacing: -0.5px;">${minorLabel}</div>` : ''}</div>`);
+                                minorTicksHTML.push(html`<div style="position: absolute; left: ${((minorT - renderMinTime) / renderTimeRange) * 100}%; top: 0; width: 1px; height: ${minorLabel ? '7px' : '5px'}; background: #aaa; z-index: 4;">${minorLabel ? html`<div style="position: absolute; left: -20px; right: -20px; top: 7px; text-align: center; font-size: 0.6rem; color: #888; letter-spacing: -0.5px;">${minorLabel}</div>` : ''}</div>`);
                             }
                         }
                     }
                 }
                 iterDate = nextMajor;
             }
+
+            let centerTickIndex = -1;
+            let minDist = Infinity;
+            majorTicksData.forEach((d, i) => {
+                if (d.t >= visibleLeftMs && d.t <= visibleRightMs) {
+                    const dist = Math.abs(d.t - viewportCenterMs);
+                    if (dist < minDist) { minDist = dist; centerTickIndex = i; }
+                }
+            });
+
+            const rulerTicks = majorTicksData.map((d, i) => {
+                let label = '';
+                if (i === centerTickIndex) {
+                    label = d.date.toLocaleString(dateLocale, { day: '2-digit', month: 'short', year: 'numeric', hour: (activeScale.type==='hour'||activeScale.type==='minute')?'2-digit':undefined, minute: (activeScale.type==='hour'||activeScale.type==='minute')?'2-digit':undefined });
+                } else {
+                     if (activeScale.type === 'year') label = d.date.getFullYear(); 
+                     else if (activeScale.type === 'month') label = d.date.toLocaleString(dateLocale, { month: 'short', year: 'numeric' });
+                     else if (activeScale.type === 'day') label = d.date.toLocaleString(dateLocale, { day: 'numeric', month: 'short' }); 
+                     else if (activeScale.type === 'hour') label = d.date.toLocaleString(dateLocale, { hour: '2-digit', minute: '2-digit' }).replace(':00', ''); 
+                     else if (activeScale.type === 'minute') label = d.date.toLocaleString(dateLocale, { hour: '2-digit', minute: '2-digit' });
+                }
+                return html`<div class="timeline-ruler-tick" style="left: ${d.pctLeft}%;"><div style="width: 2px; height: 10px; background: #666; margin-bottom: 2px;"></div><div style="font-size: 0.75rem; white-space: nowrap; font-weight: ${i === centerTickIndex ? '700' : 'normal'}; color: ${i === centerTickIndex ? '#007acc' : '#444'};">${label}</div></div>`;
+            });
 
             const markers = validData.map((item, index) => {
                 const globalIndex = data.findIndex(d => d.id === item.id);
@@ -1333,18 +1372,14 @@
                             <div style="position: absolute; top: 5px; left: 0; right: 0; bottom: 33px; pointer-events: none; z-index: 0;">
                                 ${orderedTags.map((tag, i) => html`<div class="tag-lane" style="top: ${i * laneHeight}px; height: ${laneHeight}px; background: ${i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent'};"><div class="tag-lane-label" style="background: ${i % 2 === 0 ? '#f4f4f4' : '#fcfcfc'}; pointer-events: auto;">${tag}</div></div>`)}
                             </div>
-                            
-                            <div class="timeline-axis" style="position: absolute; bottom: 0; left: 0; right: 0; height: 28px; background: #e0e0e0; border-top: 2px solid #999; z-index: 5;">
-                                ${rulerTicks}
-                            </div>
-                            
+                            <div class="timeline-axis">${rulerTicks}${minorTicksHTML}</div>
                             ${markers}
                         </div>
                     </div>
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v24.2.11';
+        MODULE_VERSIONS['TimelineScrubber'] = 'v24.2.12';
         // === [ END MAJOR BLOCK ] ===
 
         // === [ MAJOR BLOCK: AppOrchestrator v1.54.7 ] ===
