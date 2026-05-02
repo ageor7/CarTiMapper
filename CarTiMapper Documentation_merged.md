@@ -79,6 +79,7 @@
 * **[REF: CRASH-01] Dynamic Zoom Ceilings & Tile Stretching:** The engine dynamically calculates an absolute `maxGlobalZoom` from the highest available CMS layer. All spatial layers utilize a decoupled `maxNativeZoom` vs `maxZoom` matrix, commanding Leaflet to physically stretch lower-resolution tiles to seamlessly fill the viewport when the user zooms deep into high-resolution historical overlays.
 * **[REF: UI-71] Real-Time Layer Opacity Engine:** When an overlay is toggled `Active`, the Layers HUD mounts an HTML `<input type="range">` slider. This slider is structurally decoupled from the `<label>` parent, allowing users to scrub the `L.tileLayer.setOpacity()` WebGL rendering in real-time.
 * **[REF: UI-159] Z-Index Layer Menu Liberation:** Map and Visual panes explicitly utilize `overflow: visible; z-index: 30`, while Leaflet map tiles are isolated within a child node (`overflow: hidden; z-index: 1`). This architectural decoupling prevents Tablet viewports from clipping or decapitating the Map Overlay configuration menus.
+*   **[REF: PERF-33] Synchronized Boot Camera:** Map initialization forces a strict execution latency. The generic `fitBounds` payload executes first to paint geometry, immediately followed by the precise `activeIndex` marker `flyToBounds` command. This geometrically guarantees that the camera actively dives to the target upon boot at the precise user-defined `maxAutoZoom` depth.
 
 ---
 
@@ -117,7 +118,7 @@
 * **[REF: UI-142] Media Spotlight Casing:** High-aspect ratio vertical media is decoupled from dark-mode black voids via a native CSS dot-matrix casing overlay (`radial-gradient(#333 1px, transparent 1px)`). An absolute-center soft white `radial-gradient` spotlight is applied to the image node container to separate media from the UI structure.
 * **[REF: UI-150] Layout Reset Engine:** Prevents mobile users from structurally breaking the viewport. A core `Reset Layout` command executes a DOM override, instantly zero-stating all active pane variables back to the structural baseline (`55% / 50% / 10%`) and clearing active Maximize states.
 * **[REF: UI-156] Ascender/Descender Brand Typographic Locking:** Inline `CarTiMapperLogo` SVGs are bound to an absolute vertical wrapper (`height: 22px`). This forces the `align-items: baseline` CSS directive to perfectly align the Logo ascender to the brand text descender.
-
+*   **[REF: UI-177] Fluid Metadata Wrapping:** Extinguished the restrictive `white-space: nowrap` horizontal cage on the `.metadata-ribbon`. Location strings displaying massive text values dynamically execute `flex-wrap: wrap`, gracefully stacking secondary labels (Tags) vertically to preserve absolute UX margins without horizontal clipping.
 ---
 
 ## VII. Timeline Physics & Chronological Mathematics
@@ -136,7 +137,12 @@
 * **[REF: UI-164] Viewport Center-Mass Selection:** The rendering loop isolates the specific `viewportCenterMs`. It scans all visible Major Ticks and mathematical grants the active `DD/MM/YYYY` anchor label *exclusively* to the single Tick structurally closest to absolute screen center-mass.
 * **[REF: UI-165] Declutter Modulo Masks:** Physical minor tick geometry rendering (the 1px indicator line) runs unconditionally, while semantic text values execute heavily restricted Modulo arrays. Even density scales use `% 2 === 0` loops to alternating text tags, while odd scale counts limit text rendering explicitly to the absolute median array instance.
 * **[REF: UI-167] Contextual Truncation Math:** Prevents hour/minute string overlap collisions at granular zoom arrays. Ticks that geometrically snap to the exact hour (`getMinutes() === 0`) truncate completely down to the base hour integer (`14h`). All trailing minor ticks mathematically strip the hour value and render clean fractional deltas (`:15`, `:30`).
-
+*   **[REF: PERF-28] Density Throttling Matrix (Updated):** Enforced a strict mathematical ceiling on timeline scaling via `Math.max`. The X-Axis is physically restricted to a maximum of 12 Major Ticks per viewport across all zoom depths, permanently eliminating integer clutter.
+*   **[REF: UI-164] Two-Pass Center-Mass Overlap Suppression (Updated):** 
+    1. Pass 1 isolates raw plotting coordinates. 
+    2. Pass 2 identifies the single Major Tick mathematically closest to the absolute center of the viewport and assigns the Full Date label. A `65px` keepout radius suppresses adjacent label strings, generating a geometric typography void that guarantees zero overlap.
+*   **[REF: UI-167] Contextual Truncation Math (Updated):** Decoupled physical sub-ticks (`1px` width) from typography. Minute scales dynamically truncate leading hours (`:15`, `:30`), and contextual overrides ensure daily context (e.g., `12 May`) forces replacement of `00h` markers when zooming out horizontally past a 24-hour span.
+*   **[REF: PERF-34] Concurrent Priority Sorting:** Sub-second accuracy is strictly parsed. Concurrent events sharing the exact same millisecond start time utilize a secondary fallback to their original Spreadsheet Row ID, guaranteeing stable, non-volatile natural order rendering.
 ---
 
 ## VIII. Algorithms, Analytics & Methodologies
@@ -161,3 +167,18 @@
 * **[REF: DIAG-01] Active Sensor Telemetry:** The Vibe Monitor passively exposes the application version manifest and the raw location string of the currently active dataset row.
 * **[REF: CRASH-01] Library Polyfill Injection:** The `MapViewer` implements a native string-interception polyfill that explicitly deconstructs `GEOMETRYCOLLECTION` wrappers and passes isolated internal primitives through the parser.
 * **[REF: CRASH-02] React Prop Continuity:** Cross-component navigational functions (e.g., `jumpToSlide`) must be explicitly passed via React component props to prevent fatal unrecoverable ReferenceErrors inside isolated Modals.
+
+---
+
+## X. Grid Topology & Stacking Domination
+*   **[REF: UI-175] Global Beam Architecture:** Extracted the Nav/Status UI (`.unified-status-bar`) from the nested narrative pane. Re-engineered it as a static 32px horizontal structural beam (`#app-layout > .global-status-bar`) separating the Core Viewports from the Timeline Scrubber. This guarantees the UI floor permanently survives visual pane maximizations.
+*   **[REF: UI-176] Universal Hardware Escape:** Abandoned CSS-class-based Z-index reliance for all Modals (`About`, `Search`, `Settings`) and the Telemetry Tracker (`VibeMonitor`). Injected absolute inline `z-index: 10001` (modals) and `10000` (backdrops) directly into the DOM tree at the `#tm-root` level. This obliterates all isolated Flex-cage stacking contexts, guaranteeing global rendering over Leaflet tile layers.
+*   **[REF: UI-178] Ghost Margin & Scrollbar Annihilation:** Stripped archaic `padding-bottom` hacks from the timeline track. Executed strict WebKit scrollbar suppression (`::-webkit-scrollbar`) globally and forced `box-sizing: border-box` against a primary `#fcfcfc` root to eradicate UI bleed and dark visual voids.
+
+---
+
+### 11. Storage, State Persistence & Diagnostics
+*   **[REF: DATA-12] Unified Engine Storage:** The platform natively parses and serializes 5 dynamic `localStorage` states (`tm_show_button_text`, `tm_date_locale`, `tm_max_auto_zoom`, `tm_minimap_offset`, `tm_polygon_opacity`), guaranteeing GUI persistence across cross-session reloads.
+*   **[REF: DIAG-02] Dynamic Variable Extraction:** The `VibeMonitor` configuration mode mathematically scans the `activeSlide` DOM node, dynamically extracting and mapping all available CMS fields. Checkbox selections are strictly bound to `tm_telemetry_fields` in local storage.
+*   **[REF: DIAG-03] Exact Millisecond Diagnostics:** Abolished string sanitization inside the diagnostic readout. Telemetry for `startDate` and `endDate` fields yields strict, high-fidelity ISO payloads (`val.toISOString()`), empowering precise validation of chronological offsets.
+*   **[REF: DIAG-04] Omni-Directional Telemetry Scaling:** Telemetry windows natively support manual fluid scaling (`resize: both;`) via OS-level border dragging. Startup initialization intercepts timeline geometry states to mathematically drop the monitor exactly `15px` above the global status bar on the left flank, avoiding center-screen occlusion.
