@@ -2,6 +2,22 @@
 All notable changes to this project will be documented in this file.
 
 
+### [v6.8.17] - Architectural Global Liberation (Multi-Block Patch)
+
+**AppOrchestrator (v1.55.0):**
+* **[ARCH-01] Global Status Bar Extraction:** Amputated the `.unified-status-bar` from the `ContentSlider` viewport. Elevated it structurally into `#app-layout` directly above the `.resizer-dyn-timeline`. The Status Bar now acts as an omni-present, structural dividing beam traversing the full width of the application window. It is permanently immune to `.visual-pane` maximizations. 
+* **[UI-175] Telemetry Z-Index Escape:** Ripped the `<VibeMonitor />` out of the `.map-pane` flex-cage and hoisted it to the absolute root level of `#tm-root`. Telemetry panels now globally overwrite all pane resizers and interior map components flawlessly.
+* **[UI-176] Universal Modal Hardware Anchoring:** Expanded the inline `z-index: 10001` mandate to encompass the `About` and `Search` modals (and their backdrops). Extracted their DOM state logic from `ContentSlider` into `AppOrchestrator` to ensure they bypass nested CSS flex stacking contexts. 
+
+**MapViewer (v4.1.10):**
+* **[PERF-33] Synchronized Boot Camera:** Re-engineered the marker bounding logic on application startup. Introduced a strict latency differential (delaying the active marker `flyToBounds` cycle until the initial `fitBounds` paint concludes). This geometrically guarantees that the camera actively dives to the `activeIndex` target upon boot at the precise `maxAutoZoom` depth, ignoring initial un-focused state payloads.
+
+**ContentSlider (v4.3.0):**
+* **[UI-177] Fluid Metadata Wrapping:** Extinguished the restrictive `white-space: nowrap` horizontal cage on the `.metadata-ribbon`. The global spatial wrapper is now configured to `flex-wrap: wrap;`. Locations string pills containing massive text strings will gracefully stack secondary labels (Tags) vertically, preserving absolute UX safety margins inside the text block.
+
+**VibeMonitor (v2.1.14):**
+* **[DATA-04] Exact Millisecond Diagnostics:** Abolished string sanitization inside the diagnostic readout. Telemetry for `startDate` and `endDate` fields now yields strict, high-fidelity `val.toISOString()` payloads (e.g., `2026-05-02T14:30:00.500Z`), empowering absolute validation of sub-second chronological offsets.
+
 ### [v6.8.16] - Telemetry Expansion & Temporal Ceilings (Block Patch)
 
 **TimelineScrubber (v24.2.15):**
