@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file.
 
 
+### [v6.8.15] - Stacking Contexts & State Persistence (Block Patch)
+
+**AppOrchestrator (v1.54.8):**
+* **[UI-170] Universal Z-Index Domination:** Stripped CSS reliance for modal overlays. Injected absolute, hardware-accelerated inline styles (`z-index: 10001` for modals, `z-index: 10000` for the backdrop) directly into the DOM tree. This surgically overrides all isolated stacking contexts initiated by the Flex-Cages (`.map-pane` and `.visual-pane`), unconditionally preventing Leaflet tiles or Layer menus from clipping through the settings interface on mobile and tablet arrays.
+* **[PERF-31] Unified Storage Persistence:** Re-wired the `polygonOpacity` state parameter. Converted its initial hardcoded bootstrap to a `localStorage` parser, and bound the DOM slider's `onInput` event directly to a `localStorage.setItem` stringify array. All five engine settings are now entirely sticky and immediately recoverable across cross-session reloads.
+
 ### [v6.8.15] - X-Axis Hardware Anchorage (Block Patch)
 
 **TimelineScrubber (v24.2.13):**
