@@ -1,5 +1,15 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
+
+### [v6.8.23] - Absolute Geometry Locks
+
+**Global Styles (CSS):**
+*   **[UI-179] Absolute DOM Lock:** Replaced `#tm-root` `width: 100% / height: 100vh` parameters with `position: absolute; top: 0; bottom: 0; left: 0; right: 0;`. This hardware-level bounding box entirely eradicates the sub-pixel left and bottom margin bleeding caused by CSS percent/viewport miscalculations.
+
+**ContentSlider (v4.3.3):**
+*   **[UI-69] Decoupled Ribbon Architecture:** Extracted `.metadata-ribbon` from the centered `.title-header-container`. The ribbon now executes fluidly across 100% of the pane width, allowing the Pills to strike the absolute right edge of wide viewports.
+*   **[UI-84] The Button Keep-Out Zone:** Injected a strict `padding-right: 55px` into the decoupled metadata ribbon to mathematically prevent right-flushed pills from colliding with the absolute-positioned Maximize toggle button.
+
 ### [v6.8.21] - UI/UX Physics Implementation
 
 **Global Styles (CSS):**
