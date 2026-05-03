@@ -1,16 +1,6 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
-### [v6.8.25] - Typographic Restoration & Margin Sealing
-
-**Global Styles (CSS):**
-*   **[UI-51] 50/50 Split Reset:** Modified the root `--primary-split` variable from `55%` down to `50%`, enforcing a perfectly symmetrical initial geometry between the Narrative and Visual columns on wide viewports.
-*   **[UI-179] Inner Boundary Cages:** Injected strict `max-width: 100%; box-sizing: border-box; overflow: hidden;` rules directly into the `#app-layout` and `.timeline-pane` nodes. This stops the internal flex grids from physically pushing the absolute root container outward, fully sealing the phantom grey/black browser margins.
-
-**ContentSlider (v4.4.1):**
-*   **[CRASH-04] Transpiler Cleansing:** Eradicated invalid `{/* */}` JSX comments from the `htm` template literal, terminating the bug that caused literal engine instructions to render as physical text blocks in the UI.
-*   **[UI-49] Typographical Alignment Matrix:** Remapped the padding architecture. The 55px Maximize button "keep-out zone" is now applied to the top-level sticky header wrapper, allowing the internal `85ch` envelope to securely center itself. This mathematically guarantees the Ribbon and the Title lock flush to the exact same left-axis, while symmetrically overhanging the `65ch` text block.
-
 ### [v6.8.24] - Typographic Envelopes & Density Rendering
 
 **ContentSlider (v4.4.0):**
