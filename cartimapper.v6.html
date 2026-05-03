@@ -1664,7 +1664,6 @@
                         </div>
                     ` : ''}
 
-                    // {/* --- GLOBAL MODALS --- */}
                     <div class="tm-backdrop ${isSearchOpen ? 'open' : ''}" onClick=${() => setIsSearchOpen(false)} style="z-index: 10000;"></div>
                     <div id="search-modal" class="tm-modal ${isSearchOpen ? 'open' : ''}" style="display: ${isSearchOpen ? 'flex' : 'none'}; flex-direction: column;">
                         <button class="modal-close" onClick=${() => setIsSearchOpen(false)} title="Close">×</button>
