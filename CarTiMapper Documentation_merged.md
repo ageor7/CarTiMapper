@@ -1,5 +1,5 @@
 # CarTiMapper Engine Master Blueprint
-**Version:** v6.8.13 | **Date:** May 2, 2026
+**Version:** v6.8.23 | **Date:** May 3, 2026
 
 **Source Repositories:**
 * **CarTiMapper App:** 'CarTiMapper/cartimapper.v6.html at main · ageor7/CarTiMapper'
@@ -8,7 +8,7 @@
 
 ---
 
-## I. Engineering Protocols & Coding Rules / Core Protocols & Standing Directives
+## 1. Engineering Protocols & Coding Rules / Core Protocols & Standing Directives
 
 1. **[REF: DOC-01] Two-Tier Documentation (REF-TAGS):** Documentation is strictly bifurcated. The Master Blueprint contains the "Why" and "What" (Architecture, UI/UX Rules, Physics). The inline code comments contain the "How" (Mechanics, Loops, Variables). They are permanently interlinked using `[REF: TAG-NAME]` semantic anchors. **Zero duplication.**
 2. **Spreadsheet REF-TAGS:** Because Google Sheets does not support native code comments, REF-TAGs are securely injected into the ETL formula using `LET()` dummy variables (e.g., `_ref_map01, "[REF: MAP-01]..."`) to preserve the documentation pipeline without breaking mathematical execution.
@@ -37,7 +37,7 @@
 To preserve maximum computational bandwidth and prevent context-window saturation, the engine (AI) is instructed to memorize strictly the architectural taxonomy, DOM physics, and core directives of the platform. If a requested surgical patch requires mutating a specific code module that has fallen beyond the engine's active token horizon, the engine is strictly forbidden from hallucinating or guessing the codebase. The engine must instantly halt execution and trigger a "Context Rehydration" request, prompting the user to re-upload the specific file or block before proceeding.
 ---
 
-## II. Data Schema & The Upstream ETL Pipeline 
+## 2. Data Schema & The Upstream ETL Pipeline 
 
 * **[REF: ETL-01] Purpose of the ETL Formula:** The frontend JavaScript engine should *render* data, not *clean* it. The Google Sheets `LET()` formula intercepts messy human inputs, deduplicates tags, and natively compiles valid JSON/WKT before the frontend sees it.
 * **[REF: DATA-02] The Cartographer's Dilemma:** Humans use `[Lat, Lon]`. GIS standards (GeoJSON, WKT) demand Cartesian `[Lon, Lat]`. The spreadsheet translates this natively, ensuring export interoperability with QGIS/PostGIS.
@@ -57,7 +57,7 @@ To preserve maximum computational bandwidth and prevent context-window saturatio
 
 ---
 
-## III. Cartographic & Spatial Physics
+## 3. Cartographic & Spatial Physics
 
 * **[REF: MAP-01] WKT Engine:** The engine natively parses Well-Known Text (WKT) via the `Wicket` library. Falls back safely to GeoJSON or standard Lat/Lon pairs.
 * **[REF: MAP-02] Spatial Decluttering (MarkerCluster):** The map utilizes an R-Tree spatial index (`MarkerCluster`) to group overlapping geographic elements into numbered bubbles based on a 40px screen radius.
@@ -123,10 +123,12 @@ To preserve maximum computational bandwidth and prevent context-window saturatio
 * **[REF: UI-49] Typographical Outset (The Hero Overhang):** The sticky header utilizes a `max-width: 90ch` envelope, while the narrative description utilizes a `max-width: 75ch` envelope. This architectural decoupling creates a mathematically perfect typographic overhang, allowing long Event Titles and Place names to symmetrically expand beyond the text margins without forcing premature line breaks.
 * **[REF: UI-69] Ribbon Alignment & Spatial Wrapping:** The Date string is locked with `flex-shrink: 0` to prevent horizontal crushing. A fluid CSS spacer (`margin-left: auto`) is injected between the Date and the Metadata array, forcing the Date to anchor permanently left, while instantly pushing all Tags and Places into a secondary flex-container on the far right. This sub-container safely executes `flex-wrap: wrap` without breaking the primary Date axis.
 * **[REF: UI-178] Ghost Margin & Scrollbar Annihilation (Updated):** Stripped archaic `padding-bottom` hacks from the timeline track. Enforced strict WebKit scrollbar suppression (`::-webkit-scrollbar`) globally. Locked the `#tm-root` envelope to absolute `height: 100vh; overflow: hidden;` and forced global `box-sizing: border-box` against a primary `#fcfcfc` root to completely eradicate sub-pixel UI bleed and phantom vertical text-node overflow (the "black ribbon").
+* **[REF: UI-179] Absolute Root Anchoring:** The engine actively bans the use of `100vw`, `100vh`, and `100%` on the root `#tm-root` container. Browser OS scrollbars and rendering engines frequently calculate these vectors inaccurately, causing the darker `body` background to bleed through the bottom and left edges as phantom borders. The layout is now permanently locked via Absolute Hardware Anchoring (`position: absolute; top: 0; bottom: 0; left: 0; right: 0;`), mathematically sealing the UI against the browser edges.
+* **[REF: UI-69] Ribbon Decoupling & The 55px Keep-Out Zone [v3]:** The `.metadata-ribbon` has been physically extracted from the `85ch` centered Title envelope. It now spans `100%` of the viewport width, allowing Metadata Pills to flush perfectly to the absolute right margin. To prevent these pills from overlapping the floating absolute-positioned Maximize button, a rigid `padding-right: 55px;` keep-out zone is permanently injected into the right flank of the ribbon array.
 
 ---
 
-## VII. Timeline Physics & Chronological Mathematics
+## 7. Timeline Physics & Chronological Mathematics
 
 * **[REF: TL-01] Intelligent Time Rendering Range:** The timeline automatically buffers raw dataset time edges with a 5% chronological margin (`padMs = rawTimeRange * 0.05`), generating aesthetically pleasing spatial breathing room for the first and last graphical event nodes.
 * **[REF: TL-02] Dynamic Timeline Swimlane Math:** The timeline iterates through dataset tags to generate a mathematical constant `laneCount`. It binds `orderedTags.indexOf(tag)` to dynamically calculate specific Y-axis placement constraints, enforcing pure chronological collision prevention.
@@ -150,7 +152,7 @@ To preserve maximum computational bandwidth and prevent context-window saturatio
 *   **[REF: PERF-34] Concurrent Priority Sorting:** Sub-second accuracy is strictly parsed. Concurrent events sharing the exact same millisecond start time utilize a secondary fallback to their original Spreadsheet Row ID, guaranteeing stable, non-volatile natural order rendering.
 ---
 
-## VIII. Algorithms, Analytics & Methodologies
+## 8. Algorithms, Analytics & Methodologies
 
 * **1. Spatial Indexing (The R-Tree Engine):** `MarkerCluster` uses `RBush` to divide the map into nested rectangular grids. It measures point-to-grid, allowing instant, `O(log n)` collision detection.
 * **2. State-Based Layer Swapping & The O(1) Dictionary:** To bypass Leaflet's internal `_leaflet_id` amnesia, the engine builds a global dictionary (`markersRef`). Slide changes execute an `O(1)` instant lookup to swap layers in and out of the cluster bucket seamlessly.
@@ -177,7 +179,7 @@ To preserve maximum computational bandwidth and prevent context-window saturatio
 
 ---
 
-## X. Grid Topology & Stacking Domination
+## 10. Grid Topology & Stacking Domination
 *   **[REF: UI-175] Global Beam Architecture:** Extracted the Nav/Status UI (`.unified-status-bar`) from the nested narrative pane. Re-engineered it as a static 32px horizontal structural beam (`#app-layout > .global-status-bar`) separating the Core Viewports from the Timeline Scrubber. This guarantees the UI floor permanently survives visual pane maximizations.
 *   **[REF: UI-176] Universal Hardware Escape:** Abandoned CSS-class-based Z-index reliance for all Modals (`About`, `Search`, `Settings`) and the Telemetry Tracker (`VibeMonitor`). Injected absolute inline `z-index: 10001` (modals) and `10000` (backdrops) directly into the DOM tree at the `#tm-root` level. This obliterates all isolated Flex-cage stacking contexts, guaranteeing global rendering over Leaflet tile layers.
 *   **[REF: UI-178] Ghost Margin & Scrollbar Annihilation:** Stripped archaic `padding-bottom` hacks from the timeline track. Executed strict WebKit scrollbar suppression (`::-webkit-scrollbar`) globally and forced `box-sizing: border-box` against a primary `#fcfcfc` root to eradicate UI bleed and dark visual voids.
