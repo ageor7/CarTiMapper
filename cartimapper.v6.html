@@ -377,7 +377,7 @@
                             ${trackedFields.map (f => {
                                 let val = activeSlide ? activeSlide [f] : 'N/A';
                                 if (val instanceof Date) val = val.toISOString ();
-                                if (Array.isArray (val)) val = val.length > 0 ? \`[\${val.join (', ')}]\` : '[]';
+                                if (Array.isArray (val)) val = val.length > 0 ? `[${val.join (', ')}]` : '[]';
                                 return html`<div style="color: #50fa7b; white-space: nowrap; background: rgba(0,0,0,0.2); padding: 3px 6px; border-radius: 4px;" title="${val}">
                                     <span style="color: #aaa;">${f.toUpperCase ()}:</span> ${val || 'NULL'}
                                 </div>`;
