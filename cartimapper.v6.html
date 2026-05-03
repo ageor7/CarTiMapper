@@ -264,7 +264,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.8.23';
+        const APP_VERSION = 'v6.8.24';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.13.12', Globals: 'v1.0.68' }; 
         const TM_CONFIG = { paneBackground: '#fcfcfc' };
@@ -894,7 +894,7 @@
         MODULE_VERSIONS['MediaViewer'] = 'v2.11.6';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: ContentSlider v4.3.3 ] ===
+        // === [ MAJOR BLOCK: ContentSlider v4.4.0 ] ===
         const ContentSlider = ({data, activeIndex, setActiveIndex, maxPane, setMaxPane, dateLocale, formatSmartDate}) => {
             const touchStartX = useRef (0);
             const [isScrolled, setIsScrolled] = useState (false);
@@ -937,18 +937,21 @@
 
                         <div style="flex-shrink: 0; position: sticky; top: 0; background: var(--paneBg, #ffffff); z-index: 10; padding-top: ${isScrolled ? '0.6rem' : '1.2rem'}; padding-bottom: ${isScrolled ? '0.4rem' : '0.5rem'}; border-bottom: 1px solid rgba(128,128,128,0.2); box-shadow: ${isScrolled ? '0 4px 12px rgba(0,0,0,0.06)' : '0 2px 8px rgba(0,0,0,0.04)'}; display: flex; flex-direction: column; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); width: 100%;">
                             
-                            {/* DECOUPLED RIBBON: 100% width, 55px right padding to dodge floating Maximize button */}
-                            <div class="metadata-ribbon" style="padding: 0 55px 0 1.5rem; width: 100%; box-sizing: border-box;">
-                                <div class="metadata-date">${formatSmartDate (slide.startDate, slide.endDate, dateLocale)}</div>
-                                <div class="metadata-pills-wrapper">
-                                    ${hasLocation ? html`<span class="place-pill"><span style="margin-right: 4px;">📍</span> ${formatPlaces (slide.place)}</span>` : ''}
-                                    ${tags.map (tag => html`<span class="tag-pill"><svg width="10" height="10" viewBox="0 0 24 24" fill="rgba(255, 193, 7, 0.2)" stroke="#ffc107" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg><span>${tag}</span></span>`)}
+                            {/* MASTER ENVELOPE: 85ch centered, locks Date and Title to the same left axis */}
+                            <div style="max-width: 85ch; width: 100%; margin: 0 auto; padding: 0 55px 0 1.5rem; box-sizing: border-box; display: flex; flex-direction: column;">
+                                
+                                <div class="metadata-ribbon" style="width: 100%; padding: 0; margin-bottom: 0.4rem; box-sizing: border-box;">
+                                    <div class="metadata-date">${formatSmartDate (slide.startDate, slide.endDate, dateLocale)}</div>
+                                    <div class="metadata-pills-wrapper">
+                                        ${hasLocation ? html`<span class="place-pill"><span style="margin-right: 4px;">📍</span> ${formatPlaces (slide.place)}</span>` : ''}
+                                        ${tags.map (tag => html`<span class="tag-pill"><svg width="10" height="10" viewBox="0 0 24 24" fill="rgba(255, 193, 7, 0.2)" stroke="#ffc107" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg><span>${tag}</span></span>`)}
+                                    </div>
                                 </div>
-                            </div>
 
-                            {/* DECOUPLED TITLE: Centered, strictly capped at 85ch */}
-                            <div class="title-header-container" style="padding: 0 1.5rem; box-sizing: border-box;">
-                                <h2 style="margin: 0; font-size: ${isScrolled ? '1.1rem' : '1.4rem'}; line-height: 1.2; transition: font-size 0.3s ease; color: #222;" dangerouslySetInnerHTML=${{"__html": slide.title}}></h2>
+                                <div class="title-header-container" style="width: 100%; padding: 0; box-sizing: border-box;">
+                                    <h2 style="margin: 0; font-size: ${isScrolled ? '1.1rem' : '1.4rem'}; line-height: 1.2; transition: font-size 0.3s ease; color: #222;" dangerouslySetInnerHTML=${{"__html": slide.title}}></h2>
+                                </div>
+
                             </div>
                         </div>
 
@@ -959,10 +962,10 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS ["ContentSlider"] = 'v4.3.3';
+        MODULE_VERSIONS ["ContentSlider"] = 'v4.4.0';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v24.2.15 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v24.3.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan, isTimelineExpanded, setIsTimelineExpanded, isTimelineMinimized, setIsTimelineMinimized, dateLocale, timelineRequiredHeight }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -1132,9 +1135,8 @@
             const containerW = wrapperRef.current ? wrapperRef.current.clientWidth : 1000;
             const trackWidthPx = Math.max(containerW, containerW * zoomLevel);
             const visibleTimeSpanMs = renderTimeRange / zoomLevel;
-            const spansMultipleDays = visibleTimeSpanMs > 86400000; // > 24 hours
+            const spansMultipleDays = visibleTimeSpanMs > 86400000;
 
-            // [FIX] Hardware max of 12 ticks per viewport.
             const targetMsPerMajorTick = Math.max((120 / containerW) * visibleTimeSpanMs, visibleTimeSpanMs / 12); 
             
             const SECOND = 1000; const MINUTE = 60 * SECOND; const HOUR = 60 * MINUTE; const DAY = 24 * HOUR; const MONTH = 30 * DAY; const YEAR = 365.25 * DAY;
@@ -1248,7 +1250,6 @@
                      else if (activeScale.type === 'month') label = d.date.toLocaleString(dateLocale, { month: 'short', year: 'numeric' });
                      else if (activeScale.type === 'day') label = d.date.toLocaleString(dateLocale, { day: 'numeric', month: 'short' }); 
                      else if (activeScale.type === 'hour' || activeScale.type === 'minute') {
-                         // [FIX] If spanning days but viewing hours, show the Date. Otherwise, show the hour/minute.
                          if (spansMultipleDays && d.date.getHours() === 0 && d.date.getMinutes() === 0) {
                              label = d.date.toLocaleString(dateLocale, { day: 'numeric', month: 'short' });
                          } else {
@@ -1285,27 +1286,46 @@
                     }
                 }
                 
-                // [FIX] Always push the physical tick, regardless of label text
                 if (m.px >= viewLeftEdge - 50 && m.px <= viewLeftEdge + containerW + 50) {
                     return html`<div style="position: absolute; left: ${((m.t - renderMinTime) / renderTimeRange) * 100}%; top: 0; width: 1px; height: ${minorLabel ? '7px' : '5px'}; background: #aaa; z-index: 4;">${minorLabel ? html`<div style="position: absolute; left: -20px; right: -20px; top: 7px; text-align: center; font-size: 0.6rem; color: #888; letter-spacing: -0.5px;">${minorLabel}</div>` : ''}</div>`;
                 }
                 return null;
             });
 
+            const stackRegistry = {};
+
             const markers = validData.map((item, index) => {
                 const globalIndex = data.findIndex(d => d.id === item.id);
                 const startPct = Number((((item.startDate.getTime() - renderMinTime) / renderTimeRange) * 100).toFixed(4));
-                let endPct = startPct; if (item.endDate && !isNaN(item.endDate.getTime()) && item.endDate.getTime() > item.startDate.getTime()) endPct = Number((((item.endDate.getTime() - renderMinTime) / renderTimeRange) * 100).toFixed(4));
-                const hasDuration = (endPct - startPct) > 0.001; const isActive = globalIndex === activeIndex;
+                
                 const tagIndices = getParsedTags(item.tags).map(t => orderedTags.indexOf(t)).filter(idx => idx !== -1);
-                const topPos = ((tagIndices.length > 0 ? Math.min(...tagIndices) : 0) * laneHeight) + 5;
-                const blockHeight = ((tagIndices.length > 0 ? Math.max(...tagIndices) : 0) - (tagIndices.length > 0 ? Math.min(...tagIndices) : 0) + 1) * laneHeight; 
+                const laneIdx = tagIndices.length > 0 ? Math.min(...tagIndices) : 0;
+                
+                // --- [ SUB-BLOCK: Density Stacking Physics ] ---
+                const stackKey = `${item.startDate.getTime()}_${laneIdx}`;
+                if (!stackRegistry[stackKey]) stackRegistry[stackKey] = 0;
+                const stackDepth = stackRegistry[stackKey];
+                stackRegistry[stackKey]++;
+                
+                const xOffset = stackDepth * 6; // 6px right per collision
+                const yOffset = stackDepth * 4; // 4px down per collision
+                // -----------------------------------------------
+
+                let endPct = startPct; 
+                if (item.endDate && !isNaN(item.endDate.getTime()) && item.endDate.getTime() > item.startDate.getTime()) {
+                    endPct = Number((((item.endDate.getTime() - renderMinTime) / renderTimeRange) * 100).toFixed(4));
+                }
+                const hasDuration = (endPct - startPct) > 0.001; 
+                const isActive = globalIndex === activeIndex;
+                
+                const topPos = (laneIdx * laneHeight) + 5;
+                const blockHeight = ((tagIndices.length > 0 ? Math.max(...tagIndices) : 0) - laneIdx + 1) * laneHeight; 
 
                 const { lines, pxWidth } = formatLabelSmart(stripHTML(item.title));
                 const hasMedia = item.media && item.media.length > 0;
 
                 return html`
-                    <div id="timeline-marker-${globalIndex}" class="event-group ${isActive ? 'active' : ''}" style="left: ${startPct}%; top: ${topPos}px; bottom: 28px; ${hasDuration ? `width: ${endPct - startPct}%; min-width: 4px;` : `width: ${pxWidth}px;`}" onClick=${() => setActiveIndex(globalIndex)}>
+                    <div id="timeline-marker-${globalIndex}" class="event-group ${isActive ? 'active' : ''}" style="left: calc(${startPct}% + ${xOffset}px); top: calc(${topPos}px + ${yOffset}px); bottom: 28px; ${hasDuration ? `width: calc(${endPct - startPct}% - ${xOffset}px); min-width: 4px;` : `width: ${pxWidth}px;`}" onClick=${() => setActiveIndex(globalIndex)}>
                         ${isActive ? html`<div style="position: absolute; left: 0; top: ${blockHeight / 2}px; bottom: 0; width: 2px; background: #007acc; z-index: 999;"></div><div style="position: absolute; bottom: 0; left: ${hasDuration ? '0' : '-3px'}; width: ${hasDuration ? '100%' : '6px'}; min-width: ${hasDuration ? '2px' : 'auto'}; height: ${hasDuration ? '16px' : '6px'}; ${hasDuration ? 'background: rgba(0,122,204,0.3); clip-path: polygon(0 0, 100% calc(100% - 5px), 100% 100%, 0 100%); filter: drop-shadow(0 2px 2px rgba(0,122,204,0.4));' : 'border-radius: 50%; background: #007acc; border: 1px solid #fff; box-sizing: content-box;'} z-index: 998;"></div>` : ''}
                         
                         <div class="event-block" style="position: absolute; top: ${blockHeight / 2}px; transform: translateY(-50%); left: 0; min-height: ${blockHeight}px; height: auto; --lane-h: ${laneHeight}px; background: ${isActive ? '#007acc' : '#f4f4f5'}; color: ${isActive ? '#fff' : '#444'}; z-index: 5; width: ${pxWidth}px;">
@@ -1354,7 +1374,7 @@
                     </div>
 
                     <div class="timeline-scroll-wrapper" ref=${wrapperRef} onScroll=${onScroll} onMouseDown=${onDown} onMouseLeave=${onUp} onMouseUp=${onUp} onMouseMove=${onMove} onTouchStart=${onDown} onTouchEnd=${onUp} onTouchMove=${onMove} onWheel=${onWheel}>
-                        <div class="timeline-track-container" style="position: relative; width: ${trackWidthPx}px; flex-shrink: 0; height: 100%; box-sizing: border-box; padding-bottom: 33px;">
+                        <div class="timeline-track-container" style="position: relative; width: ${trackWidthPx}px; flex-shrink: 0; height: 100%; box-sizing: border-box;">
                             <div style="position: absolute; top: 5px; left: 0; right: 0; bottom: 33px; pointer-events: none; z-index: 0;">
                                 ${orderedTags.map((tag, i) => html`<div class="tag-lane" style="top: ${i * laneHeight}px; height: ${laneHeight}px; background: ${i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent'};"><div class="tag-lane-label" style="background: ${i % 2 === 0 ? '#f4f4f4' : '#fcfcfc'}; pointer-events: auto;">${tag}</div></div>`)}
                             </div>
@@ -1370,7 +1390,7 @@
                 </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v24.2.15';
+        MODULE_VERSIONS['TimelineScrubber'] = 'v24.3.0';
         // === [ END MAJOR BLOCK ] ===
 
         // === [ MAJOR BLOCK: AppOrchestrator v1.55.0 ] ===
