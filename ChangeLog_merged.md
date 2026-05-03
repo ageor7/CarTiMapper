@@ -1,6 +1,20 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
+### [v6.8.21] - UI/UX Physics Implementation
 
+**Global Styles (CSS):**
+*   **[UI-178] Root Boundary Lock:** Applied `height: 100vh; overflow: hidden;` to `#tm-root` and normalized `html, body` dimensions to eradicate phantom vertical scrollbars and sub-pixel left-margin grey bleed.
+
+**VibeMonitor (v2.1.16):**
+*   **[DIAG-05] Fluid Telemetry Matrix:** Demolished the rigid `1fr 1fr` CSS grid. Deployed a fluid Masonry flexbox configuration, allowing tracked variables to densely pack themselves based on string length, eliminating dead UI zones.
+*   **[DIAG-04] Resize DOM Anchoring:** Bound the OS-level `resize: both` vectors to a new React `size` state. The drag-handler now intercepts and locks the current bounding box dimensions, preventing Virtual DOM reconciliation loops from snapping the monitor back to its default size when moved.
+
+**ContentSlider (v4.3.1):**
+*   **[UI-49] Typographic Title Overhang:** Decoupled the `.slide-desc` (`max-width: 75ch`) from the Title/Header container (`max-width: 90ch`), forcing symmetric visual overhangs for headers.
+*   **[UI-69] Strict Axis Ribbon Wrapping:** Wrapped Places and Tags in an isolated flex-wrapper with `margin-left: auto`. This permanently locks the Date to the left (`flex-shrink: 0`) while forcing all metadata pills to fluidly wrap on the right-hand alignment axis.
+
+**AppOrchestrator (v1.55.1):**
+*   **[CRASH-03] Phantom Node Eradication:** Stripped rogue `{/* GLOBAL MODALS */}` JSX comments from the template literal. This terminates the parser collision that was injecting invisible text nodes into the DOM and causing the bottom "black ribbon" overflow.
 
 ### [v6.8.17] - Architectural Global Liberation (Multi-Block Patch)
 
