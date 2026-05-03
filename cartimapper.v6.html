@@ -23,7 +23,8 @@
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Noto Sans', system-ui, sans-serif; font-weight: 400; overflow: hidden; background: var(--bg); color: var(--text); box-sizing: border-box; }
         *, *::before, *::after { box-sizing: inherit; }
         
-        #tm-root { width: 100%; height: 100vh; overflow: hidden; background: var(--bg); display: flex; flex-direction: column; }
+        /* The Fix: Absolute hardware lock bypasses vh/vw rendering bugs completely */
+        #tm-root { position: absolute; top: 0; bottom: 0; left: 0; right: 0; overflow: hidden; background: var(--bg); display: flex; flex-direction: column; }
         
         /* Native Scrollbar Eradication */
         ::-webkit-scrollbar { width: 0px; height: 0px; background: transparent; display: none; }
@@ -263,7 +264,7 @@
         import Papa from 'https://esm.sh/papaparse';
 
         const html = htm.bind(h);
-        const APP_VERSION = 'v6.8.21';
+        const APP_VERSION = 'v6.8.23';
         document.title = `CarTiMapper Core - ${APP_VERSION}`; 
         const MODULE_VERSIONS = { Styles: 'v4.13.12', Globals: 'v1.0.68' }; 
         const TM_CONFIG = { paneBackground: '#fcfcfc' };
@@ -893,7 +894,7 @@
         MODULE_VERSIONS['MediaViewer'] = 'v2.11.6';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: ContentSlider v4.3.1 ] ===
+        // === [ MAJOR BLOCK: ContentSlider v4.3.3 ] ===
         const ContentSlider = ({data, activeIndex, setActiveIndex, maxPane, setMaxPane, dateLocale, formatSmartDate}) => {
             const touchStartX = useRef (0);
             const [isScrolled, setIsScrolled] = useState (false);
@@ -934,27 +935,31 @@
                         <div class="click-zone click-zone-left" onClick=${goPrev} title="Previous"></div>
                         <div class="click-zone click-zone-right" onClick=${goNext} title="Next"></div>
 
-                        <div style="flex-shrink: 0; position: sticky; top: 0; background: var(--paneBg, #ffffff); z-index: 10; padding: ${isScrolled ? '0.6rem 1.5rem 0.4rem 1.5rem' : '1.2rem 1.5rem 0.2rem 1.5rem'}; border-bottom: 1px solid rgba(128,128,128,0.2); box-shadow: ${isScrolled ? '0 4px 12px rgba(0,0,0,0.06)' : '0 2px 8px rgba(0,0,0,0.04)'}; display: flex; justify-content: center; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); width: 100%;">
-                            <div class="title-header-container" style="padding-right: 40px;">
-                                <div class="metadata-ribbon">
-                                    <div class="metadata-date">${formatSmartDate (slide.startDate, slide.endDate, dateLocale)}</div>
-                                    <div class="metadata-pills-wrapper">
-                                        ${hasLocation ? html`<span class="place-pill"><span style="margin-right: 4px;">📍</span> ${formatPlaces (slide.place)}</span>` : ''}
-                                        ${tags.map (tag => html`<span class="tag-pill"><svg width="10" height="10" viewBox="0 0 24 24" fill="rgba(255, 193, 7, 0.2)" stroke="#ffc107" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg><span>${tag}</span></span>`)}
-                                    </div>
+                        <div style="flex-shrink: 0; position: sticky; top: 0; background: var(--paneBg, #ffffff); z-index: 10; padding-top: ${isScrolled ? '0.6rem' : '1.2rem'}; padding-bottom: ${isScrolled ? '0.4rem' : '0.5rem'}; border-bottom: 1px solid rgba(128,128,128,0.2); box-shadow: ${isScrolled ? '0 4px 12px rgba(0,0,0,0.06)' : '0 2px 8px rgba(0,0,0,0.04)'}; display: flex; flex-direction: column; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); width: 100%;">
+                            
+                            {/* DECOUPLED RIBBON: 100% width, 55px right padding to dodge floating Maximize button */}
+                            <div class="metadata-ribbon" style="padding: 0 55px 0 1.5rem; width: 100%; box-sizing: border-box;">
+                                <div class="metadata-date">${formatSmartDate (slide.startDate, slide.endDate, dateLocale)}</div>
+                                <div class="metadata-pills-wrapper">
+                                    ${hasLocation ? html`<span class="place-pill"><span style="margin-right: 4px;">📍</span> ${formatPlaces (slide.place)}</span>` : ''}
+                                    ${tags.map (tag => html`<span class="tag-pill"><svg width="10" height="10" viewBox="0 0 24 24" fill="rgba(255, 193, 7, 0.2)" stroke="#ffc107" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg><span>${tag}</span></span>`)}
                                 </div>
+                            </div>
+
+                            {/* DECOUPLED TITLE: Centered, strictly capped at 85ch */}
+                            <div class="title-header-container" style="padding: 0 1.5rem; box-sizing: border-box;">
                                 <h2 style="margin: 0; font-size: ${isScrolled ? '1.1rem' : '1.4rem'}; line-height: 1.2; transition: font-size 0.3s ease; color: #222;" dangerouslySetInnerHTML=${{"__html": slide.title}}></h2>
                             </div>
                         </div>
 
-                        <div style="flex-grow: 1; padding: 0.2rem 2rem 2rem 2rem; display: flex; justify-content: center; width: 100%;">
+                        <div style="flex-grow: 1; padding: 0.5rem 1.5rem 2rem 1.5rem; display: flex; justify-content: center; width: 100%;">
                             <div class="slide-desc" dangerouslySetInnerHTML=${{"__html": slide.description}}></div>
                         </div>
                     </div>
                 </div>
             `;
         };
-        MODULE_VERSIONS ["ContentSlider"] = 'v4.3.1';
+        MODULE_VERSIONS ["ContentSlider"] = 'v4.3.3';
         // === [ END MAJOR BLOCK ] ===
 
         // === [ MAJOR BLOCK: TimelineScrubber v24.2.15 ] ===
