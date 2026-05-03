@@ -20,10 +20,12 @@
 
         /* --- [ SubBlock: Root & Base ] --- */
         :root { --bg: #fcfcfc; --paneBg: #fcfcfc; --border: #ccc; --text: #222; --accent: #007acc; }
-        body { margin: 0; padding: 0; font-family: 'Noto Sans', system-ui, sans-serif; font-weight: 400; overflow: hidden; background: var(--bg); color: var(--text); box-sizing: border-box; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Noto Sans', system-ui, sans-serif; font-weight: 400; overflow: hidden; background: var(--bg); color: var(--text); box-sizing: border-box; }
         *, *::before, *::after { box-sizing: inherit; }
         
-        /* Native Scrollbar Eradication (Kills the Black Ribbon) */
+        #tm-root { width: 100%; height: 100vh; overflow: hidden; background: var(--bg); display: flex; flex-direction: column; }
+        
+        /* Native Scrollbar Eradication */
         ::-webkit-scrollbar { width: 0px; height: 0px; background: transparent; display: none; }
         * { scrollbar-width: none; -ms-overflow-style: none; }
         /* --- [ End SubBlock: Root & Base ] --- */
@@ -189,13 +191,16 @@
         /* --- [ End SubBlock: Leaflet Map & Spatial HUD ] --- */
 
         /* --- [ SubBlock: Narrative Content Slider ] --- */
-        .content-scroll-area { flex: 1; overflow-y: auto; padding: 2rem 4rem; display: flex; flex-direction: column; z-index: 5; scroll-behavior: smooth; }
-        .slide-desc { line-height: 1.6; font-size: 1.15rem; color: #333; width: 100%; max-width: 90ch; margin: 0 auto; }
+        .content-scroll-area { flex: 1; overflow-y: auto; display: flex; flex-direction: column; z-index: 5; scroll-behavior: smooth; width: 100%; }
+        .title-header-container { max-width: 90ch; width: 100%; margin: 0 auto; display: flex; flex-direction: column; }
+        .slide-desc { line-height: 1.6; font-size: 1.15rem; color: #333; width: 100%; max-width: 75ch; margin: 0 auto; }
         .click-zone { position: absolute; top: 0; bottom: 0; width: 15%; z-index: 10; cursor: pointer; }
         .click-zone-left { left: 0; }
         .click-zone-right { right: 0; }
-        .metadata-ribbon { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 0.4rem; }
-        .metadata-ribbon .place-pill { white-space: normal; word-break: break-word; line-height: 1.2; text-align: left; }
+        .metadata-ribbon { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 0.4rem; width: 100%; }
+        .metadata-date { font-weight: 600; color: #007acc; font-size: 0.9rem; flex-shrink: 0; white-space: nowrap; margin-top: 4px; }
+        .metadata-pills-wrapper { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; justify-content: flex-end; }
+        .place-pill, .tag-pill { display: inline-flex; align-items: center; background: rgba(128,128,128,0.06); color: #444; padding: 3px 10px; border-radius: 10px; font-size: 0.75rem; border: 1px solid rgba(128,128,128,0.15); word-break: break-word; line-height: 1.2; text-align: left; }
         /* --- [ End SubBlock: Narrative Content Slider ] --- */
 
         /* --- [ SubBlock: Status Bar & Modals ] --- */
@@ -296,109 +301,109 @@
         }
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: VibeMonitor v2.1.15 ] ===
-        const VibeMonitor = ({ logs, status, isOpen, setIsOpen, activeSlide, appVersion, moduleVersions, isTimelineExpanded, timelineRequiredHeight }) => {
-            const logsEndRef = useRef(null);
-            const monitorRef = useRef(null);
-            const [isDragging, setIsDragging] = useState(false);
-            const [pos, setPos] = useState({ x: -1000, y: -1000 }); 
-            const dragStart = useRef({ x: 0, y: 0 });
-            const hasInitPos = useRef(false);
-            
-            const [isConfigMode, setIsConfigMode] = useState(false);
-            const [trackedFields, setTrackedFields] = useState(() => {
-                try { return JSON.parse(localStorage.getItem('tm_telemetry_fields')) || ['id', 'location', 'priority']; } 
-                catch(e) { return ['id', 'location', 'priority']; }
+        // === [ MAJOR BLOCK: VibeMonitor v2.1.16 ] ===
+        const VibeMonitor = ({logs, status, isOpen, setIsOpen, activeSlide, appVersion, moduleVersions, isTimelineExpanded, timelineRequiredHeight}) => {
+            const logsEndRef = useRef (null);
+            const monitorRef = useRef (null);
+            const [isDragging, setIsDragging] = useState (false);
+            const [pos, setPos] = useState ({"x": -1000, "y": -1000});
+            const [size, setSize] = useState ({"w": "320px", "h": "auto"});
+            const dragStart = useRef ({"x": 0, "y": 0});
+            const hasInitPos = useRef (false);
+
+            const [isConfigMode, setIsConfigMode] = useState (false);
+            const [trackedFields, setTrackedFields] = useState (() => {
+                try { return JSON.parse (localStorage.getItem ('tm_telemetry_fields')) || ['id', 'location', 'priority']; }
+                catch (e) { return ['id', 'location', 'priority']; }
             });
 
-            // Dynamic Anchoring above the Status Bar
-            useEffect(() => {
+            useEffect (() => {
                 if (!hasInitPos.current) {
-                    // Calculate Timeline Height + Status Bar Height (32px) + Gap (10px)
                     const activeTimelineH = isTimelineExpanded ? timelineRequiredHeight : (window.innerHeight * 0.10);
-                    const yPos = window.innerHeight - activeTimelineH - 32 - 10 - 250; // 250 is approx default height
-                    
-                    setPos({ x: 15, y: Math.max(10, yPos) });
+                    const yPos = window.innerHeight - activeTimelineH - 32 - 10 - 250;
+                    setPos ({"x": 15, "y": Math.max (10, yPos)});
                     hasInitPos.current = true;
                 }
             }, [isTimelineExpanded, timelineRequiredHeight]);
 
-            useEffect(() => { if (logsEndRef.current && isOpen && !isConfigMode) logsEndRef.current.scrollIntoView({ behavior: "smooth" }); }, [logs, isOpen, isConfigMode]);
+            useEffect (() => { if (logsEndRef.current && isOpen && !isConfigMode) logsEndRef.current.scrollIntoView ({"behavior": "smooth"}); }, [logs, isOpen, isConfigMode]);
 
             const onMouseDown = (e) => {
-                if (e.target.closest('.vibe-close-btn') || e.target.closest('.vibe-config-btn') || e.target.closest('.log-time')) return;
-                setIsDragging(true);
-                dragStart.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
+                if (e.target.closest ('.vibe-close-btn') || e.target.closest ('.vibe-config-btn') || e.target.closest ('.log-time')) return;
+                setIsDragging (true);
+                const currentRect = monitorRef.current.getBoundingClientRect ();
+                setSize ({"w": `${currentRect.width}px`, "h": `${currentRect.height}px`});
+                dragStart.current = {"x": e.clientX - pos.x, "y": e.clientY - pos.y};
             };
             const onMouseMove = (e) => {
                 if (!isDragging) return;
-                setPos({ x: e.clientX - dragStart.current.x, y: e.clientY - dragStart.current.y });
+                setPos ({"x": e.clientX - dragStart.current.x, "y": e.clientY - dragStart.current.y});
             };
-            const onMouseUp = () => setIsDragging(false);
+            const onMouseUp = () => setIsDragging (false);
 
-            useEffect(() => {
-                if (isDragging) { document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp); }
-                else { document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); }
-                return () => { document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); };
+            useEffect (() => {
+                if (isDragging) { document.addEventListener ('mousemove', onMouseMove); document.addEventListener ('mouseup', onMouseUp); }
+                else { document.removeEventListener ('mousemove', onMouseMove); document.removeEventListener ('mouseup', onMouseUp); }
+                return () => { document.removeEventListener ('mousemove', onMouseMove); document.removeEventListener ('mouseup', onMouseUp); };
             }, [isDragging]);
 
             const handleToggleField = (field) => {
-                const newFields = trackedFields.includes(field) ? trackedFields.filter(f => f !== field) : [...trackedFields, field];
-                setTrackedFields(newFields);
-                localStorage.setItem('tm_telemetry_fields', JSON.stringify(newFields));
+                const newFields = trackedFields.includes (field) ? trackedFields.filter (f => f !== field) : [...trackedFields, field];
+                setTrackedFields (newFields);
+                localStorage.setItem ('tm_telemetry_fields', JSON.stringify (newFields));
             };
 
-            const availableFields = activeSlide ? Object.keys(activeSlide) : ['id', 'title', 'startDate', 'endDate', 'place', 'location', 'priority', 'tags'];
+            const availableFields = activeSlide ? Object.keys (activeSlide) : ['id', 'title', 'startDate', 'endDate', 'place', 'location', 'priority', 'tags'];
 
             if (!isOpen) return null;
             return html`
-                <div id="vibe-monitor" ref=${monitorRef} style="left: ${pos.x}px; top: ${pos.y}px; z-index: 9999;">
-                    <div id="vibe-header" onMouseDown=${onMouseDown}>
+                <div id="vibe-monitor" ref=${monitorRef} style="left: ${pos.x}px; top: ${pos.y}px; width: ${size.w}; height: ${size.h}; z-index: 9999; resize: both; overflow: hidden; position: fixed; background: #1a1a1a; color: #eee; border: 1px solid #444; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); display: flex; flex-direction: column; font-family: monospace; min-width: 280px; min-height: 200px; max-width: 95vw; max-height: 90vh;">
+                    <div id="vibe-header" onMouseDown=${onMouseDown} style="background: #333; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; cursor: move; border-bottom: 1px solid #444; user-select: none; font-weight: 600; flex-shrink: 0;">
                         <span>SYSTEM TELEMETRY</span>
                         <div style="display: flex; gap: 8px;">
-                            <button class="vibe-config-btn" onClick=${() => setIsConfigMode(!isConfigMode)} style="background: transparent; border: none; color: ${isConfigMode ? '#007acc' : '#aaa'}; cursor: pointer; outline: none;" title="Configure Telemetry">
+                            <button class="vibe-config-btn" onClick=${() => setIsConfigMode (!isConfigMode)} style="background: transparent; border: none; color: ${isConfigMode ? '#007acc' : '#aaa'}; cursor: pointer; outline: none;" title="Configure Telemetry">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                             </button>
-                            <button class="vibe-close-btn" onClick=${() => setIsOpen(false)} title="Close Monitor">
+                            <button class="vibe-close-btn" onClick=${() => setIsOpen (false)} title="Close Monitor" style="background: transparent; color: #aaa; border: none; padding: 4px; cursor: pointer; outline: none;">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                             </button>
                         </div>
                     </div>
-                    
+
                     ${isConfigMode ? html`
                         <div style="background: #111; padding: 12px; flex-shrink: 0; border-bottom: 1px solid #333; font-size: 0.8rem;">
                             <div style="color: #aaa; margin-bottom: 8px;">Select variables to track:</div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; max-height: 150px; overflow-y: auto;">
-                                ${availableFields.filter(f => !['description', 'mediaCaption', 'mediaCredit'].includes(f)).map(field => html`
-                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #ddd;">
-                                        <input type="checkbox" checked=${trackedFields.includes(field)} onChange=${() => handleToggleField(field)} style="margin:0;" />
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 150px; overflow-y: auto;">
+                                ${availableFields.filter (f => !['description', 'mediaCaption', 'mediaCredit'].includes (f)).map (field => html`
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #ddd; background: #222; padding: 4px 8px; border-radius: 4px; border: 1px solid #444;">
+                                        <input type="checkbox" checked=${trackedFields.includes (field)} onChange=${() => handleToggleField (field)} style="margin:0;" />
                                         ${field}
                                     </label>
                                 `)}
                             </div>
                         </div>
                     ` : html`
-                        <div style="background: #222; padding: 8px 12px; border-bottom: 1px solid #333; font-size: 0.75rem; color: #8be9fd; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; flex-shrink: 0;">
-                            <div>ENGINE: ${appVersion}</div>
-                            <div style="color: #ffb86c;">LAYOUT: ${window.innerWidth >= 1024 ? 'Desktop' : 'Mobile'}</div>
-                            ${trackedFields.map(f => {
-                                let val = activeSlide ? activeSlide[f] : 'N/A';
-                                if (val instanceof Date) val = val.toISOString();
-                                if (Array.isArray(val)) val = val.length > 0 ? `[${val.join(', ')}]` : '[]';
-                                return html`<div style="color: #50fa7b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${val}">
-                                    <span style="color: #aaa;">${f.toUpperCase()}:</span> ${val || 'NULL'}
+                        <div style="background: #222; padding: 8px 12px; border-bottom: 1px solid #333; font-size: 0.75rem; color: #8be9fd; display: flex; flex-wrap: wrap; gap: 8px; flex-shrink: 0; align-items: center;">
+                            <div style="background: rgba(0,0,0,0.2); padding: 3px 6px; border-radius: 4px;">ENGINE: ${appVersion}</div>
+                            <div style="color: #ffb86c; background: rgba(0,0,0,0.2); padding: 3px 6px; border-radius: 4px;">LAYOUT: ${window.innerWidth >= 1024 ? 'Desktop' : 'Mobile'}</div>
+                            ${trackedFields.map (f => {
+                                let val = activeSlide ? activeSlide [f] : 'N/A';
+                                if (val instanceof Date) val = val.toISOString ();
+                                if (Array.isArray (val)) val = val.length > 0 ? \`[\${val.join (', ')}]\` : '[]';
+                                return html`<div style="color: #50fa7b; white-space: nowrap; background: rgba(0,0,0,0.2); padding: 3px 6px; border-radius: 4px;" title="${val}">
+                                    <span style="color: #aaa;">${f.toUpperCase ()}:</span> ${val || 'NULL'}
                                 </div>`;
                             })}
                         </div>
                     `}
-                    <div id="vibe-logs">
-                        ${logs.map((log, i) => html`<div key=${i} class="log-${log.type}"><span class="log-time">[${log.time}]</span> ${log.msg}</div>`)}
+                    <div id="vibe-logs" style="flex-grow: 1; overflow-y: auto; padding: 10px; font-size: 0.75rem; background: #111; display: flex; flex-direction: column; gap: 4px; height: 100%; min-height: 50px;">
+                        ${logs.map ((log, i) => html`<div key=${i} class="log-${log.type}"><span class="log-time" style="color: #888; margin-right: 6px;">[${log.time}]</span> ${log.msg}</div>`)}
                         <div ref=${logsEndRef} />
                     </div>
                 </div>
             `;
         };
-        MODULE_VERSIONS['VibeMonitor'] = 'v2.1.15';
+        MODULE_VERSIONS ["VibeMonitor"] = 'v2.1.16';
         // === [ END MAJOR BLOCK ] ===
 
         // === [ MAJOR BLOCK: MapViewer v4.1.10 ] ===
@@ -900,66 +905,68 @@
         MODULE_VERSIONS['MediaViewer'] = 'v2.11.6';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: ContentSlider v4.3.0 ] ===
-        const ContentSlider = ({ data, activeIndex, setActiveIndex, maxPane, setMaxPane, dateLocale, formatSmartDate }) => {
-            const touchStartX = useRef(0);
-            const [isScrolled, setIsScrolled] = useState(false);
+        // === [ MAJOR BLOCK: ContentSlider v4.3.1 ] ===
+        const ContentSlider = ({data, activeIndex, setActiveIndex, maxPane, setMaxPane, dateLocale, formatSmartDate}) => {
+            const touchStartX = useRef (0);
+            const [isScrolled, setIsScrolled] = useState (false);
 
-            const slide = data[activeIndex];
+            const slide = data [activeIndex];
             if (!slide) return null;
 
             const getParsedTags = (rawTagsArray) => {
                 if (!rawTagsArray || rawTagsArray.length === 0) return [];
                 const splitRegex = /[\r\n]+|\\n/; let arr = [];
-                (Array.isArray(rawTagsArray) ? rawTagsArray : [rawTagsArray]).forEach(t => { if (typeof t === 'string') arr.push(...t.split(splitRegex)); else arr.push(t); });
-                return arr.map(s => String(s).trim()).filter(Boolean);
+                (Array.isArray (rawTagsArray) ? rawTagsArray : [rawTagsArray]).forEach (t => { if (typeof t === 'string') arr.push (...t.split (splitRegex)); else arr.push (t); });
+                return arr.map (s => String (s).trim ()).filter (Boolean);
             };
 
-            const formatPlaces = (str) => { return str ? str.split(/[|\-·;]/).map(s => s.split(',')[0].trim()).filter(Boolean).join(' | ') : ''; };
+            const formatPlaces = (str) => { return str ? str.split (/[|\-·;]/).map (s => s.split (',')[0].trim ()).filter (Boolean).join (' | ') : ''; };
 
-            const tags = getParsedTags(slide.tags); const hasLocation = slide.place && String(slide.place).trim() !== '';
-            const goPrev = () => { if (activeIndex > 0) setActiveIndex(activeIndex - 1); };
-            const goNext = () => { if (activeIndex < data.length - 1) setActiveIndex(activeIndex + 1); };
+            const tags = getParsedTags (slide.tags); const hasLocation = slide.place && String (slide.place).trim () !== '';
+            const goPrev = () => { if (activeIndex > 0) setActiveIndex (activeIndex - 1); };
+            const goNext = () => { if (activeIndex < data.length - 1) setActiveIndex (activeIndex + 1); };
 
-            const handleTouchStart = (e) => { touchStartX.current = e.changedTouches[0].screenX; };
-            const handleTouchEnd = (e) => { const x = e.changedTouches[0].screenX; if (touchStartX.current - x > 50) goNext(); if (x - touchStartX.current > 50) goPrev(); };
-            const handleScroll = (e) => { const s = e.target.scrollTop; if (s > 40 && !isScrolled) setIsScrolled(true); else if (s <= 40 && isScrolled) setIsScrolled(false); };
+            const handleTouchStart = (e) => { touchStartX.current = e.changedTouches [0].screenX; };
+            const handleTouchEnd = (e) => { const x = e.changedTouches [0].screenX; if (touchStartX.current - x > 50) goNext (); if (x - touchStartX.current > 50) goPrev (); };
+            const handleScroll = (e) => { const s = e.target.scrollTop; if (s > 40 && !isScrolled) setIsScrolled (true); else if (s <= 40 && isScrolled) setIsScrolled (false); };
 
             return html`
-                <div class="content-pane-wrapper" style="display: flex; flex-direction: column; height: 100%; position: relative;">
-                    
+                <div class="content-pane-wrapper" style="display: flex; flex-direction: column; height: 100%; position: relative; width: 100%;">
+
                     <div style="position: absolute; top: 15px; right: 15px; z-index: 1000;">
-                        <button class="status-btn ${maxPane === 'text' ? 'active' : ''}" style="background: rgba(255,255,255,0.9); border: 1px solid #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" onClick=${() => setMaxPane(maxPane === 'text' ? null : 'text')} title="Toggle Maximize">
-                            ${maxPane === 'text' 
+                        <button class="status-btn ${maxPane === 'text' ? 'active' : ''}" style="background: rgba(255,255,255,0.9); border: 1px solid #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" onClick=${() => setMaxPane (maxPane === 'text' ? null : 'text')} title="Toggle Maximize">
+                            ${maxPane === 'text'
                                 ? html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>`
                                 : html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>`
                             }
                         </button>
                     </div>
 
-                    <div style="position: relative; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; scroll-behavior: smooth;" onTouchStart=${handleTouchStart} onTouchEnd=${handleTouchEnd} onScroll=${handleScroll}>
+                    <div class="content-scroll-area" onTouchStart=${handleTouchStart} onTouchEnd=${handleTouchEnd} onScroll=${handleScroll}>
                         <div class="click-zone click-zone-left" onClick=${goPrev} title="Previous"></div>
                         <div class="click-zone click-zone-right" onClick=${goNext} title="Next"></div>
 
-                        <div style="flex-shrink: 0; position: sticky; top: 0; background: var(--paneBg, #ffffff); z-index: 10; padding: ${isScrolled ? '0.6rem 1.5rem 0.4rem 1.5rem' : '1.2rem 1.5rem 0.2rem 1.5rem'}; border-bottom: 1px solid rgba(128,128,128,0.2); box-shadow: ${isScrolled ? '0 4px 12px rgba(0,0,0,0.06)' : '0 2px 8px rgba(0,0,0,0.04)'}; display: flex; justify-content: center; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);">
-                            <div style="max-width: 90ch; width: 100%; display: flex; flex-direction: column; padding-right: 40px;">
+                        <div style="flex-shrink: 0; position: sticky; top: 0; background: var(--paneBg, #ffffff); z-index: 10; padding: ${isScrolled ? '0.6rem 1.5rem 0.4rem 1.5rem' : '1.2rem 1.5rem 0.2rem 1.5rem'}; border-bottom: 1px solid rgba(128,128,128,0.2); box-shadow: ${isScrolled ? '0 4px 12px rgba(0,0,0,0.06)' : '0 2px 8px rgba(0,0,0,0.04)'}; display: flex; justify-content: center; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); width: 100%;">
+                            <div class="title-header-container" style="padding-right: 40px;">
                                 <div class="metadata-ribbon">
-                                    <div style="font-weight: 600; color: #007acc; font-size: 0.9rem; flex-shrink: 0;">${formatSmartDate(slide.startDate, slide.endDate, dateLocale)}</div>
-                                    ${hasLocation ? html`<span class="place-pill" style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.06); color: #444; padding: 3px 10px; border-radius: 10px; font-size: 0.75rem; border: 1px solid rgba(128,128,128,0.15); margin-left: auto;"><span style="margin-right: 4px;">📍</span> ${formatPlaces(slide.place)}</span>` : html`<div style="margin-left: auto;"></div>`}
-                                    ${tags.map(tag => html`<span style="display: inline-flex; align-items: center; background: rgba(128,128,128,0.06); color: #444; padding: 3px 10px; border-radius: 10px; font-size: 0.75rem; border: 1px solid rgba(128,128,128,0.15); flex-shrink: 0;"><svg width="10" height="10" viewBox="0 0 24 24" fill="rgba(255, 193, 7, 0.2)" stroke="#ffc107" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg><span>${tag}</span></span>`)}
+                                    <div class="metadata-date">${formatSmartDate (slide.startDate, slide.endDate, dateLocale)}</div>
+                                    <div class="metadata-pills-wrapper">
+                                        ${hasLocation ? html`<span class="place-pill"><span style="margin-right: 4px;">📍</span> ${formatPlaces (slide.place)}</span>` : ''}
+                                        ${tags.map (tag => html`<span class="tag-pill"><svg width="10" height="10" viewBox="0 0 24 24" fill="rgba(255, 193, 7, 0.2)" stroke="#ffc107" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg><span>${tag}</span></span>`)}
+                                    </div>
                                 </div>
-                                <h2 style="margin: 0; font-size: ${isScrolled ? '1.1rem' : '1.4rem'}; line-height: 1.2; transition: font-size 0.3s ease; color: #222;" dangerouslySetInnerHTML=${{ __html: slide.title }}></h2>
+                                <h2 style="margin: 0; font-size: ${isScrolled ? '1.1rem' : '1.4rem'}; line-height: 1.2; transition: font-size 0.3s ease; color: #222;" dangerouslySetInnerHTML=${{"__html": slide.title}}></h2>
                             </div>
                         </div>
 
-                        <div style="flex-grow: 1; padding: 0.2rem 2rem 2rem 2rem; display: flex; justify-content: center;">
-                            <div class="slide-desc" dangerouslySetInnerHTML=${{ __html: slide.description }}></div>
+                        <div style="flex-grow: 1; padding: 0.2rem 2rem 2rem 2rem; display: flex; justify-content: center; width: 100%;">
+                            <div class="slide-desc" dangerouslySetInnerHTML=${{"__html": slide.description}}></div>
                         </div>
                     </div>
                 </div>
             `;
         };
-        MODULE_VERSIONS['ContentSlider'] = 'v4.3.0';
+        MODULE_VERSIONS ["ContentSlider"] = 'v4.3.1';
         // === [ END MAJOR BLOCK ] ===
 
         // === [ MAJOR BLOCK: TimelineScrubber v24.2.15 ] ===
@@ -1657,7 +1664,7 @@
                         </div>
                     ` : ''}
 
-                    {/* --- GLOBAL MODALS --- */}
+                    // {/* --- GLOBAL MODALS --- */}
                     <div class="tm-backdrop ${isSearchOpen ? 'open' : ''}" onClick=${() => setIsSearchOpen(false)} style="z-index: 10000;"></div>
                     <div id="search-modal" class="tm-modal ${isSearchOpen ? 'open' : ''}" style="display: ${isSearchOpen ? 'flex' : 'none'}; flex-direction: column;">
                         <button class="modal-close" onClick=${() => setIsSearchOpen(false)} title="Close">×</button>
