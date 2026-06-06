@@ -286,7 +286,7 @@
         import edtf from 'https://esm.sh/edtf';
         
         const html = htm.bind(h);
-        const APP_VERSION = 'v7.0.6';
+        const APP_VERSION = 'v7.0.8';
         document.title = `CarTiMapper Core - ${APP_VERSION}`;
         
         const MODULE_VERSIONS = { Styles: 'v5.0.1', Globals: 'v2.0.3' };
@@ -414,7 +414,7 @@
         MODULE_VERSIONS ["VibeMonitor"] = 'v2.1.16';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v4.1.11 ] ===
+        // === [ MAJOR BLOCK: MapViewer v5.0.0 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, basemapsRegistry, maxAutoZoom, minimapOffset, maxPane, setMaxPane, polygonOpacity, showButtonText }) => {
           const mapDomRef = useRef(null);
           const miniMapDomRef = useRef(null);
@@ -439,16 +439,10 @@
           const miniOverlayLayersRef = useRef({});
           const minimapOffsetRef = useRef(minimapOffset || -4);
 
-          // [REF: PERF-07] Local Safe-Strip Closure (Subtitle Dash Injection)
           const safeStripHTML = (str) => {
             if (!str) return '';
             const withDashes = String(str).replace(/<p[^>]*>/gi, ' - ');
             return withDashes.replace(/<[^>]*>?/gm, '').trim();
-          };
-
-          const formatPlaces = (str) => {
-            if (!str) return '';
-            return str.split(/[|\-·;]/).map(s => s.split(',').trim()).filter(Boolean).join(' | ');
           };
 
           const loadScript = (src) => {
@@ -539,6 +533,7 @@
               const initialZoom = urlParams.get('mapzoom') ? parseInt(urlParams.get('mapzoom')) : 2;
               setMapZoom(initialZoom);
               
+              // [FIX] Restored coordinates array to prevent boot crash
               const map = L.map(mapDomRef.current, { zoomControl: false, maxZoom: maxGlobalZoom }).setView([3], initialZoom);
               L.control.scale({ position: 'bottomleft', imperial: true, metric: true }).addTo(map);
               map.on('zoomend', () => setMapZoom(map.getZoom()));
@@ -679,19 +674,43 @@
                 else if (locStr.startsWith('{') && locStr.includes('"type"')) featureLayers = extractLayers(L.geoJSON(JSON.parse(locStr)));
                 else { const coordMatch = locStr.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/); if (coordMatch) featureLayers.push(L.marker([parseFloat(coordMatch[2]), parseFloat(coordMatch[1])])); }
 
-                const subLabels = item.subLabels ? item.subLabels.split(/[|\-·;\n]/).map(s => s.split(',').trim()) : [];
+                // [FIX] Ghost and Duplicate Eradication Loop
+                const uniqueSignatures = new Set();
+                const validFeatureLayers = [];
+                featureLayers.forEach(layer => {
+                  if (!layer) return;
+                  let sig = null;
+                  if (layer.getLatLng) {
+                    const ll = layer.getLatLng();
+                    if (!ll || ll.lat == null || ll.lng == null || isNaN(ll.lat) || isNaN(ll.lng)) return; // Kills ghost geometries
+                    sig = `P_${ll.lat.toFixed(5)}_${ll.lng.toFixed(5)}`;
+                  } else if (layer.getBounds) {
+                    const b = layer.getBounds();
+                    if (!b || !b.isValid()) return; // Kills invalid polygons
+                    sig = `B_${b.toBBoxString()}`;
+                  }
+                  if (sig) {
+                    if (uniqueSignatures.has(sig)) return; // Eradicates duplicate elements
+                    uniqueSignatures.add(sig);
+                  }
+                  validFeatureLayers.push(layer);
+                });
+
+                const subLabels = item.subLabels ? item.subLabels.split(/[|\-·;\n]/).map(s => s.trim()).filter(Boolean) : [];
+                const places = item.place ? item.place.split(/[|\-·;\n]/).map(s => s.trim()).filter(Boolean) : [];
                 const isVip = String(item.priority).trim().toUpperCase() === 'VIP';
 
-                featureLayers.forEach((layer, layerIdx) => {
+                // [FIX] Parallel distribution of labels across validated elements
+                validFeatureLayers.forEach((layer, layerIdx) => {
                   if (layer instanceof L.Polygon) layer.setStyle({ stroke: false, fillColor: '#007acc', fillOpacity: polygonOpacity });
                   else if (layer instanceof L.Polyline) layer.setStyle({ color: '#007acc', weight: 2, dashArray: '8, 8' });
                   else if (layer.setStyle) layer.setStyle({ color: '#007acc', weight: 4 });
                   
+                  // [FIX] Restored spatial offset geometry
                   if (layer instanceof L.Marker) { layer.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, isVip), iconSize: [4, 5], iconAnchor: [5, 6] })); layer.isVip = isVip; }
                   
-                  let rawLabel = subLabels[layerIdx] ? subLabels[layerIdx] : (item.place ? formatPlaces(item.place) : item.title);
-                  // [FIX] Invoking local safeStripHTML algorithm natively
-                  layer.bindTooltip(safeStripHTML(rawLabel), { direction: 'top', offset: [0, -48], className: 'centered-tooltip' });
+                  let labelToUse = subLabels[layerIdx] || places[layerIdx] || item.title;
+                  layer.bindTooltip(safeStripHTML(labelToUse), { direction: 'top', offset: [0, -48], className: 'centered-tooltip' });
                   
                   layer.on('click', () => setActiveIndex(idx));
                   if (layer instanceof L.Marker && !isVip) clusterLayer.current.addLayer(layer); else markerLayer.current.addLayer(layer);
@@ -776,7 +795,7 @@
                 </div>
                 <div style="display: flex; box-shadow: 0 2px 6px rgba(0,0,0,0.25); border-radius: 4px; overflow: hidden; background: #fff;">
                   <button class="status-btn ${showLayersMenu ? 'active' : ''}" onClick=${() => setShowLayersMenu(!showLayersMenu)} title="Map Layers" style="border: none;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 17 22 12"></polyline></svg>
                   </button>
                 </div>
                 ${showLayersMenu ? html`
@@ -809,7 +828,7 @@
             </div>
           `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v4.1.11';
+        MODULE_VERSIONS['MapViewer'] = 'v5.0.0';
         // === [ END MAJOR BLOCK ] ===
 
         // === [ MAJOR BLOCK: MediaViewer v2.11.7 ] ===
@@ -1608,7 +1627,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v25.0.4';
         // === [ END MAJOR BLOCK ] ===
 		
-        // === [ MAJOR BLOCK: AppOrchestrator v2.0.6 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v2.0.7 ] ===
         const App = () => {
           const [logs, setLogs] = useState([]);
           const [rawCsvRows, setRawCsvRows] = useState([]);
@@ -2062,6 +2081,7 @@
                 description: exactGet(norm, 'description'),
                 place: exactGet(norm, 'place'),
                 location: exactGet(norm, 'location'),
+                subLabels: exactGet(norm, 'sublabels') || exactGet(norm, 'sub-labels') || exactGet(norm, 'sub labels') || '',
                 priority: exactGet(norm, 'priority'),
                 media: exactGet(norm, 'media') ? exactGet(norm, 'media').split(omniSplitRegex).map(m => m.trim()).filter(Boolean) : [],
                 mediaCaption: exactGet(norm, 'media caption') ? exactGet(norm, 'media caption').split(omniSplitRegex).map(c => c.trim()) : [],
@@ -2320,7 +2340,7 @@
             </div>
           `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v2.0.6';
+        MODULE_VERSIONS['AppOrchestrator'] = 'v2.0.7';
         // === [ END MAJOR BLOCK ] ===
 		
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===
