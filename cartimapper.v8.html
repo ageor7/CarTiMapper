@@ -168,9 +168,9 @@
   .tm-opacity-slider { -webkit-appearance: none; width: 100px; height: 4px; background: #ddd; border-radius: 2px; outline: none; }
   .tm-opacity-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #007acc; cursor: pointer; }
   .tm-opacity-slider::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #007acc; cursor: pointer; border: none; }
-  .minimap-container { position: absolute !important; bottom: 50px !important; left: 15px !important; width: 150px !important; height: 110px !important; z-index: 1000 !important; border: 2px solid #fff !important; box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important; border-radius: 4px !important; overflow: hidden !important; background: #e0e0e0 !important; transition: transform 0.2s !important; flex-shrink: 0 !important; }
-  .minimap-container:hover { transform: scale(1.05) !important; }
-  @media (max-width: 1023px) { .minimap-container { width: 90px !important; height: 65px !important; bottom: 45px !important; left: 10px !important; border-width: 1px !important; } }
+  .minimap-container { position: absolute !important; bottom: 50px !important; left: 15px !important; width: 150px; height: 110px; min-width: 100px; min-height: 80px; max-width: 50vw; max-height: 50vh; z-index: 1000 !important; border: 2px solid #fff !important; box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important; border-radius: 4px !important; overflow: hidden !important; background: #e0e0e0 !important; transition: box-shadow 0.2s !important; flex-shrink: 0 !important; resize: both; }
+  .minimap-container:hover { box-shadow: 0 6px 15px rgba(0,0,0,0.4) !important; }
+  @media (max-width: 1023px) { .minimap-container { width: 100px; height: 80px; bottom: 45px !important; left: 10px !important; border-width: 1px !important; } }
   .marker-cluster-small { background-color: rgba(255, 180, 80, 0.6) !important; }
   .marker-cluster-small div { background-color: rgba(240, 140, 40, 0.7) !important; color: white !important; }
   .marker-cluster-medium { background-color: rgba(240, 130, 130, 0.6) !important; }
@@ -245,7 +245,7 @@
         import edtf from 'https://esm.sh/edtf';
         
         const html = htm.bind(h);
-        const APP_VERSION = 'v8.2.0';
+        const APP_VERSION = 'v8.3.0';
         document.title = `CarTiMapper Core - ${APP_VERSION}`;
         
         const MODULE_VERSIONS = { Styles: 'v6.0.0', Globals: 'v2.0.4' };
@@ -373,8 +373,8 @@
         MODULE_VERSIONS ["VibeMonitor"] = 'v2.1.16';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v6.2.0 ] ===
-        const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, basemapsRegistry, maxAutoZoom, minimapOffset, maxPane, setMaxPane, polygonOpacity, showButtonText, visibleTimeBounds }) => {
+        // === [ MAJOR BLOCK: MapViewer v6.3.0 ] ===
+        const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, basemapsRegistry, maxAutoZoom, minimapOffset, setMinimapOffset, maxPane, setMaxPane, polygonOpacity, showButtonText, visibleTimeBounds }) => {
           const mapDomRef = useRef(null); const miniMapDomRef = useRef(null);
           const mapInstance = useRef(null); const miniMapInstance = useRef(null);
           const rectBoundsRef = useRef(null); const markerLayer = useRef(null);
@@ -387,7 +387,8 @@
           const [overlayOpacities, setOverlayOpacities] = useState({});
           const initialLoadRef = useRef(false); const baseLayerRef = useRef(null);
           const miniBaseLayerRef = useRef(null); const overlayLayersRef = useRef({});
-          const miniOverlayLayersRef = useRef({}); const minimapOffsetRef = useRef(minimapOffset || -4);
+          const minimapOffsetRef = useRef(minimapOffset || -4);
+          const isSyncingRef = useRef(false); // [FIX] Tactile Radar Clutch
 
           const safeStripHTML = (str) => {
             if (!str) return '';
@@ -458,10 +459,10 @@
                 const upper = geomStr.toUpperCase();
                 if (upper.startsWith('POINT')) {
                   const m = geomStr.match(/(-?\d+\.?\d*)\s+(-?\d+\.?\d*)/);
-                  if (m) extractedLayers.push(L.marker([parseFloat(m[7]), parseFloat(m[8])]));
+                  if (m) extractedLayers.push(L.marker([parseFloat(m[1]), parseFloat(m[2])]));
                 } else if (upper.startsWith('LINESTRING') || upper.startsWith('POLYGON')) {
                   const m = [...geomStr.matchAll(/(-?\d+\.?\d*)\s+(-?\d+\.?\d*)/g)];
-                  if (m.length > 0) extractedLayers.push(upper.startsWith('POLY') ? L.polygon(m.map(x => [parseFloat(x[7]), parseFloat(x[8])])) : L.polyline(m.map(x => [parseFloat(x[7]), parseFloat(x[8])])));
+                  if (m.length > 0) extractedLayers.push(upper.startsWith('POLY') ? L.polygon(m.map(x => [parseFloat(x[1]), parseFloat(x[2])])) : L.polyline(m.map(x => [parseFloat(x[1]), parseFloat(x[2])])));
                 }
               }
             });
@@ -479,17 +480,13 @@
               map.on('zoomend', () => setMapZoom(map.getZoom()));
               markerLayer.current = L.featureGroup().addTo(map);
 
-              // [FIX] Phase 4: Stacked Pin Workaround for Identical Coordinates
               clusterLayer.current = L.markerClusterGroup({ 
                 maxClusterRadius: 40, 
                 spiderfyOnMaxZoom: true,
                 iconCreateFunction: function(cluster) {
                   const children = cluster.getAllChildMarkers();
                   const firstLatLng = children.getLatLng();
-                  
-                  // Check if ALL markers in this cluster share the exact same geographical coordinate
                   const isExactSame = children.every(m => m.getLatLng().equals(firstLatLng));
-                  
                   if (isExactSame) {
                     const count = children.length;
                     const html = `<div class="custom-map-pin" style="transform: scale(1.05); z-index: 500;">
@@ -497,10 +494,8 @@
                                     <div class="pin-stem" style="background: #333; width: 2px;"></div>
                                     <div style="position: absolute; top: -6px; right: -8px; background: #d32f2f; color: #fff; border-radius: 50%; width: 15px; height: 15px; font-size: 9px; line-height: 15px; font-weight: bold; text-align: center; border: 1px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">${count}</div>
                                   </div>`;
-                    return L.divIcon({ className: 'custom-div-icon', html: html, iconSize: [4, 5], iconAnchor: [5, 6] });
+                    return L.divIcon({ className: 'custom-div-icon', html: html, iconSize: [3, 4], iconAnchor: [4, 5] });
                   }
-                  
-                  // Standard Bubble fallback for normal geographic proximity clusters
                   let c = ' marker-cluster-';
                   if (children.length < 10) c += 'small';
                   else if (children.length < 100) c += 'medium';
@@ -520,11 +515,13 @@
               });
               clusterLayer.current.on('clustermouseout', (c) => c.layer.unbindTooltip());
 
-              const miniMap = L.map(miniMapDomRef.current, { zoomControl: false, attributionControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false, maxZoom: maxGlobalZoom }).setView([37.9838, 23.7275], 0);
+              // [FIX] Tactile Radar Initialization
+              const miniMap = L.map(miniMapDomRef.current, { zoomControl: false, attributionControl: false, dragging: false, touchZoom: true, scrollWheelZoom: true, doubleClickZoom: true, maxZoom: maxGlobalZoom }).setView([37.9838, 23.7275], 0);
               const boundsRect = L.rectangle(map.getBounds(), { color: '#007acc', weight: 2, fillOpacity: 0.15 }).addTo(miniMap);
               rectBoundsRef.current = boundsRect;
 
               map.on('move', () => {
+                isSyncingRef.current = true;
                 let targetMiniZoom = Math.max(0, map.getZoom() + minimapOffsetRef.current);
                 miniMap.setView(map.getCenter(), targetMiniZoom, { animate: false });
                 const mapBounds = map.getBounds(); const center = map.getCenter();
@@ -537,12 +534,24 @@
                   const adjW = Math.max(w, MIN_PX); const adjH = Math.max(h, MIN_PX);
                   boundsRect.setBounds(L.latLngBounds(miniMap.unproject(L.point(cPx.x - adjW / 2, cPx.y - adjH / 2), targetMiniZoom), miniMap.unproject(L.point(cPx.x + adjW / 2, cPx.y + adjH / 2), targetMiniZoom)));
                 } else boundsRect.setBounds(mapBounds);
+                isSyncingRef.current = false;
+              });
+
+              // [FIX] Bidirectional Radar Telemetry Transmission
+              miniMap.on('zoomend', () => {
+                if (!isSyncingRef.current && setMinimapOffset) {
+                  let newOffset = miniMap.getZoom() - mapInstance.current.getZoom();
+                  newOffset = Math.max(-10, Math.min(2, newOffset));
+                  setMinimapOffset(newOffset);
+                  minimapOffsetRef.current = newOffset; 
+                }
               });
 
               mapInstance.current = map; miniMapInstance.current = miniMap;
               if (window.ResizeObserver) {
                 const ro = new ResizeObserver(() => { setTimeout(() => { if (mapInstance.current) mapInstance.current.invalidateSize(); if (miniMapInstance.current) miniMapInstance.current.invalidateSize(); }, 50); });
                 ro.observe(mapDomRef.current.parentElement);
+                ro.observe(miniMapDomRef.current); // Observe user stretching the radar
               }
             }
           }, [basemapsRegistry]);
@@ -570,12 +579,13 @@
               if (baseLayerRef.current) map.removeLayer(baseLayerRef.current);
               if (miniBaseLayerRef.current) miniMap.removeLayer(miniBaseLayerRef.current);
               const isVector = config.format === "pbf" || config.format === "mvt";
+              // [FIX] Phase 5: Anti-DDOS Kinetic Brakes & Tile Buffers
               if (isVector && window.L.maplibreGL) {
                 baseLayerRef.current = L.maplibreGL({ style: './style.json', attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: 0 }).addTo(map);
                 miniBaseLayerRef.current = L.maplibreGL({ style: './style.json', attribution: false, zIndex: 0 }).addTo(miniMap);
               } else {
-                baseLayerRef.current = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: 0 }).addTo(map);
-                miniBaseLayerRef.current = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, attribution: false, zIndex: 0 }).addTo(miniMap);
+                baseLayerRef.current = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: 0, keepBuffer: 4, updateWhenZooming: false }).addTo(map);
+                miniBaseLayerRef.current = L.tileLayer(config.url, { maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, attribution: false, zIndex: 0, keepBuffer: 4, updateWhenZooming: false }).addTo(miniMap);
               }
             };
             if ((config.format === "pbf" || config.format === "mvt") && !window.L.maplibreGL) {
@@ -587,8 +597,9 @@
           useEffect(() => {
             const map = mapInstance.current; const miniMap = miniMapInstance.current;
             if (!map || !miniMap || !basemapsRegistry) return;
+            // [FIX] Phase 5: Overlay Severance from Minimap radar
             Object.keys(overlayLayersRef.current).forEach(id => {
-              if (!activeOverlays.includes(id)) { map.removeLayer(overlayLayersRef.current[id]); miniMap.removeLayer(miniOverlayLayersRef.current[id]); delete overlayLayersRef.current[id]; delete miniOverlayLayersRef.current[id]; }
+              if (!activeOverlays.includes(id)) { map.removeLayer(overlayLayersRef.current[id]); delete overlayLayersRef.current[id]; }
             });
             activeOverlays.forEach((id, idx) => {
               if (!overlayLayersRef.current[id]) {
@@ -597,11 +608,9 @@
                   const z = idx + 10; const op = overlayOpacities[id] !== undefined ? overlayOpacities[id] : (config.defaultOpacity ?? 1.0);
                   const isWms = config.format === "wms" || config.url.toLowerCase().includes("wms");
                   if (isWms) {
-                    overlayLayersRef.current[id] = L.tileLayer.wms(config.url, {maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, layers: config.wmsLayer || "default", format: "image/png", transparent: true, opacity: op, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z}).addTo(map);
-                    miniOverlayLayersRef.current[id] = L.tileLayer.wms(config.url, {maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, layers: config.wmsLayer || "default", format: "image/png", transparent: true, opacity: op, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z}).addTo(miniMap);
+                    overlayLayersRef.current[id] = L.tileLayer.wms(config.url, {maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, layers: config.wmsLayer || "default", format: "image/png", transparent: true, opacity: op, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z, keepBuffer: 4, updateWhenZooming: false}).addTo(map);
                   } else {
-                    overlayLayersRef.current[id] = L.tileLayer(config.url, {maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, opacity: op, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z, transparent: true}).addTo(map);
-                    miniOverlayLayersRef.current[id] = L.tileLayer(config.url, {maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, opacity: op, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z, transparent: true}).addTo(miniMap);
+                    overlayLayersRef.current[id] = L.tileLayer(config.url, {maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, opacity: op, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z, transparent: true, keepBuffer: 4, updateWhenZooming: false}).addTo(map);
                   }
                 }
               }
@@ -611,7 +620,6 @@
           useEffect(() => {
             Object.keys(overlayOpacities).forEach(id => {
               if (overlayLayersRef.current[id]) overlayLayersRef.current[id].setOpacity(overlayOpacities[id]);
-              if (miniOverlayLayersRef.current[id]) miniOverlayLayersRef.current[id].setOpacity(overlayOpacities[id]);
             });
           }, [overlayOpacities]);
 
@@ -629,7 +637,7 @@
                 else if (locStr.startsWith('{') && locStr.includes('"type"')) featureLayers = extractLayers(L.geoJSON(JSON.parse(locStr)));
                 else { 
                   const coordMatch = locStr.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/); 
-                  if (coordMatch) featureLayers.push(L.marker([parseFloat(coordMatch[8]), parseFloat(coordMatch[7])])); 
+                  if (coordMatch) featureLayers.push(L.marker([parseFloat(coordMatch[1]), parseFloat(coordMatch[2])])); 
                 }
 
                 const uniqueSignatures = new Set(); const validFeatureLayers = [];
@@ -657,8 +665,7 @@
                   else if (layer instanceof L.Polyline) layer.setStyle({ color: '#007acc', weight: 2, dashArray: '8, 8' });
                   else if (layer.setStyle) layer.setStyle({ color: '#007acc', weight: 4 });
                   
-                  // [FIX] Phase 4: Eradicated [1, 2] regression. Restored exact [4, 5] physical geometry boundaries.
-                  if (layer instanceof L.Marker) { layer.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, isVip), iconSize: [4, 5], iconAnchor: [5, 6] })); layer.isVip = isVip; }
+                  if (layer instanceof L.Marker) { layer.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, isVip), iconSize: [3, 4], iconAnchor: [4, 5] })); layer.isVip = isVip; }
                   
                   const safeSubLabel = subLabels.length > layerIdx ? subLabels[layerIdx] : null;
                   const safePlace = places.length > layerIdx ? places[layerIdx] : null;
@@ -680,7 +687,7 @@
                 const bounds = L.latLngBounds();
                 markerLayer.current.eachLayer(l => { if (l.getLatLng) bounds.extend(l.getLatLng()); else if (l.getBounds) bounds.extend(l.getBounds()); });
                 clusterLayer.current.eachLayer(l => bounds.extend(l.getLatLng()));
-                if (bounds.isValid()) { map.fitBounds(bounds, { padding: [9], maxZoom: 6 }); hasFitBounds.current = true; }
+                if (bounds.isValid()) { map.fitBounds(bounds, { padding: [6], maxZoom: 6 }); hasFitBounds.current = true; }
               }
             }, 100);
           }, [data, polygonOpacity]);
@@ -720,13 +727,12 @@
                 }
                 else if (l instanceof L.Marker) {
                   l.setOpacity(inWindow ? 1 : 0.2);
-                  // [FIX] Phase 4: Eradicated [1, 2] regression. Restored exact [4, 5] physical geometry boundaries.
                   if (isTarget) {
-                    l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(true, l.isVip), iconSize: [4, 5], iconAnchor: [5, 6] }));
+                    l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(true, l.isVip), iconSize: [3, 4], iconAnchor: [4, 5] }));
                     if (!l.isVip) { clusterLayer.current.removeLayer(l); markerLayer.current.addLayer(l); }
                     l.setZIndexOffset(1000);
                   } else {
-                    l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, l.isVip), iconSize: [4, 5], iconAnchor: [5, 6] }));
+                    l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, l.isVip), iconSize: [3, 4], iconAnchor: [4, 5] }));
                     l.setZIndexOffset(0);
                     if (!l.isVip) {
                       if (inWindow && !clusterLayer.current.hasLayer(l)) {
@@ -792,7 +798,7 @@
             </div>
           `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v6.2.0';
+        MODULE_VERSIONS['MapViewer'] = 'v6.3.0';
         // === [ END MAJOR BLOCK ] ===
 		
         // === [ MAJOR BLOCK: MediaViewer v2.11.7 ] ===
@@ -2097,9 +2103,9 @@
                 <div id="app-layout" ref=${appRef} class="${isTimelineExpanded ? 'is-expanded-timeline' : ''} ${isTimelineMinimized ? 'is-minimized-timeline' : ''}">
                   <div class="core-viewports ${maxPane ? 'max-' + maxPane : ''}">
                     <div class="visual-pane ${hasMedia ? '' : 'no-media'}">
-                      <div class="map-pane">
-                        <${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} maxAutoZoom=${maxAutoZoom} minimapOffset=${minimapOffset} basemapsRegistry=${basemapsRegistry} maxPane=${maxPane} setMaxPane=${setMaxPane} polygonOpacity=${polygonOpacity} showButtonText=${showButtonText} visibleTimeBounds=${visibleTimeBounds} />
-                      </div>
+					  <div class="map-pane">
+						<${MapViewer} data=${data} activeIndex=${activeIndex} setActiveIndex=${jumpToSlide} maxAutoZoom=${maxAutoZoom} minimapOffset=${minimapOffset} setMinimapOffset=${setMinimapOffset} basemapsRegistry=${basemapsRegistry} maxPane=${maxPane} setMaxPane=${setMaxPane} polygonOpacity=${polygonOpacity} showButtonText=${showButtonText} visibleTimeBounds=${visibleTimeBounds} />
+					  </div>
                       <div class="resizer-dyn-secondary" onMouseDown=${startSecondaryResize} onTouchStart=${startSecondaryResize}></div>
                       <div class="media-pane">
                         <${MediaViewer} activeSlide=${activeSlide} maxPane=${maxPane} setMaxPane=${setMaxPane} />

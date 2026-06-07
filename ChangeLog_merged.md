@@ -1,6 +1,14 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+v8.3.0 - Phase 5: Anti-DDOS Overlays & The Tactile Radar Upgrades
+
+* **Version Bump:** Advanced App to v8.3.0, GlobalStyles to v6.1.0, AppOrchestrator to v3.1.0, and MapViewer to v6.3.0.
+* **The Tactile Radar:** Upgraded the Minimap into an interactive DOM instrument. Injected `resize: both` into the CSS container and anchored it to a secondary `ResizeObserver`. The user can now manually stretch the radar's physical dimensions across the screen, triggering an instant WebGL redraw (`invalidateSize`). 
+* **Bidirectional Telemetry:** Unlocked Leaflet's `scrollWheelZoom` and `touchZoom` inside the Minimap node. Implemented a mathematical clutch (`isSyncingRef`) that detects manual user interaction versus programmatic camera flights. When the user manually zooms the minimap, the engine calculates the difference between the main and minimap cameras and broadcasts this telemetry back to the global App state, dynamically altering the true system `minimapOffset` in real-time.
+* **Minimap Overlay Severance:** Eradicated historical map overlays from the `miniMapInstance`. The Minimap now operates strictly on the pure Basemap, instantly halving the total HTTP requests sent to the IIIF servers. 
+* **Kinetic HTTP Brakes & Memory Buffers:** Injected `updateWhenZooming: false` and `keepBuffer: 4` into every `L.tileLayer` constructor. This completely suspends tile fetch queries during the 2.5-second camera flight animations, preventing the engine from bombarding and DDOSing the Princeton `allmaps.xyz` endpoints. Layers will no longer flash and disappear during high-speed navigation.
+
 v8.2.0 - Phase 4: Pin Anchor Physics & Identical Coordinate "Stacked Pins"
 
 * **Version Bump:** Advanced App to v8.2.0, and MapViewer to v6.2.0.

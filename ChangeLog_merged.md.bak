@@ -1,6 +1,12 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+v8.2.0 - Phase 4: Pin Anchor Physics & Identical Coordinate "Stacked Pins"
+
+* **Version Bump:** Advanced App to v8.2.0, and MapViewer to v6.2.0.
+* **Pin Offset Regression Fixed:** Eradicated the v6 geometric array regression where `iconSize` and `iconAnchor` were arbitrarily defined as `[1, 2]` and `[2, 3]`. Restored the exact physical dimensions of the CSS nodes (`iconSize: [4, 5], iconAnchor: [5, 6]`), forcing the Leaflet engine to mathematically drop the bottom-center tip of the pin's stem directly onto the correct geospatial coordinate. Tooltip anchors have been similarly corrected to `offset: [0, -34]` to float perfectly above the pin head.
+* **Exact Coordinate "Stacked Pin" Workaround:** Added an explicit `iconCreateFunction` interceptor to the `MarkerCluster` initialization. If the engine detects that a cluster contains markers sharing the *exact same* physical coordinates, it bypasses the default yellow/orange circular grouping bubble. Instead, it renders a custom HTML "Stacked Pin" that mimics the aesthetics of a standard marker, adorned with a tiny numeric badge indicating the depth of the stack. Clicking the stack natively triggers Leaflet's `spiderfy` animation, allowing users to cleanly select distinct historical events occurring at the identical location.
+
 ## [v8.1.0] - 2026-06-07
 ### Added
 - **EDTF Quantum Physics (Phase 3):** Upgraded the "Breathing Map" temporal intersection algorithm. The MapViewer now natively decodes disjointed Extended Date Time Format (EDTF) Sets and Lists. Historical events with non-continuous dates (e.g., specific recurring days) will cause their geographic pins to perfectly "flash" in and out of the clustered visibility timeline exactly when the dates cross the screen.
