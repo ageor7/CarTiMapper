@@ -1,6 +1,11 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+v8.3.6 - Singular Node Geographic Context Restoration
+
+* **Version Bump:** Advanced App to v8.3.6, and MapViewer to v6.3.6.
+* **Semantic Tooltip Context Swap:** Restored the `bindTooltip` payload for singular (non-clustered) map nodes to display `layer.itemPlace` instead of `layer.itemTitle`. Because the primary Content Slider already permanently projects the Event Title in large typography, individual map pins now correctly return to their core function of providing Geographic Context (displaying the physical location/sub-label string) rather than redundant event titling. The `layer.itemTitle` property is retained mathematically on the DOM node exclusively for extraction by the Cluster Readout arrays.
+
 v8.3.5 - The Tactical Spatial HUD
 
 * **Version Bump:** Advanced App to v8.3.5, and MapViewer to v6.3.5.
