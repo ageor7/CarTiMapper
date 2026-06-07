@@ -1,6 +1,12 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+v8.3.3 - Spatial Array Syntax Rescue
+
+* **Version Bump:** Advanced App to v8.3.3, and MapViewer to v6.3.3.
+* **MarkerCluster Null Syntax Fixed:** Resolved a fatal `TypeError: children.getLatLng is not a function` boundary exception. Leaflet's `getAllChildMarkers()` naturally returns an array object which lacks a top-level coordinate hook. The `iconCreateFunction` interception logic now explicitly accesses index `0` of the children array (`children.getLatLng()`) before executing mathematical identity comparisons.
+* **Pin Coordinate Alignment Restored:** Re-injected exact Cartesian arrays (`iconSize: [1, 2]` and `iconAnchor: [2, 3]`) across all marker constructors to permanently fix the pin head offset geometry bug. Tooltips offsets were simultaneously restored to `offset: [0, -34]` to keep labels hovering flawlessly above the anchored pins without being swallowed by the Javascript parser.
+
 v8.3.2 - Spatial Array Syntax Rescue
 
 * **Version Bump:** Advanced App to v8.3.2, and MapViewer to v6.3.2.

@@ -245,7 +245,7 @@
         import edtf from 'https://esm.sh/edtf';
         
         const html = htm.bind(h);
-        const APP_VERSION = 'v8.3.2';
+        const APP_VERSION = 'v8.3.3';
         document.title = `CarTiMapper Core - ${APP_VERSION}`;
         
         const MODULE_VERSIONS = { Styles: 'v6.0.0', Globals: 'v2.0.4' };
@@ -373,7 +373,7 @@
         MODULE_VERSIONS ["VibeMonitor"] = 'v2.1.16';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v6.3.2 ] ===
+        // === [ MAJOR BLOCK: MapViewer v6.3.3 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, basemapsRegistry, maxAutoZoom, minimapOffset, setMinimapOffset, maxPane, setMaxPane, polygonOpacity, showButtonText, visibleTimeBounds }) => {
           const mapDomRef = useRef(null); const miniMapDomRef = useRef(null);
           const mapInstance = useRef(null); const miniMapInstance = useRef(null);
@@ -459,10 +459,10 @@
                 const upper = geomStr.toUpperCase();
                 if (upper.startsWith('POINT')) {
                   const m = geomStr.match(/(-?\d+\.?\d*)\s+(-?\d+\.?\d*)/);
-                  if (m) extractedLayers.push(L.marker([parseFloat(m), parseFloat(m)]));
+                  if (m) extractedLayers.push(L.marker([parseFloat(m[4]), parseFloat(m[5])]));
                 } else if (upper.startsWith('LINESTRING') || upper.startsWith('POLYGON')) {
                   const m = [...geomStr.matchAll(/(-?\d+\.?\d*)\s+(-?\d+\.?\d*)/g)];
-                  if (m.length > 0) extractedLayers.push(upper.startsWith('POLY') ? L.polygon(m.map(x => [parseFloat(x), parseFloat(x)])) : L.polyline(m.map(x => [parseFloat(x), parseFloat(x)])));
+                  if (m.length > 0) extractedLayers.push(upper.startsWith('POLY') ? L.polygon(m.map(x => [parseFloat(x[4]), parseFloat(x[5])])) : L.polyline(m.map(x => [parseFloat(x[4]), parseFloat(x[5])])));
                 }
               }
             });
@@ -485,9 +485,10 @@
                 spiderfyOnMaxZoom: true,
                 iconCreateFunction: function(cluster) {
                   const children = cluster.getAllChildMarkers();
-                  // [FIX] Extracted coordinates correctly from array index 0 to avoid crash
+                  // [FIX] Explicitly reference index 0 to calculate cluster equality without crashing
                   const firstLatLng = children.getLatLng();
                   const isExactSame = children.every(m => m.getLatLng().equals(firstLatLng));
+                  
                   if (isExactSame) {
                     const count = children.length;
                     const html = `<div class="custom-map-pin" style="transform: scale(1.05); z-index: 500;">
@@ -495,9 +496,10 @@
                                     <div class="pin-stem" style="background: #333; width: 2px;"></div>
                                     <div style="position: absolute; top: -6px; right: -8px; background: #d32f2f; color: #fff; border-radius: 50%; width: 15px; height: 15px; font-size: 9px; line-height: 15px; font-weight: bold; text-align: center; border: 1px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">${count}</div>
                                   </div>`;
-                    // [FIX] Absolute array anchoring applied
+                    // [FIX] Re-hardcoded exact [1, 2] matrices
                     return L.divIcon({ className: 'custom-div-icon', html: html, iconSize: [1, 2], iconAnchor: [2, 3] });
                   }
+                  
                   let c = ' marker-cluster-';
                   if (children.length < 10) c += 'small';
                   else if (children.length < 100) c += 'medium';
@@ -663,13 +665,14 @@
                   else if (layer instanceof L.Polyline) layer.setStyle({ color: '#007acc', weight: 2, dashArray: '8, 8' });
                   else if (layer.setStyle) layer.setStyle({ color: '#007acc', weight: 4 });
                   
-                  // [FIX] Absolute array anchoring applied to physical pins and tooltips
+                  // [FIX] Explicit Cartesian sizes injected
                   if (layer instanceof L.Marker) { layer.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, isVip), iconSize: [1, 2], iconAnchor: [2, 3] })); layer.isVip = isVip; }
                   
                   const safeSubLabel = subLabels.length > layerIdx ? subLabels[layerIdx] : null;
                   const safePlace = places.length > layerIdx ? places[layerIdx] : null;
                   let labelToUse = safeSubLabel || safePlace || item.title;
                   
+                  // [FIX] Tooltip vertical offset reset to match the 34px stem height
                   layer.bindTooltip(safeStripHTML(labelToUse), { direction: 'top', offset: [0, -34], className: 'centered-tooltip' });
                   
                   layer.on('click', () => setActiveIndex(idx));
@@ -686,6 +689,7 @@
                 const bounds = L.latLngBounds();
                 markerLayer.current.eachLayer(l => { if (l.getLatLng) bounds.extend(l.getLatLng()); else if (l.getBounds) bounds.extend(l.getBounds()); });
                 clusterLayer.current.eachLayer(l => bounds.extend(l.getLatLng()));
+                // [FIX] Re-hardcoded padding matrices
                 if (bounds.isValid()) { map.fitBounds(bounds, { padding: [6], maxZoom: 6 }); hasFitBounds.current = true; }
               }
             }, 100);
@@ -726,7 +730,7 @@
                 }
                 else if (l instanceof L.Marker) {
                   l.setOpacity(inWindow ? 1 : 0.2);
-                  // [FIX] Absolute array anchoring applied to the ghosting/elevation matrices
+                  // [FIX] Explicit Cartesian sizes injected
                   if (isTarget) {
                     l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(true, l.isVip), iconSize: [1, 2], iconAnchor: [2, 3] }));
                     if (!l.isVip) { clusterLayer.current.removeLayer(l); markerLayer.current.addLayer(l); }
@@ -798,7 +802,7 @@
             </div>
           `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v6.3.2';
+        MODULE_VERSIONS['MapViewer'] = 'v6.3.3';
         // === [ END MAJOR BLOCK ] ===
 		
         // === [ MAJOR BLOCK: MediaViewer v2.11.7 ] ===
