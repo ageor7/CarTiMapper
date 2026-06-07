@@ -245,7 +245,7 @@
         import edtf from 'https://esm.sh/edtf';
         
         const html = htm.bind(h);
-        const APP_VERSION = 'v8.3.5';
+        const APP_VERSION = 'v8.3.6';
         document.title = `CarTiMapper Core - ${APP_VERSION}`;
         
         const MODULE_VERSIONS = { Styles: 'v6.0.0', Globals: 'v2.0.4' };
@@ -373,7 +373,7 @@
         MODULE_VERSIONS ["VibeMonitor"] = 'v2.1.16';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v6.3.5 ] ===
+        // === [ MAJOR BLOCK: MapViewer v6.3.6 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, basemapsRegistry, maxAutoZoom, minimapOffset, setMinimapOffset, maxPane, setMaxPane, polygonOpacity, showButtonText, visibleTimeBounds }) => {
           const mapDomRef = useRef(null); const miniMapDomRef = useRef(null);
           const mapInstance = useRef(null); const miniMapInstance = useRef(null);
@@ -483,7 +483,7 @@
               clusterLayer.current = L.markerClusterGroup({ 
                 maxClusterRadius: 40, 
                 spiderfyOnMaxZoom: true,
-                zoomToBoundsOnClick: false, // [FIX] Smart Spiderfy Phase 1: Disable native zoom loop
+                zoomToBoundsOnClick: false,
                 iconCreateFunction: function(cluster) {
                   const children = cluster.getAllChildMarkers();
                   const firstLatLng = children.at(0).getLatLng();
@@ -507,19 +507,17 @@
                 }
               }).addTo(map);
 
-              // [FIX] Smart Spiderfy Phase 2: Intercept click telemetry
               clusterLayer.current.on('clusterclick', (c) => {
                 const m = mapInstance.current;
                 if (m.getZoom() < 10) {
-                  m.fitBounds(c.layer.getBounds(), { padding: new L.Point(40, 40) }); // Macro-zoom protection
+                  m.fitBounds(c.layer.getBounds(), { padding: new L.Point(40, 40) });
                 } else {
-                  c.layer.spiderfy(); // Immediate tactical break-up
+                  c.layer.spiderfy();
                 }
               });
 
               gridLayerRef.current = L.layerGroup().addTo(map);
 
-              // [FIX] Semantic Tooltip Engine: Hierarchical Cluster Readout
               clusterLayer.current.on('clustermouseover', (c) => {
                 const children = c.layer.getAllChildMarkers();
                 const places = [...new Set(children.map(m => m.itemPlace).filter(Boolean))];
@@ -690,12 +688,11 @@
                   const safePlace = places.length > layerIdx ? places[layerIdx] : null;
                   let labelToUse = safeSubLabel || safePlace || item.title;
                   
-                  // [FIX] Semantic Tooltip Engine: Properties Bound Directly
                   layer.itemPlace = safeStripHTML(labelToUse);
                   layer.itemTitle = safeStripHTML(item.title);
                   
-                  // [FIX] Individual Nodes exclusively project their Event Title
-                  layer.bindTooltip(layer.itemTitle, { direction: 'top', offset: new L.Point(0, -34), className: 'centered-tooltip' });
+                  // [FIX] Single Elements explicitly project Geographic Context (Place)
+                  layer.bindTooltip(layer.itemPlace, { direction: 'top', offset: new L.Point(0, -34), className: 'centered-tooltip' });
                   
                   layer.on('click', () => setActiveIndex(idx));
                   if (layer instanceof L.Marker && !isVip) clusterLayer.current.addLayer(layer); else markerLayer.current.addLayer(layer);
@@ -823,7 +820,7 @@
             </div>
           `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v6.3.5';
+        MODULE_VERSIONS['MapViewer'] = 'v6.3.6';
         // === [ END MAJOR BLOCK ] ===
 		
         // === [ MAJOR BLOCK: MediaViewer v2.11.7 ] ===
