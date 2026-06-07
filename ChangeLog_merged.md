@@ -1,6 +1,13 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+v8.3.5 - The Tactical Spatial HUD
+
+* **Version Bump:** Advanced App to v8.3.5, and MapViewer to v6.3.5.
+* **Semantic Tooltip Engine:** Completely overhauled the tooltip hierarchy across the map. Individual map nodes (both standalone and spiderfied pins) now exclusively project their specific `itemTitle`, allowing exact event identification.
+* **Hierarchical Cluster Readouts:** Cluster hover states no longer output redundant data arrays. The engine now automatically extracts the `itemPlace` from its underlying child markers to build a bolded, blue topological Header (e.g., "Hotel Grande Bretagne"), and generates a clean, bulleted list of the specific Event Titles occurring at that aggregate location.
+* **Smart Spiderfy Interceptor:** Disabled MarkerCluster's native `zoomToBoundsOnClick` trapping loop. Clicking a classic cluster now immediately triggers `c.layer.spiderfy()` to physically break the pins apart on-screen without altering camera telemetry. (Includes a macro-safety net: if the user clicks a massive cluster at zoom < 10, it will dive to the regional bounds first to prevent drawing cross-continental spider legs).
+
 v8.3.4 - Compiler Anti-Truncation Armor
 
 * **Version Bump:** Advanced App to v8.3.4, and MapViewer to v6.3.4.

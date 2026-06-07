@@ -245,7 +245,7 @@
         import edtf from 'https://esm.sh/edtf';
         
         const html = htm.bind(h);
-        const APP_VERSION = 'v8.3.4';
+        const APP_VERSION = 'v8.3.5';
         document.title = `CarTiMapper Core - ${APP_VERSION}`;
         
         const MODULE_VERSIONS = { Styles: 'v6.0.0', Globals: 'v2.0.4' };
@@ -373,7 +373,7 @@
         MODULE_VERSIONS ["VibeMonitor"] = 'v2.1.16';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v6.3.4 ] ===
+        // === [ MAJOR BLOCK: MapViewer v6.3.5 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, basemapsRegistry, maxAutoZoom, minimapOffset, setMinimapOffset, maxPane, setMaxPane, polygonOpacity, showButtonText, visibleTimeBounds }) => {
           const mapDomRef = useRef(null); const miniMapDomRef = useRef(null);
           const mapInstance = useRef(null); const miniMapInstance = useRef(null);
@@ -459,7 +459,6 @@
                 const upper = geomStr.toUpperCase();
                 if (upper.startsWith('POINT')) {
                   const m = geomStr.match(/(-?\d+\.?\d*)\s+(-?\d+\.?\d*)/);
-                  // [FIX] Armored Index Array Access via .at() and Explicit LatLng mapping
                   if (m) extractedLayers.push(L.marker(new L.LatLng(parseFloat(m.at(1)), parseFloat(m.at(2)))));
                 } else if (upper.startsWith('LINESTRING') || upper.startsWith('POLYGON')) {
                   const m = [...geomStr.matchAll(/(-?\d+\.?\d*)\s+(-?\d+\.?\d*)/g)];
@@ -484,9 +483,9 @@
               clusterLayer.current = L.markerClusterGroup({ 
                 maxClusterRadius: 40, 
                 spiderfyOnMaxZoom: true,
+                zoomToBoundsOnClick: false, // [FIX] Smart Spiderfy Phase 1: Disable native zoom loop
                 iconCreateFunction: function(cluster) {
                   const children = cluster.getAllChildMarkers();
-                  // [FIX] Explicit ES6 .at(0) access to prevent markdown pipeline swallowing
                   const firstLatLng = children.at(0).getLatLng();
                   const isExactSame = children.every(m => m.getLatLng().equals(firstLatLng));
                   
@@ -497,7 +496,6 @@
                                     <div class="pin-stem" style="background: #333; width: 2px;"></div>
                                     <div style="position: absolute; top: -6px; right: -8px; background: #d32f2f; color: #fff; border-radius: 50%; width: 15px; height: 15px; font-size: 9px; line-height: 15px; font-weight: bold; text-align: center; border: 1px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">${count}</div>
                                   </div>`;
-                    // [FIX] Explicit L.Point objects to armor against missing arrays
                     return L.divIcon({ className: 'custom-div-icon', html: html, iconSize: new L.Point(24, 34), iconAnchor: new L.Point(12, 34) });
                   }
                   
@@ -509,14 +507,34 @@
                 }
               }).addTo(map);
 
+              // [FIX] Smart Spiderfy Phase 2: Intercept click telemetry
+              clusterLayer.current.on('clusterclick', (c) => {
+                const m = mapInstance.current;
+                if (m.getZoom() < 10) {
+                  m.fitBounds(c.layer.getBounds(), { padding: new L.Point(40, 40) }); // Macro-zoom protection
+                } else {
+                  c.layer.spiderfy(); // Immediate tactical break-up
+                }
+              });
+
               gridLayerRef.current = L.layerGroup().addTo(map);
 
+              // [FIX] Semantic Tooltip Engine: Hierarchical Cluster Readout
               clusterLayer.current.on('clustermouseover', (c) => {
                 const children = c.layer.getAllChildMarkers();
-                const titles = [...new Set(children.map(m => m.getTooltip().getContent()))];
-                let displayHtml = titles.slice(0, 5).join('<br/>');
-                if (titles.length > 5) displayHtml += `<br/><em style="color: #666; font-size: 0.8em;">+${titles.length - 5} more locations...</em>`;
-                c.layer.bindTooltip(displayHtml, { direction: 'top', className: 'centered-tooltip' }).openTooltip();
+                const places = [...new Set(children.map(m => m.itemPlace).filter(Boolean))];
+                const titles = [...new Set(children.map(m => m.itemTitle).filter(Boolean))];
+
+                let displayHtml = '';
+                if (places.length > 0) {
+                  displayHtml += `<div style="font-weight: 600; color: #007acc; border-bottom: 1px solid #ccc; margin-bottom: 4px; padding-bottom: 4px; text-align: center;">${places.slice(0, 2).join(' / ')}${places.length > 2 ? '...' : ''}</div>`;
+                }
+                displayHtml += `<div style="text-align: left; line-height: 1.3;">`;
+                displayHtml += titles.slice(0, 5).map(t => `• ${t}`).join('<br/>');
+                if (titles.length > 5) displayHtml += `<br/><em style="color: #666; font-size: 0.8em; margin-top: 4px; display: inline-block; text-align: center; width: 100%;">+${titles.length - 5} more events...</em>`;
+                displayHtml += `</div>`;
+
+                c.layer.bindTooltip(displayHtml, { direction: 'top', className: 'custom-cluster-tooltip' }).openTooltip();
               });
               clusterLayer.current.on('clustermouseout', (c) => c.layer.unbindTooltip());
 
@@ -666,15 +684,18 @@
                   else if (layer instanceof L.Polyline) layer.setStyle({ color: '#007acc', weight: 2, dashArray: '8, 8' });
                   else if (layer.setStyle) layer.setStyle({ color: '#007acc', weight: 4 });
                   
-                  // [FIX] Explicit Cartesian sizes injected via new L.Point()
                   if (layer instanceof L.Marker) { layer.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(false, isVip), iconSize: new L.Point(24, 34), iconAnchor: new L.Point(12, 34) })); layer.isVip = isVip; }
                   
                   const safeSubLabel = subLabels.length > layerIdx ? subLabels[layerIdx] : null;
                   const safePlace = places.length > layerIdx ? places[layerIdx] : null;
                   let labelToUse = safeSubLabel || safePlace || item.title;
                   
-                  // [FIX] Tooltip vertical offset explicitly bound
-                  layer.bindTooltip(safeStripHTML(labelToUse), { direction: 'top', offset: new L.Point(0, -34), className: 'centered-tooltip' });
+                  // [FIX] Semantic Tooltip Engine: Properties Bound Directly
+                  layer.itemPlace = safeStripHTML(labelToUse);
+                  layer.itemTitle = safeStripHTML(item.title);
+                  
+                  // [FIX] Individual Nodes exclusively project their Event Title
+                  layer.bindTooltip(layer.itemTitle, { direction: 'top', offset: new L.Point(0, -34), className: 'centered-tooltip' });
                   
                   layer.on('click', () => setActiveIndex(idx));
                   if (layer instanceof L.Marker && !isVip) clusterLayer.current.addLayer(layer); else markerLayer.current.addLayer(layer);
@@ -690,7 +711,6 @@
                 const bounds = L.latLngBounds();
                 markerLayer.current.eachLayer(l => { if (l.getLatLng) bounds.extend(l.getLatLng()); else if (l.getBounds) bounds.extend(l.getBounds()); });
                 clusterLayer.current.eachLayer(l => bounds.extend(l.getLatLng()));
-                // [FIX] Re-hardcoded padding matrix
                 if (bounds.isValid()) { map.fitBounds(bounds, { padding: new L.Point(6, 6), maxZoom: 6 }); hasFitBounds.current = true; }
               }
             }, 100);
@@ -732,7 +752,6 @@
                 }
                 else if (l instanceof L.Marker) {
                   l.setOpacity(inWindow ? 1 : 0.2);
-                  // [FIX] Explicit Cartesian sizes injected
                   if (isTarget) {
                     l.setIcon(L.divIcon({ className: 'custom-div-icon', html: createPinHtml(true, l.isVip), iconSize: new L.Point(24, 34), iconAnchor: new L.Point(12, 34) }));
                     if (!l.isVip) { clusterLayer.current.removeLayer(l); markerLayer.current.addLayer(l); }
@@ -804,7 +823,7 @@
             </div>
           `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v6.3.4';
+        MODULE_VERSIONS['MapViewer'] = 'v6.3.5';
         // === [ END MAJOR BLOCK ] ===
 		
         // === [ MAJOR BLOCK: MediaViewer v2.11.7 ] ===

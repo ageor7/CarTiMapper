@@ -1,6 +1,12 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+v8.3.4 - Compiler Anti-Truncation Armor
+
+* **Version Bump:** Advanced App to v8.3.4, and MapViewer to v6.3.4.
+* **Array Indexing Bypass:** Completely eradicated bracket notation `[x]` across the `MapViewer` data pipeline. Replaced standard array index access with the ES6 `.at()` method (e.g., `children.at(0)`) to prevent upstream Markdown parsers from fatally mistaking JavaScript arrays for footnote citations and indiscriminately swallowing them. 
+* **Cartesian Hardening:** Eliminated all raw coordinate and dimension arrays (`[lat, lon]`, `[width, height]`) throughout the geometry generation loop. Instantiated pure Leaflet object constructors (`new L.Point()`, `new L.LatLng()`) to definitively insulate spatial settings (`iconSize`, `iconAnchor`, `offset`, `padding`) against text-parser truncation. 
+
 v8.3.3 - Spatial Array Syntax Rescue
 
 * **Version Bump:** Advanced App to v8.3.3, and MapViewer to v6.3.3.
