@@ -235,21 +235,19 @@
 <body>
     <div id="root"></div>
     <script type="module">
-        // === [ MAJOR BLOCK: Imports & Globals v2.0.4 ] ===
-        import { h, render, Component } from 'https://esm.sh/preact';
-        import { useState, useEffect, useLayoutEffect, useRef } from 'https://esm.sh/preact/hooks';
-        import htm from 'https://esm.sh/htm';
-        import Papa from 'https://esm.sh/papaparse';
-        
-        // [REF: CHRONO-01] EDTF.js Extended Date Parser (Default Export Transpilation)
-        import edtf from 'https://esm.sh/edtf';
-        
-        const html = htm.bind(h);
-        const APP_VERSION = 'v8.3.9';
-        document.title = `CarTiMapper Core - ${APP_VERSION}`;
-        
-        const MODULE_VERSIONS = { Styles: 'v6.0.0', Globals: 'v2.0.4' };
-        const TM_CONFIG = { paneBackground: '#fcfcfc' };
+        // === [ MAJOR BLOCK: Imports & Globals v2.0.5 ] ===
+		import { h, render, Component } from 'https://esm.sh/preact';
+		import { useState, useEffect, useLayoutEffect, useRef } from 'https://esm.sh/preact/hooks';
+		import htm from 'https://esm.sh/htm';
+		import Papa from 'https://esm.sh/papaparse';
+		// [REF: CHRONO-01] Pinned EDTF.js Extended Date Parser to prevent silent upstream breaking changes
+		import edtf from 'https://esm.sh/edtf@4.11.0';
+
+		const html = htm.bind(h);
+		const APP_VERSION = 'v8.3.10';
+		document.title = `CarTiMap Core - ${APP_VERSION}`;
+		const MODULE_VERSIONS = { Styles: 'v6.0.0', Globals: 'v2.0.5' };
+		const TM_CONFIG = { paneBackground: '#fcfcfc' };
         // === [ END MAJOR BLOCK ] ===
 
         // === [ MAJOR BLOCK: Utilities v2.0.0 ] ===
@@ -373,7 +371,7 @@
         MODULE_VERSIONS ["VibeMonitor"] = 'v2.1.16';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v6.3.8 ] ===
+        // === [ MAJOR BLOCK: MapViewer v6.3.9 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, basemapsRegistry, maxAutoZoom, minimapOffset, setMinimapOffset, maxPane, setMaxPane, polygonOpacity, showButtonText, visibleTimeBounds }) => {
           const mapDomRef = useRef(null); const miniMapDomRef = useRef(null);
           const mapInstance = useRef(null); const miniMapInstance = useRef(null);
@@ -727,7 +725,10 @@
               const item = data[idx];
               const isTarget = activeIndex === idx;
 
-              let inWindow = true;
+              // [REF: MAP-06] Narrative-First Default: Undated pins default to false (ghosted) 
+              // unless they are the actively selected slide (isTarget)
+              let inWindow = false; 
+
               if (item && item.startDate && !isNaN(item.startDate.min)) {
                 if (item.startDate.isEDTF && item.startDate.obj && (item.startDate.obj.type === 'Set' || item.startDate.obj.type === 'List') && Array.isArray(item.startDate.obj.values)) {
                   inWindow = item.startDate.obj.values.some(v => v.max >= vLeft && v.min <= vRight);
@@ -1622,7 +1623,7 @@
         MODULE_VERSIONS['TimelineScrubber'] = 'v25.0.5';
         // === [ END MAJOR BLOCK ] ===
 		
-        // === [ MAJOR BLOCK: AppOrchestrator v3.0.0 ] ===
+        // === [ MAJOR BLOCK: AppOrchestrator v3.1.0 ] ===
         const App = () => {
           const [logs, setLogs] = useState([]);
           const [rawCsvRows, setRawCsvRows] = useState([]);
@@ -1973,81 +1974,118 @@
             }
             
             const isUS = dateLocale === 'en-US';
-            const cleaned = rawCsvRows.map((row, index) => {
-              const norm = {};
-              for (let k in row) norm[k.toLowerCase().trim()] = row[k];
-              
-              const parseChronoNode = (legacyStr, edtfStr) => {
+                    const cleaned = rawCsvRows.map((row, index) => {
+            const norm = {};
+            for (let k in row) norm[k.toLowerCase().trim()] = row[k];
+            
+            const rowTitle = exactGet(norm, 'title') || 'Untitled Event';
+
+            const parseChronoNode = (legacyStr, edtfStr) => {
                 const cleanLegacy = legacyStr ? legacyStr.toString().trim() : '';
                 const cleanEdtf = edtfStr ? edtfStr.toString().trim() : '';
-                if (activeMode === 'edtf') {
-                  if (!cleanEdtf) return null;
-                  try {
-                    const edtfObj = edtf(cleanEdtf);
-                    if (edtfObj) {
-                      return {
-                        isEDTF: true,
-                        obj: edtfObj,
-                        min: edtfObj.min,
-                        max: edtfObj.max,
-                        isOpen: edtfObj.values ? edtfObj.values.some(v => v === Number.POSITIVE_INFINITY || v === Number.NEGATIVE_INFINITY) : false,
-                        text: cleanEdtf
-                      };
+
+                // 1. Primary Attempt: EDTF (ISO 8601-2)
+                if ((activeMode === 'edtf' || activeMode === 'auto') && cleanEdtf) {
+                    try {
+                        const edtfObj = edtf(cleanEdtf);
+                        if (edtfObj) {
+                            return {
+                                isEDTF: true,
+                                obj: edtfObj,
+                                min: edtfObj.min,
+                                max: edtfObj.max,
+                                isOpen: edtfObj.values ? edtfObj.values.some(v => v === Number.POSITIVE_INFINITY || v === Number.NEGATIVE_INFINITY) : false,
+                                text: cleanEdtf
+                            };
+                        }
+                    } catch (e) {
+                        addLog(`[Chrono-Engine] Row ${index + 2} ("${rowTitle}"): EDTF syntax failure on "${cleanEdtf}". Rerouted to Legacy fallback.`, 'warning');
                     }
-                  } catch (e) {
+                }
+
+                // 2. Fallback Attempt: Legacy DD/MM/YYYY
+                if (!cleanLegacy) {
+                    if (cleanEdtf) addLog(`[Chrono-Engine] Row ${index + 2} ("${rowTitle}"): No Legacy fallback found for failed EDTF. Rendering as Undated.`, 'warning');
                     return null;
-                  }
-                  return null;
-                } else {
-                  if (!cleanLegacy) return null;
-                  const parts = cleanLegacy.split(' ');
-                  if (parts.length < 1) return null;
-                  const dateStr = parts.at(0) || '';
-                  const timeStr = parts.at(1) || '';
-                  const dParts = dateStr.split(/[/\-.]/);
-                  if (dParts.length < 3) {
+                }
+
+                const parts = cleanLegacy.split(' ');
+                if (parts.length < 1) return null;
+
+                const dateStr = parts.at(0) || '';
+                const timeStr = parts.at(1) || '';
+                const dParts = dateStr.split(/[/\-.]/);
+
+                if (dParts.length < 3) {
                     let ts;
                     if (!isNaN(cleanLegacy) && cleanLegacy !== '') {
-                      ts = (parseFloat(cleanLegacy) - 25569) * 86400 * 1000;
-                    } else { return null; }
-                    if (isNaN(ts)) return null;
+                        ts = (parseFloat(cleanLegacy) - 25569) * 86400 * 1000;
+                    } else {
+                        addLog(`[Chrono-Engine] Row ${index + 2} ("${rowTitle}"): Legacy parser failed on "${cleanLegacy}". Rendering as Undated.`, 'warning');
+                        return null;
+                    }
+                    if (isNaN(ts)) {
+                        addLog(`[Chrono-Engine] Row ${index + 2} ("${rowTitle}"): Legacy parser failed on "${cleanLegacy}". Rendering as Undated.`, 'warning');
+                        return null;
+                    }
                     return { isEDTF: false, min: ts, max: ts, date: new Date(ts), text: cleanLegacy };
-                  }
-                  const tParts = timeStr ? timeStr.split(':') : [];
-                  const secParts = String(tParts.at(2) || '0').split('.');
-                  const dYear = parseInt(dParts.at(2), 10);
-                  const dMonth = parseInt(dParts.at(isUS ? 0 : 1), 10) - 1;
-                  const dDay = parseInt(dParts.at(isUS ? 1 : 0), 10);
-                  const tHour = parseInt(tParts.at(0) || 0, 10);
-                  const tMin = parseInt(tParts.at(1) || 0, 10);
-                  const tSec = parseInt(secParts.at(0) || 0, 10);
-                  const tMs = parseInt(secParts.at(1) || 0, 10);
-                  const dateObj = new Date(dYear, dMonth, dDay, tHour, tMin, tSec, tMs);
-                  const ts = dateObj.getTime();
-                  if (isNaN(ts)) return null;
-                  return { isEDTF: false, min: ts, max: ts, date: new Date(ts), text: cleanLegacy };
                 }
-              };
 
-              return {
+                const tParts = timeStr ? timeStr.split(':') : [];
+                const secParts = String(tParts.at(2) || '0').split('.');
+
+                const dYear = parseInt(dParts.at(2), 10);
+                const dMonth = parseInt(dParts.at(isUS ? 0 : 1), 10) - 1;
+                const dDay = parseInt(dParts.at(isUS ? 1 : 0), 10);
+
+                const tHour = parseInt(tParts.at(0) || 0, 10);
+                const tMin = parseInt(tParts.at(1) || 0, 10);
+                const tSec = parseInt(secParts.at(0) || 0, 10);
+                const tMs = parseInt(secParts.at(1) || 0, 10);
+
+                const dateObj = new Date(dYear, dMonth, dDay, tHour, tMin, tSec, tMs);
+                const ts = dateObj.getTime();
+
+                if (isNaN(ts)) {
+                    addLog(`[Chrono-Engine] Row ${index + 2} ("${rowTitle}"): Legacy parser failed on "${cleanLegacy}". Rendering as Undated.`, 'warning');
+                    return null;
+                }
+                return { isEDTF: false, min: ts, max: ts, date: new Date(ts), text: cleanLegacy };
+            };
+
+            const locStr = exactGet(norm, 'location');
+            if (!locStr) {
+                addLog(`[Geo-Engine] Row ${index + 2} ("${rowTitle}"): No Location data provided. Operating in non-spatial mode.`, 'info');
+            }
+
+            return {
                 id: index,
-                title: exactGet(norm, 'title'),
+                title: rowTitle,
                 startDate: parseChronoNode(exactGet(norm, 'start'), exactGet(norm, 'start edtf')),
                 endDate: parseChronoNode(exactGet(norm, 'end'), exactGet(norm, 'end edtf')),
                 description: exactGet(norm, 'description'),
                 place: exactGet(norm, 'place'),
-                location: exactGet(norm, 'location'),
+                location: locStr,
                 subLabels: exactGet(norm, 'sublabels') || exactGet(norm, 'sub-labels') || exactGet(norm, 'sub labels') || '',
                 priority: exactGet(norm, 'priority'),
                 media: exactGet(norm, 'media') ? exactGet(norm, 'media').split(omniSplitRegex).map(m => m.trim()).filter(Boolean) : [],
                 mediaCaption: exactGet(norm, 'media caption') ? exactGet(norm, 'media caption').split(omniSplitRegex).map(c => c.trim()) : [],
                 mediaCredit: exactGet(norm, 'media credit') ? exactGet(norm, 'media credit').split(omniSplitRegex).map(c => c.trim()) : [],
                 tags: exactGet(norm, 'tags') ? exactGet(norm, 'tags').split(',').map(t => t.trim()).filter(Boolean) : []
-              };
-            });
+            };
+        });
 
-            const valid = cleaned.filter(r => r.startDate).sort((a, b) => (a.startDate.min - b.startDate.min) || (a.id - b.id));
-            setData(valid);
+        // [REF: CHRONO-03] Narrative-First Sorting (Undated records appended sequentially to the end)
+        const valid = cleaned.sort((a, b) => {
+            const aValid = a.startDate && !isNaN(a.startDate.min);
+            const bValid = b.startDate && !isNaN(b.startDate.min);
+            if (aValid && bValid) return (a.startDate.min - b.startDate.min) || (a.id - b.id);
+            if (aValid && !bValid) return -1;
+            if (!aValid && bValid) return 1;
+            return a.id - b.id;
+        });
+
+        setData(valid);
 
             const tagsMap = new Set();
             valid.forEach(d => {
@@ -2293,7 +2331,7 @@
             </div>
           `;
         };
-        MODULE_VERSIONS['AppOrchestrator'] = 'v3.0.0';
+        MODULE_VERSIONS['AppOrchestrator'] = 'v3.1.0';
         // === [ END MAJOR BLOCK ] ===
 		
         // === [ MAJOR BLOCK: IgnitionSwitch v1.0.0 ] ===

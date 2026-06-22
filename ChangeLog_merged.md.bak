@@ -1,6 +1,17 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+v8.3.9 - IIIF Slow Proxy Armor (Queue Freezing)
+
+* **Version Bump:** Advanced App to v8.3.9.
+* **Renamed and sorted basemaps, added 'Esri World Topo'
+
+v8.3.8 - IIIF Slow Proxy Armor (Queue Freezing)
+
+* **Version Bump:** Advanced App to v8.3.8, and MapViewer to v6.3.8.
+* **Network Fetch Architecture Pivot:** Injected `updateWhenIdle: true` directly into the `L.tileLayer` and `L.tileLayer.wms` WebGL constructors for all historical overlay maps. This absolutely forbids Leaflet from firing any `allmaps.xyz` IIIF proxy requests while the camera is executing its 2.5-second `flyToBounds` flight path. By restricting network HTTP requests strictly to the exact millisecond the map comes to a dead stop, the browser's internal engine is prevented from aggressively aborting pending tile fetches (`NS_BINDING_ABORTED`), permanently stabilizing the connection pipeline for slow, live-warping proxy servers like Princeton's IIIF cloud.
+* **UI Geometry Lock:** Audited the `<polygon>` node array on the Map Layers button SVG to guarantee it mathematically matches the exact geometric stack parameters found in the original `v6` master blueprint. 
+
 v8.3.6 - Singular Node Geographic Context Restoration
 
 * **Version Bump:** Advanced App to v8.3.6, and MapViewer to v6.3.6.

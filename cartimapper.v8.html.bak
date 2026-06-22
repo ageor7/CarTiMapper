@@ -245,7 +245,7 @@
         import edtf from 'https://esm.sh/edtf';
         
         const html = htm.bind(h);
-        const APP_VERSION = 'v8.3.6';
+        const APP_VERSION = 'v8.3.9';
         document.title = `CarTiMapper Core - ${APP_VERSION}`;
         
         const MODULE_VERSIONS = { Styles: 'v6.0.0', Globals: 'v2.0.4' };
@@ -373,7 +373,7 @@
         MODULE_VERSIONS ["VibeMonitor"] = 'v2.1.16';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: MapViewer v6.3.6 ] ===
+        // === [ MAJOR BLOCK: MapViewer v6.3.8 ] ===
         const MapViewer = ({ data, activeIndex, setActiveIndex, addLog, basemapsRegistry, maxAutoZoom, minimapOffset, setMinimapOffset, maxPane, setMaxPane, polygonOpacity, showButtonText, visibleTimeBounds }) => {
           const mapDomRef = useRef(null); const miniMapDomRef = useRef(null);
           const mapInstance = useRef(null); const miniMapInstance = useRef(null);
@@ -624,10 +624,11 @@
                 if (config) {
                   const z = idx + 10; const op = overlayOpacities[id] !== undefined ? overlayOpacities[id] : (config.defaultOpacity ?? 1.0);
                   const isWms = config.format === "wms" || config.url.toLowerCase().includes("wms");
+                  // [FIX] Slow Proxy Armor Inject: updateWhenZooming: false, updateWhenIdle: true
                   if (isWms) {
-                    overlayLayersRef.current[id] = L.tileLayer.wms(config.url, {maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, layers: config.wmsLayer || "default", format: "image/png", transparent: true, opacity: op, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z, keepBuffer: 4, updateWhenZooming: false}).addTo(map);
+                    overlayLayersRef.current[id] = L.tileLayer.wms(config.url, {maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, layers: config.wmsLayer || "default", format: "image/png", transparent: true, opacity: op, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z, keepBuffer: 4, updateWhenZooming: false, updateWhenIdle: true}).addTo(map);
                   } else {
-                    overlayLayersRef.current[id] = L.tileLayer(config.url, {maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, opacity: op, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z, transparent: true, keepBuffer: 4, updateWhenZooming: false}).addTo(map);
+                    overlayLayersRef.current[id] = L.tileLayer(config.url, {maxNativeZoom: config.maxZoom, maxZoom: maxGlobalZoom, opacity: op, attribution: `<a href="${config.attrLink}" target="_blank">${config.attrText}</a>`, zIndex: z, transparent: true, keepBuffer: 4, updateWhenZooming: false, updateWhenIdle: true}).addTo(map);
                   }
                 }
               }
@@ -691,7 +692,6 @@
                   layer.itemPlace = safeStripHTML(labelToUse);
                   layer.itemTitle = safeStripHTML(item.title);
                   
-                  // [FIX] Single Elements explicitly project Geographic Context (Place)
                   layer.bindTooltip(layer.itemPlace, { direction: 'top', offset: new L.Point(0, -34), className: 'centered-tooltip' });
                   
                   layer.on('click', () => setActiveIndex(idx));
@@ -820,9 +820,8 @@
             </div>
           `;
         };
-        MODULE_VERSIONS['MapViewer'] = 'v6.3.6';
-        // === [ END MAJOR BLOCK ] ===
-		
+        MODULE_VERSIONS['MapViewer'] = 'v6.3.8';
+        // === [ END MAJOR BLOCK ] ===		
         // === [ MAJOR BLOCK: MediaViewer v2.11.7 ] ===
         const MediaViewer = ({ activeSlide, maxPane, setMaxPane }) => {
             const carouselRef = useRef(null);
@@ -1674,11 +1673,12 @@
 
           const DEFAULT_BASEMAPS = [
             { id: 'carto-light', label: 'CartoDB Light', type: 'base', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', format: 'xyz', maxZoom: 19, active: true, attrText: '© CartoDB', attrLink: 'https://carto.com/attributions', defaultOpacity: 1.0 },
+            { id: 'esri-sat', label: 'Esri Wordls Satellite', type: 'base', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', format: 'xyz', maxZoom: 19, active: false, attrText: 'Tiles © Esri', attrLink: 'https://www.esri.com/', defaultOpacity: 1.0 },
             { id: 'esri-street', label: 'Esri World Street', type: 'base', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', format: 'xyz', maxZoom: 19, active: false, attrText: 'Tiles © Esri', attrLink: 'https://www.esri.com/', defaultOpacity: 1.0 },
-            { id: 'esri-sat', label: 'Esri Satellite', type: 'base', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', format: 'xyz', maxZoom: 19, active: false, attrText: 'Tiles © Esri', attrLink: 'https://www.esri.com/', defaultOpacity: 1.0 },
+            { id: 'esri-topo', label: 'Esri World Topo', type: 'base', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', format: 'xyz', maxZoom: 19, active: false, attrText: 'Tiles © Esri', attrLink: 'https://www.esri.com/', defaultOpacity: 1.0 },
             { id: 'osm', label: 'OpenStreetMap', type: 'base', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', format: 'xyz', maxZoom: 19, active: false, attrText: '© OSM', attrLink: 'https://openstreetmap.org/copyright', defaultOpacity: 1.0 },
-            { id: 'topo', label: 'OpenTopoMap', type: 'base', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', format: 'xyz', maxZoom: 17, active: false, attrText: '© OpenTopoMap', attrLink: 'https://opentopomap.org', defaultOpacity: 1.0 },
-            { id: 'protomaps-light', label: 'Protomaps Light', type: 'base', url: 'https://api.protomaps.com/tiles/v3/{z}/{x}/{y}.mvt?key=YOUR_API_KEY_HERE', format: 'pbf', maxZoom: 15, active: false, attrText: '© Protomaps', attrLink: 'https://protomaps.com', defaultOpacity: 1.0 }
+            { id: 'opentopo', label: 'OpenTopoMap', type: 'base', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', format: 'xyz', maxZoom: 17, active: false, attrText: '© OpenTopoMap', attrLink: 'https://opentopomap.org', defaultOpacity: 1.0 },
+            { id: 'protomaps-vector', label: 'Protomaps Vector Light', type: 'base', url: 'https://api.protomaps.com/tiles/v3/{z}/{x}/{y}.mvt?key=YOUR_API_KEY_HERE', format: 'pbf', maxZoom: 15, active: false, attrText: '© Protomaps', attrLink: 'https://protomaps.com', defaultOpacity: 1.0 }
           ];
 
           const [basemapsRegistry, setBasemapsRegistry] = useState(DEFAULT_BASEMAPS);

@@ -1,6 +1,17 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+v8.3.10 ISO Now CarTiMp; date-times optional; version-specific EDTF.js
+[Core Engine] Officially renamed the platform to CarTiMap.
+[Core Engine] Converted ingestion engine to "Narrative-First". The application no longer deletes historical rows that lack precise date-time formatting.
+[Diagnostics] The Vibe-Monitor (Telemetry) now actively audits your Google Sheet as it loads, throwing precise radar pings for any chronological or geographic data anomalies directly to the HUD.
+[Stability] Protected the edtf.js parser via a pinned CDN and a new Hybrid Fallback routing loop.
+
+v8.3.9 - Basemaps renamee and sorting
+
+* **Version Bump:** Advanced App to v8.3.9.
+* **Renamed and sorted basemaps, added 'Esri World Topo'
+
 v8.3.8 - IIIF Slow Proxy Armor (Queue Freezing)
 
 * **Version Bump:** Advanced App to v8.3.8, and MapViewer to v6.3.8.
