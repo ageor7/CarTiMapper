@@ -1129,7 +1129,7 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; max-width: 100vw;
         MODULE_VERSIONS ["ContentSlider"] = 'v4.4.1';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v25.2.0 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v25.2.1 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan, isTimelineExpanded, setIsTimelineExpanded, isTimelineMinimized, setIsTimelineMinimized, dateLocale, timelineRequiredHeight, setVisibleTimeBounds }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -1137,6 +1137,7 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; max-width: 100vw;
             const touchZoomRef = useRef({ initialDist: 0, initialZoom: 1 });
             const prevActiveIndexRef = useRef(-1);
             const scrollTargetMsRef = useRef(null); // [REF: PERF-41] Time-to-Pixel Camera Orchestrator
+            const scrollTargetPayloadRef = useRef(null); // [REF: PERF-41] Absolute ID Camera Payload
             const scrollTimeout = useRef(null);
             const [containerHeight, setContainerHeight] = useState(200);
             const [viewLeftEdge, setViewLeftEdge] = useState(0);
@@ -1204,7 +1205,6 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; max-width: 100vw;
             }
         
             const laneCount = Math.max(1, orderedTags.length);
-            // [REF: UI-186] Swimlane Bottom-Clearance Math (containerHeight - 45px base)
             const laneHeight = Math.max(24, (containerHeight - 45) / laneCount);
             
             const validData = data.filter(d => d.startDate && !isNaN(d.startDate.min));
@@ -1293,20 +1293,44 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; max-width: 100vw;
                 
                 setVisibleTimeSpan(`Span: ${str}`);
             }, [zoomLevel, renderTimeRange, setVisibleTimeSpan]);
+            
+            // [REF: PERF-42] Exact Node Geometry Sub-Pixel Math
+            const getExactNodeScrollPos = (nodeGlobalIdx, trackW, containerW) => {
+                const activeNode = data[nodeGlobalIdx];
+                if (!activeNode || !activeNode.startDate) return 0;
+                const activeDataIndex = validData.findIndex(d => d.id === activeNode.id);
+                if (activeDataIndex < 0) return 0;
+                
+                const itemStartMs = activeNode.startDate.min;
+                const tagIndices = getParsedTags(activeNode.tags).map(t => orderedTags.indexOf(t)).filter(idx => idx !== -1);
+                const laneIdx = tagIndices.length > 0 ? Math.min(...tagIndices) : 0;
+                
+                let stackDepth = 0;
+                for(let i=0; i<activeDataIndex; i++) {
+                    const d = validData[i];
+                    const dTagIndices = getParsedTags(d.tags).map(t => orderedTags.indexOf(t)).filter(idx => idx !== -1);
+                    const dLaneIdx = dTagIndices.length > 0 ? Math.min(...dTagIndices) : 0;
+                    if (d.startDate.min === itemStartMs && dLaneIdx === laneIdx) stackDepth++;
+                }
+                
+                const xOffset = stackDepth * 6;
+                const { pxWidth } = formatLabelSmart(safeStripHTML(activeNode.title));
+                const basePx = ((itemStartMs - renderMinTime) / renderTimeRange) * trackW;
+                return basePx + xOffset + (pxWidth / 2) - (containerW / 2);
+            };
         
-            // [REF: PERF-41] Kinetic Camera Orchestrator (Time-to-Pixel Binding)
             useEffect(() => {
                 if (validData.length === 0 || !wrapperRef.current) return;
-                const activeDataIndex = validData.findIndex(d => d.id === activeIndex);
+                const activeNode = data[activeIndex];
+                const activeDataIndex = validData.findIndex(d => d.id === activeNode?.id);
                 if (activeDataIndex < 0 || dragRef.current.isDragging) return;
         
                 if (activeIndex !== prevActiveIndexRef.current) {
                     prevActiveIndexRef.current = activeIndex;
-                    const sT = validData.at(activeDataIndex).startDate.min;
                     
                     if (zoomLock === 'hard') {
-                        scrollTargetMsRef.current = sT;
-                        setZoomLevel(z => z + 0.000001); // Micro-trigger layout effect
+                        scrollTargetPayloadRef.current = activeIndex; // absolute ID payload
+                        setZoomLevel(z => z + 0.000001); 
                     } else {
                         if (zoomLock === 'soft') setZoomLock('auto');
                         if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
@@ -1323,31 +1347,34 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; max-width: 100vw;
                         const clampedZoom = Math.min(Math.max(1, idealZoom), 300);
         
                         if (Math.abs(clampedZoom - zoomLevel) < 0.1) {
-                            const { pxWidth } = formatLabelSmart(safeStripHTML(validData.at(activeDataIndex).title));
                             const containerW = wrapperRef.current.clientWidth || 1000;
                             const targetTrackW = Math.max(containerW, containerW * zoomLevel);
-                            const scrollPos = ((sT - renderMinTime) / renderTimeRange * targetTrackW) + (pxWidth / 2) - (containerW / 2);
+                            const scrollPos = getExactNodeScrollPos(activeIndex, targetTrackW, containerW);
                             wrapperRef.current.scrollTo({ left: scrollPos, behavior: 'smooth' });
                         } else {
-                            scrollTargetMsRef.current = sT;
-                            setZoomLevel(clampedZoom); // Forces useLayoutEffect snap
+                            scrollTargetPayloadRef.current = activeIndex;
+                            setZoomLevel(clampedZoom); 
                         }
                     }
                 }
             }, [activeIndex, data, zoomLock]);
         
             useLayoutEffect(() => {
-                if (scrollTargetMsRef.current !== null && wrapperRef.current) {
-                    const sT = scrollTargetMsRef.current;
+                if (scrollTargetPayloadRef.current !== null && wrapperRef.current) {
+                    const payload = scrollTargetPayloadRef.current;
                     const containerW = wrapperRef.current.clientWidth || 1000;
                     const targetTrackW = Math.max(containerW, containerW * zoomLevel);
+                    let targetPx = 0;
                     
-                    const activeNode = validData.find(d => d.startDate && d.startDate.min === sT);
-                    const pxW = activeNode ? formatLabelSmart(safeStripHTML(activeNode.title)).pxWidth : 60;
-                    const targetPx = ((sT - renderMinTime) / renderTimeRange * targetTrackW) + (pxW / 2) - (containerW / 2);
+                    if (typeof payload === 'number') {
+                        targetPx = getExactNodeScrollPos(payload, targetTrackW, containerW);
+                    } else if (payload.type === 'manual') {
+                        const centerPct = (payload.centerMs - renderMinTime) / renderTimeRange;
+                        targetPx = (centerPct * targetTrackW) - (payload.centerType === 'mouse' ? payload.eventX : (containerW / 2));
+                    }
         
                     wrapperRef.current.scrollTo({ left: targetPx, behavior: 'auto' });
-                    scrollTargetMsRef.current = null;
+                    scrollTargetPayloadRef.current = null;
                 }
             }, [zoomLevel]);
         
@@ -1358,9 +1385,7 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; max-width: 100vw;
                 const anchorPx = centerType === 'mouse' ? scrollPos + eventX : scrollPos + (containerW / 2);
                 const centerMs = renderMinTime + ((anchorPx / Math.max(containerW, containerW * zoomLevel)) * renderTimeRange);
                 
-                scrollTargetMsRef.current = centerMs;
-                // Force a micro-offset for center alignment during manual zoom calculation
-                const hackPxWidthAdjustment = (centerType === 'mouse' ? (eventX * 2) - containerW : 0);
+                scrollTargetPayloadRef.current = { type: 'manual', centerMs, eventX, centerType };
                 setZoomLevel(newZoom);
             };
         
@@ -1401,7 +1426,6 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; max-width: 100vw;
             const onWheel = (e) => {
                 e.preventDefault();
                 if (zoomLock !== 'hard') setZoomLock('soft');
-                // Temporary simplified mouse zoom to integrate with Time-to-Pixel engine securely
                 handleManualZoom(e.deltaY < 0 ? Math.min(zoomLevel * 1.5, 500) : Math.max(zoomLevel / 1.5, 1), 'center');
             };
         
@@ -1649,7 +1673,6 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; max-width: 100vw;
                         ? `background: linear-gradient(90deg, ${isActive ? 'rgba(0,122,204,0.6)' : 'rgba(204,0,0,0.4)'} 0%, transparent 100%);`
                         : `background: ${isActive ? 'rgba(0,122,204,0.4)' : 'rgba(204,0,0,0.3)'};`;
                         
-                    // [REF: TL-19] The 10px/4px Stepped Trapezoid & EDTF Uncertainty Ribbon
                     const borderL = isApproxStart ? '3px solid #ffb300' : `2px solid ${isActive ? '#007acc' : '#cc0000'}`;
                     const borderR = isApproxEnd ? '3px solid #ffb300' : 'none';
                     const cStyle = (isApproxStart || isApproxEnd) ? 'cursor: zoom-in;' : '';
@@ -1657,7 +1680,6 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; max-width: 100vw;
                     xAxisMarker = html`<div style="position: absolute; bottom: 0; left: 0; width: 100%; min-width: 4px; height: 10px; ${gradStyle} border-left: ${borderL}; border-right: ${borderR}; ${cStyle} clip-path: polygon(0 0, 100% 6px, 100% 100%, 0 100%); mix-blend-mode: multiply; z-index: 900; box-sizing: border-box;" title="${(isApproxStart || isApproxEnd) ? 'Approximate Duration. Click node to auto-zoom.' : ''}"></div>`;
                 }
 
-                // [REF: TL-20] The Momentary Drop-Line
                 let dropLine = '';
                 if (isActive) {
                     dropLine = html`<div style="position: absolute; left: 0; top: ${blockHeight / 2}px; bottom: 0; width: 2px; background: #007acc; z-index: 999;"></div>`;
@@ -1739,9 +1761,9 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; max-width: 100vw;
             </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v25.2.0';
+        MODULE_VERSIONS['TimelineScrubber'] = 'v25.2.1';
         // === [ END MAJOR BLOCK ] ===
-		
+
         // === [ MAJOR BLOCK: AppOrchestrator v3.4.2 ] ===
         const App = () => {
             const [logs, setLogs] = useState([]);
