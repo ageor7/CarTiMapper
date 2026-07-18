@@ -1,6 +1,13 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+[v8.10.0] - TimelineScrubber v26.3.0
+
+    ✓ [Timeline Clarity] Overlapping backgrounds are incredibly clean. Removed the stepped "mini-lanes" approach. All events sit flush against the ruler, and their patterned stripes are automatically "broken" into neat 70px segments with 30px gaps, making it trivial to read across massive overlaps without visual clutter.
+    ✓ [Approximation Styling] The vertical line connecting an event to the timeline ruler now explicitly tells you if the date is a rough estimate. For active events, instead of a solid blue line, it renders as a blue-and-gold striped "barber pole", cleanly indicating that you are looking at the current event, but the exact day/time is approximated.
+    ✓ [Tooltip Polishing] Hovering over a background duration now requires an intentional pause (about a third of a second) before the tooltip pops up, preventing distracting flashes while you are just moving your mouse across the screen. Furthermore, dropping the events down to the ruler permanently fixed the bug where tooltips would slide under the top buttons.
+    ✓ [Laptop Safe Maximization] Fixed a bug where clicking "Maximize" on a timeline with 15+ tags would push the map and text off the screen entirely. The timeline now intelligently stops growing once it hits 70% of your screen height.
+	
 [v8.9.1] - TimelineScrubber v26.1.0
 
     ✓ [Precision Centering] Fixed a bug where long text labels caused the timeline to physically offset its center point. The camera now snaps the timeline drop-line exactly to the dead-center of your screen every time, guaranteeing perfect chronological alignment.
