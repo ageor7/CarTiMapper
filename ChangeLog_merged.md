@@ -1,6 +1,11 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+[v8.10.3] - TimelineScrubber v26.6.0
+
+    ✓ [Visual Decluttering] Fixed an issue where the timeline felt crowded at the bottom edge. By analyzing which categories (Tags) have the fewest events, the engine automatically pushes those rare categories down to the very bottom lane. This prevents too many short vertical lines from mucking up the timeline ruler.
+    ✓ [Smart Grouping] Event categories that frequently occur together (like "Military" and "Politics") now mathematically attract each other. The timeline will permanently ensure their horizontal lanes are glued together to reduce the height of events that share multiple tags.
+	
 [v8.10.0] - TimelineScrubber v26.3.0
 
     ✓ [Timeline Clarity] Overlapping backgrounds are incredibly clean. Removed the stepped "mini-lanes" approach. All events sit flush against the ruler, and their patterned stripes are automatically "broken" into neat 70px segments with 30px gaps, making it trivial to read across massive overlaps without visual clutter.

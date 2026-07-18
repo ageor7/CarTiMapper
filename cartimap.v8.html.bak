@@ -263,7 +263,7 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; max-width: 100vw;
 		import edtf from 'https://esm.sh/edtf@4.11.0';
 
 		const html = htm.bind(h);
-		const APP_VERSION = 'v8.9.1';
+		const APP_VERSION = 'v8.10.0';
 		document.title = `CarTiMap Core - ${APP_VERSION}`;
 		const MODULE_VERSIONS = { Styles: 'v6.0.0', Globals: 'v2.0.5' };
 		const TM_CONFIG = { paneBackground: '#fcfcfc' };
@@ -1129,7 +1129,7 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; max-width: 100vw;
         MODULE_VERSIONS ["ContentSlider"] = 'v4.4.1';
         // === [ END MAJOR BLOCK ] ===
 
-        // === [ MAJOR BLOCK: TimelineScrubber v26.2.0 ] ===
+        // === [ MAJOR BLOCK: TimelineScrubber v26.3.0 ] ===
         const TimelineScrubber = ({ data, activeIndex, setActiveIndex, zoomLock, setZoomLock, setVisibleTimeSpan, isTimelineExpanded, setIsTimelineExpanded, isTimelineMinimized, setIsTimelineMinimized, dateLocale, timelineRequiredHeight, setVisibleTimeBounds }) => {
             const wrapperRef = useRef(null);
             const [zoomLevel, setZoomLevel] = useState(1);
@@ -1223,6 +1223,9 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; max-width: 100vw;
                     maxTimeRaw = d.startDate.min;
                 }
             });
+            
+            // [REF: TL-28] The Unique Start-Date Vector Registry
+            const uniqueStarts = Array.from(new Set(validData.map(d => d.startDate.min))).sort((a, b) => a - b);
         
             const rawTimeRange = Math.max(maxTimeRaw - minTimeRaw, 86400000);
             const padMs = rawTimeRange * 0.05;
@@ -1299,7 +1302,6 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; max-width: 100vw;
                 setVisibleTimeSpan(`Span: ${str}`);
             }, [zoomLevel, renderTimeRange, setVisibleTimeSpan]);
             
-            // [REF: PERF-44] O(1) Absolute Time-Axis Centering (Option C)
             const getExactNodeScrollPos = (nodeGlobalIdx, trackW, containerW) => {
                 const activeNode = data[nodeGlobalIdx];
                 if (!activeNode || !activeNode.startDate) return 0;
@@ -1384,7 +1386,6 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; max-width: 100vw;
                 setZoomLevel(newZoom);
             };
         
-            // [REF: UX-29] The Scroll "Ghost-Click" Extinguisher
             const onDown = (e) => {
                 if (zoomLock !== 'hard') setZoomLock('soft');
                 if (e.touches && e.touches.length === 2) {
@@ -1441,9 +1442,8 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; max-width: 100vw;
             };
             
             const handleCaliperEnter = (e, item) => {
-                const rect = e.target.getBoundingClientRect();
                 const clientX = e.clientX;
-                const clientY = rect.top;
+                const clientY = e.clientY;
                 
                 hoverTimeoutRef.current = setTimeout(() => {
                     const itemStart = item.startDate.min;
@@ -1463,7 +1463,7 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; max-width: 100vw;
                         durationMs: itemEnd - itemStart,
                         overlaps: overlaps.map(o => safeStripHTML(o.title))
                     });
-                }, 400); 
+                }, 350); 
             };
             
             const handleCaliperLeave = () => {
@@ -1690,8 +1690,6 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; max-width: 100vw;
                 let xAxisMarker = '';
                 let isApproxStart = item.startDate && item.startDate.isEDTF && item.startDate.obj && item.startDate.obj.approximate;
                 let isApproxEnd = item.endDate && item.endDate.isEDTF && item.endDate.obj && item.endDate.obj.approximate;
-                
-                const caliperBottom = stackDepth * 4; 
 
                 if (item.startDate.isEDTF && item.startDate.obj && !hasDuration) {
                     const obj = item.startDate.obj;
@@ -1710,26 +1708,25 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; max-width: 100vw;
                 
                 if (!xAxisMarker && hasDuration) {
                     if (isActive) {
-                        const gradStyle = `background: rgba(0,122,204,0.5);`;
-                        const borderL = isApproxStart ? '3px solid #ffb300' : `2px solid #007acc`;
-                        const borderR = isApproxEnd ? '3px solid #ffb300' : 'none';
+                        const activeBorderL = isApproxStart ? '3px solid #ffb300' : `2px solid #007acc`;
+                        const activeBorderR = isApproxEnd ? '3px solid #ffb300' : 'none';
                         const cStyle = (isApproxStart || isApproxEnd) ? 'cursor: zoom-in;' : '';
                             
-                        xAxisMarker = html`<div style="position: absolute; bottom: ${caliperBottom}px; left: 0; width: 100%; min-width: 4px; height: 10px; ${gradStyle} border-left: ${borderL}; border-right: ${borderR}; ${cStyle} clip-path: polygon(0 0, 100% 7px, 100% 100%, 0 100%); z-index: 950; box-sizing: border-box;" title="${(isApproxStart || isApproxEnd) ? 'Approximate Duration. Click node to auto-zoom.' : ''}"></div>`;
+                        xAxisMarker = html`<div style="position: absolute; bottom: 0; left: 0; width: 100%; min-width: 4px; height: 10px; background: rgba(0,122,204,0.15); border-left: ${activeBorderL}; border-right: ${activeBorderR}; border-top: none; border-bottom: none; ${cStyle} clip-path: polygon(0 0, 100% 7px, 100% 100%, 0 100%); z-index: 950; box-sizing: border-box;" title="${(isApproxStart || isApproxEnd) ? 'Approximate Duration. Click node to auto-zoom.' : ''}"></div>`;
                     } else {
-                        // [REF: TL-26] The Modulo-Pattern Matrix
-                        const styleIdx = stackDepth % 3;
-                        const dashStyles = ['solid', 'dashed', 'dotted'];
-                        const hatchAngles = ['45deg', '-45deg', '90deg'];
+                        // [REF: TL-28] Floorless Woven Matrix + CSS Mask-Rhythm
+                        const styleIdx = uniqueStarts.indexOf(itemStartMs) % 4;
+                        const hatchAngles = ['45deg', '-45deg', '0deg', '90deg'];
                         
-                        const borderL = isApproxStart ? '3px solid rgba(255,179,0,0.6)' : `2px ${dashStyles[styleIdx]} rgba(204,0,0,0.4)`;
-                        const borderR = isApproxEnd ? '3px solid rgba(255,179,0,0.6)' : `2px ${dashStyles[styleIdx]} rgba(204,0,0,0.4)`;
-                        const borderB = `2px ${dashStyles[styleIdx]} rgba(204,0,0,0.4)`;
+                        const borderL = isApproxStart ? '3px solid rgba(255,179,0,0.6)' : `2px solid rgba(204,0,0,0.4)`;
+                        const borderR = isApproxEnd ? '3px solid rgba(255,179,0,0.6)' : `2px solid rgba(204,0,0,0.4)`;
+                        
                         const hatchStyle = `background: repeating-linear-gradient(${hatchAngles[styleIdx]}, rgba(204,0,0,0.05), rgba(204,0,0,0.05) 2px, transparent 2px, transparent 6px);`;
+                        const segmentedMask = `-webkit-mask-image: repeating-linear-gradient(to right, black 0, black 70px, transparent 70px, transparent 100px); mask-image: repeating-linear-gradient(to right, black 0, black 70px, transparent 70px, transparent 100px);`;
                         
                         xAxisMarker = html`
-                        <div style="position: absolute; bottom: ${caliperBottom}px; left: 0; width: 100%; height: 10px; z-index: 900;">
-                            <div style="position: absolute; inset: 0; ${hatchStyle} border-left: ${borderL}; border-right: ${borderR}; border-bottom: ${borderB}; clip-path: polygon(0 0, 100% 7px, 100% 100%, 0 100%); box-sizing: border-box;"></div>
+                        <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 10px; z-index: 900; mix-blend-mode: multiply;">
+                            <div style="position: absolute; inset: 0; ${hatchStyle} border-left: ${borderL}; border-right: ${borderR}; border-bottom: none; border-top: none; clip-path: polygon(0 0, 100% 7px, 100% 100%, 0 100%); box-sizing: border-box; ${segmentedMask}"></div>
                             <div class="hover-bridge-hitbox"
                                  style="position: absolute; top: 0; bottom: -15px; left: -2px; right: -2px; z-index: 10; cursor: help;"
                                  onMouseEnter=${(e) => handleCaliperEnter(e, item)}
@@ -1741,16 +1738,17 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; max-width: 100vw;
                 }
 
                 let dropLine = '';
+                // [REF: TL-29] The Dual-Tone Barber Pole (Approximations)
                 if (isActive) {
-                    dropLine = html`<div style="position: absolute; left: 0; top: ${blockHeight / 2}px; bottom: 0; width: 2px; background: #007acc; z-index: 999;"></div>`;
+                    const bgStr = isApproxStart ? 'repeating-linear-gradient(to bottom, #007acc, #007acc 4px, #ffb300 4px, #ffb300 8px)' : '#007acc';
+                    dropLine = html`<div style="position: absolute; left: 0; top: ${blockHeight / 2}px; bottom: 0; width: 2px; background: ${bgStr}; z-index: 999;"></div>`;
                 } else if (!hasDuration) {
-                    const dropColor = isApproxStart ? '#ffb300' : '#cc0000';
+                    const bgStr = isApproxStart ? 'repeating-linear-gradient(to bottom, transparent, transparent 4px, #ffb300 4px, #ffb300 8px)' : '#cc0000';
                     const dropTitle = isApproxStart ? 'Approximate Date' : '';
                     const dropCursor = isApproxStart ? 'cursor: zoom-in;' : '';
-                    dropLine = html`<div style="position: absolute; left: 0; top: ${blockHeight / 2}px; bottom: 0; width: 2px; background: ${dropColor}; z-index: 900; ${dropCursor}" title="${dropTitle}"></div>`;
+                    dropLine = html`<div style="position: absolute; left: 0; top: ${blockHeight / 2}px; bottom: 0; width: 2px; background: ${bgStr}; z-index: 900; ${dropCursor}" title="${dropTitle}"></div>`;
                 }
                 
-                // [REF: TL-27] The Spatial Anchor Pattern
                 return html`
                 <div id="timeline-marker-${globalIndex}" class="event-group ${isActive ? 'active' : ''}" style="left: ${startPct}%; top: calc(${topPos}px); bottom: 28px; ${hasDuration ? `width: ${endPct - startPct}%; min-width: 4px;` : `width: 0;`}" onClick=${() => handleNodeClick(globalIndex)}>
                     ${dropLine}
@@ -1839,7 +1837,7 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; max-width: 100vw;
             </div>
             `;
         };
-        MODULE_VERSIONS['TimelineScrubber'] = 'v26.10';
+        MODULE_VERSIONS['TimelineScrubber'] = 'v26.3.0';
         // === [ END MAJOR BLOCK ] ===
 		
         // === [ MAJOR BLOCK: AppOrchestrator v3.4.2 ] ===
