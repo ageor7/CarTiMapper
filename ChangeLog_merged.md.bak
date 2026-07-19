@@ -1,6 +1,15 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+[v8.11.3] - ContentSlider v5.2.0 / Narrative Polish
+System Integrity & UI:
+
+    [VOID] v8.12.0 and v8.12.1 retracted per executive override. Chronological EDTF engine discarded.
+    ✓ [Touch & Click Navigation Restored] Removed the invisible "click zones" that were blocking the vertical scrollbar. Injected floating navigation chevrons and restored physical touch-swipe detection for tablet/mobile users.
+    ✓ [Scroll State Reset] The narrative text pane now automatically scrolls back to the top when navigating to a new event.
+    ✓ [Hanging Indents] Narrative paragraphs beginning with 💬, •, or - are now automatically formatted with mathematically precise hanging indents for academic readability.
+    ✓ [Web Page Hyperlinks] Event Titles now act as clickable hyperlinks if a valid URL exists in the database Web Page column.
+	
 [v8.11.2] - AppOrchestrator v8.11.2 / Final Layout Polish
 User Experience (Experiential):
 
