@@ -1,6 +1,15 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+[v8.10.9] - ContentSlider v4.6.1
+
+    ✓ [Fitts's Law Scrollbar Fix] Resolved the phantom "dead zone" on desktop screens. The engine now dynamically detects the width of the operating system's native scrollbar and geometrically shifts the invisible tap-to-advance boundaries, guaranteeing you can cleanly grab the scrollbar on Windows without accidentally changing slides.
+    ✓ [Fluid Metadata Ribbon] Dropped the rigid left/right columns for Date and Places. The Date, Places, and Tags now share a single fluid row. If an event contains four distinct geographic locations, they simply cascade elegantly down the right side without pushing the Title off the screen.
+    ✓ [Aggressive Micro-Ribbon] When you scroll past the first 40 pixels, the sticky header now compresses heavily to maximize your reading space. The Date shrinks to 0.75rem, the Title clamps down to 0.95rem, the padding collapses by 50%, and the shadow deepens to lift the ribbon physically "off" the page.
+    ✓ [Date-less Event Support] Standardized presentation for slides without chronological anchors (like the "About" screen). If no valid Date exists, the engine gracefully collapses the Date container, eliminating empty space and pushing the Title higher up the hierarchy.
+    ✓ [Academic Hanging Indents] Resolved browser alignment failures with custom symbols. Lines beginning with bullet points (•, -) or conversation bubbles (💬) are automatically pulled into the left margin via a negative-space anchor, ensuring the paragraphs of text remain in a mathematically perfect, flush-left academic block.
+    ✓ [Title Hyperlinking] The slide's Title is now dynamically wrapped in a clean, non-obtrusive hyperlink routing to the event's external Web Page if one is provided in the Google Sheet.
+	
 [v8.10.8] - TimelineScrubber v26.10.0
 
     ✓ [Theme Engine & White-Labeling] We shifted the application closer to a fully decoupled "White-Label" state. The tooltip and timeline ribbon floor now respond to dynamic theme variables, defaulting to a clean, professional Light Theme instead of the harsh dark mode.
