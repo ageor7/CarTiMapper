@@ -1,6 +1,12 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+[v8.10.5] - TimelineScrubber v26.7.0
+
+    ✓ [Visual Readability & Accessibility] Completely overhauled the timeline's color palette to a professional standard. We purged the aggressive reds and low-contrast golds, replacing them with a sleek combination of Sapphire Blue for active events, Slate Grey for inactive ones, and Burnt Amber for uncertain dates. The timeline now sits on a pure white background, drastically reducing eye strain and improving overall clarity.
+    ✓ [Decluttered Overlaps (Αραίωση)] Solved the issue where overlapping duration ribbons created a dense, muddy "carpet." The striped patterns are now highly sparse and strictly diagonal (a "Ghost-Hatch"), allowing you to see through the layers easily even when multiple historical periods overlap in the same swimlane.
+    ✓ [Approximation Indicators] Scrapped the heavy, rail-like "charcoal casing" around approximate dates. We replaced it with an elegant "Parallel Racing Stripe"—a clean, dual-color vertical line combining amber (to clearly signal historical approximation) and blue (to anchor the active selection). This communicates chronological uncertainty perfectly without crowding the interface or looking industrial.
+	
 [v8.10.3] - TimelineScrubber v26.6.0
 
     ✓ [Visual Decluttering] Fixed an issue where the timeline felt crowded at the bottom edge. By analyzing which categories (Tags) have the fewest events, the engine automatically pushes those rare categories down to the very bottom lane. This prevents too many short vertical lines from mucking up the timeline ruler.
