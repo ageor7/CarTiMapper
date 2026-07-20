@@ -1,6 +1,7 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+[v8.11.16] - AppOrchestrator v3.4.4 / EDTF Semantic Split Hotfix
 [v8.11.2] - AppOrchestrator v3.4.3 / EDTF Semantic-Mathematical Split
 Data Pipeline Integrity:
 
