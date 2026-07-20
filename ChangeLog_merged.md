@@ -1,6 +1,12 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+[v8.11.23] - AST Compiler Armor & Syntax Recovery
+System Integrity & Physics:
+
+    ✓ [Recursive Array Trap Fixed] Corrected a fatal TypeError vulnerability where the AST Generator mathematically attempted to execute String prototypes (.trim()) directly on split Array objects during duration-range evaluations (..). The engine now structurally forces strict string coercion (String(str)) at the absolute entry boundary and passes precise array indices to recursive nodes.
+    ✓ [Extensibility Shielding] Deployed an Object.isExtensible() proxy to ensure customized AST qualifiers (approximate, uncertain) are only bound to parsed matrices that natively accept mutation, preventing strict-mode write collisions.
+	
 [v8.11.22] - Native AST Compiler (True ISO 8601-2 Compliance)
 System Integrity & Physics:
 

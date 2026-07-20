@@ -1,6 +1,12 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+[v8.11.22] - Native AST Compiler (True ISO 8601-2 Compliance)
+System Integrity & Physics:
+
+    ✓ [AST Decorator Engine] Deprecated the Regex Proxy Mask. Engineered and deployed a lightweight, recursive descent ECMAScript parser (compileCartiMapAST). The engine now mathematically processes ISO 8601-2 Choice Sets ([]), Inclusive Lists ({}), and Duration Expansions (..) containing mixed precisions, entirely bypassing the native limitations of the edtf.js grammar tree without resorting to a heavy 1.2MB library fork.
+    ✓ [Level 3 Native Compliance] The AST Compiler forces sub-routines through edtf.js Level 3 configuration, seamlessly interpreting and calculating Sub-Year Groupings (e.g., 1944-26 for Summer) previously rejected by the strict Level 2 parameters.
+	
 [v8.11.18] - AppOrchestrator v3.4.6 / EDTF Proxy Mask Expansion
 System Integrity & Debugging:
 
