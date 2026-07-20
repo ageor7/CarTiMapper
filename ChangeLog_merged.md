@@ -1,6 +1,11 @@
 # CarTiMapper Changelog
 All notable changes to this project will be documented in this file.
 
+[v8.11.2] - AppOrchestrator v3.4.3 / EDTF Semantic-Mathematical Split
+Data Pipeline Integrity:
+
+    ✓ [Clock-X Parser Fix] The engine now natively accepts Level 2 EDTF Unspecified Digits (X) within the clock boundaries (e.g., 19:XX).
+	
 [v8.11.8] - ContentSlider v5.7.0 / Frontend Typography Purge
 System Integrity & UX:
 
